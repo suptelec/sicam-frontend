@@ -1,4 +1,4 @@
-import { Component, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { AuthService } from '../../core/auth/services/auth.service';
 
 @Component({
@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth/services/auth.service';
   styleUrl: './navbar.scss'
 })
 export class NavbarComponent {
+  pageTitle = input<string>('Dashboard');
   toggleSidebar = output<void>();
 
   constructor(public authService: AuthService) {}

@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { NavbarComponent } from '../navbar/navbar';
 import { SidebarComponent } from '../sidebar/sidebar';
 
+
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -12,6 +13,8 @@ import { SidebarComponent } from '../sidebar/sidebar';
 })
 export class ShellComponent {
   sidebarCollapsed = signal(false);
+  
+
 
   toggleSidebar() {
     this.sidebarCollapsed.update(v => !v);

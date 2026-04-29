@@ -19,6 +19,7 @@ export class AuthService {
     const config: AuthConfig = {
       issuer: environment.oidc.issuer,
       redirectUri: environment.oidc.redirectUri,
+      postLogoutRedirectUri: environment.oidc.postLogoutRedirectUri,
       clientId: environment.oidc.clientId,
       responseType: 'code',
       scope: environment.oidc.scope,
@@ -41,9 +42,12 @@ export class AuthService {
   }
 
   logout(): void {
-    this.oauthService.logOut();
     this._currentUser.set(null);
-  }
+    const idToken = this.oauthService.getIdToken();
+    this.oauthService.logOut({
+        id_token_hint: idToken
+    });
+}
 
   isAuthenticated(): boolean {
     return this.oauthService.hasValidAccessToken();

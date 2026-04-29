@@ -1,15 +1,18 @@
 <aside class="sidebar" [class.collapsed]="collapsed()">
-  <div class="sidebar-header">
-    <div class="sidebar-logo">
-      <div class="logo-icon">S</div>
-      @if (!collapsed()) {
-        <span class="logo-text">SICAM</span>
-      }
-    </div>
+  <div class="sb-header">
+    <div class="sb-logo">S</div>
+    @if (!collapsed()) {
+      <span class="sb-brand">SICAM</span>
+    }
   </div>
 
-  <nav class="sidebar-nav">
-    @for (item of items; track item.route) {
+  <nav class="sb-nav">
+    @for (item of items; track item.route; let i = $index) {
+      @if (getSection(i)) {
+        @if (!collapsed()) {
+          <div class="sb-section">{{ getSection(i) }}</div>
+        }
+      }
       <a class="nav-item"
          [routerLink]="item.route"
          routerLinkActive="active"
@@ -22,9 +25,17 @@
     }
   </nav>
 
-  <div class="sidebar-footer">
-    @if (!collapsed()) {
-      <span class="footer-version">v1.0.0</span>
-    }
+  <div class="sb-footer">
+    <div class="user-card">
+      <div class="ua">
+        {{ 'SV' }}
+      </div>
+      @if (!collapsed()) {
+        <div class="ud">
+          <span class="un">Santiago Vizcaíno</span>
+          <span class="ue">CENACE · Admin</span>
+        </div>
+      }
+    </div>
   </div>
 </aside>
