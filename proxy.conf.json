@@ -1,0 +1,16 @@
+{
+  "/identity": {
+    "target": "https://localhost:64659",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info",
+    "pathRewrite": { "^/identity": "" }
+  },
+  "/api": {
+    "target": "https://localhost:7128",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info",
+    "pathRewrite": { "^/api": "" }
+  }
+}

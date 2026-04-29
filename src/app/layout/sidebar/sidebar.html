@@ -1,0 +1,30 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="logo-icon">S</div>
+      @if (!collapsed()) {
+        <span class="logo-text">SICAM</span>
+      }
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    @for (item of items; track item.route) {
+      <a class="nav-item"
+         [routerLink]="item.route"
+         routerLinkActive="active"
+         [title]="collapsed() ? item.label : ''">
+        <span class="nav-icon" [innerHTML]="getIcon(item.icon)"></span>
+        @if (!collapsed()) {
+          <span class="nav-label">{{ item.label }}</span>
+        }
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar-footer">
+    @if (!collapsed()) {
+      <span class="footer-version">v1.0.0</span>
+    }
+  </div>
+</aside>

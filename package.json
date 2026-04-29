@@ -11,14 +11,21 @@
   "private": true,
   "packageManager": "npm@11.6.2",
   "dependencies": {
+    "@angular/cdk": "^21.2.8",
     "@angular/common": "^21.2.0",
     "@angular/compiler": "^21.2.0",
     "@angular/core": "^21.2.0",
     "@angular/forms": "^21.2.0",
+    "@angular/material": "^21.2.8",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
+    "@microsoft/signalr": "^10.0.0",
+    "@ngneat/until-destroy": "^10.0.0",
+    "angular-oauth2-oidc": "^20.0.2",
+    "angular-odata": "^0.145.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "zone.js": "^0.16.1"
   },
   "devDependencies": {
     "@angular/build": "^21.2.8",

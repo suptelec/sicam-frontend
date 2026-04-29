@@ -1,0 +1,27 @@
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="toggle-btn" (click)="onToggleSidebar()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <span class="app-name">SICAM</span>
+  </div>
+
+  <div class="topbar-right">
+    <div class="user-info">
+      <div class="user-avatar">
+        {{ authService.currentUser()?.fullName?.charAt(0) ?? 'U' }}
+      </div>
+      <div class="user-details">
+        <span class="user-name">{{ authService.currentUser()?.fullName ?? 'Usuario' }}</span>
+        <span class="user-email">{{ authService.currentUser()?.email ?? '' }}</span>
+      </div>
+    </div>
+    <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</header>
