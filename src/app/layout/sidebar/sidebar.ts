@@ -1,6 +1,8 @@
-import { Component, input } from '@angular/core';
+import { Component, input, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { AuthService } from '../../core/auth/services/auth.service';
+
 
 export interface SidebarItem {
   label: string;
@@ -18,8 +20,22 @@ export interface SidebarItem {
 })
 export class SidebarComponent {
   collapsed = input<boolean>(false);
+  private authService = inject(AuthService);
 
   constructor(private sanitizer: DomSanitizer) {}
+
+    get userInitials(): string {
+      const name = this.authService.currentUser()?.fullName ?? 'U';
+      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+
+    get userName(): string {
+      return this.authService.currentUser()?.fullName ?? 'Usuario';
+    }
+
+    get userEmail(): string {
+      return this.authService.currentUser()?.email ?? '';
+    }
 
   items: SidebarItem[] = [
     { label: 'Dashboard',     route: '/dashboard',     icon: 'dashboard',  section: 'Principal'   },

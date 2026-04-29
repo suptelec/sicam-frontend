@@ -3,6 +3,7 @@ import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { CurrentUser } from '../../models/current-user.model';
+import { AuthClaims } from '../constants/auth.constants';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -56,16 +57,29 @@ export class AuthService {
   getAccessToken(): string {
     return this.oauthService.getAccessToken();
   }
-
   private loadCurrentUser(): void {
     const claims = this.oauthService.getIdentityClaims() as any;
-    if (!claims) return;
+    
+    // Intentar leer del access token si id_token no tiene los claims
+    const accessToken = this.oauthService.getAccessToken();
+    let tokenClaims: any = claims;
+    
+    if (accessToken && !claims?.['name']) {
+      try {
+        const payload = accessToken.split('.')[1];
+        tokenClaims = JSON.parse(atob(payload));
+      } catch (e) {
+        tokenClaims = claims;
+      }
+    }
 
-    this._currentUser.set({
-      id: claims['sub'],
-      userName: claims['preferred_username'] ?? claims['name'],
-      email: claims['email'],
-      fullName: claims['name'],
+    if (!tokenClaims) return;
+
+   this._currentUser.set({
+      id:       tokenClaims[AuthClaims.sub],
+      userName: tokenClaims[AuthClaims.sub],
+      email:    tokenClaims[AuthClaims.email] ?? tokenClaims['email'],
+      fullName: tokenClaims[AuthClaims.name] ?? tokenClaims[AuthClaims.sub],
     });
   }
 }

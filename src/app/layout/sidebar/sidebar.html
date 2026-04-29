@@ -26,16 +26,14 @@
   </nav>
 
   <div class="sb-footer">
-    <div class="user-card">
-      <div class="ua">
-        {{ 'SV' }}
+  <div class="user-card">
+    <div class="ua">{{ userInitials }}</div>
+    @if (!collapsed()) {
+      <div class="ud">
+        <span class="un">{{ userName }}</span>
+        <span class="ue">{{ userEmail }}</span>
       </div>
-      @if (!collapsed()) {
-        <div class="ud">
-          <span class="un">Santiago Vizcaíno</span>
-          <span class="ue">CENACE · Admin</span>
-        </div>
-      }
-    </div>
+    }
   </div>
+</div>
 </aside>
