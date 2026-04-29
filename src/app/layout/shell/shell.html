@@ -1,6 +1,6 @@
 <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed()">
   <app-sidebar [collapsed]="sidebarCollapsed()" />
-  <div class="shell-main">
+  <div class="shell-main" [class.collapsed]="sidebarCollapsed()">
     <app-navbar (toggleSidebar)="toggleSidebar()" />
     <main class="shell-content">
       <router-outlet />
