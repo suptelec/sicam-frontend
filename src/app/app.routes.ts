@@ -21,6 +21,12 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/system-users/system-users.routes')
             .then(m => m.SYSTEM_USERS_ROUTES)
+      },
+      {
+        path: 'external-clients',
+        loadChildren: () =>
+          import('./features/external-clients/external-clients.routes')
+            .then(m => m.EXTERNAL_CLIENTS_ROUTES)
       }
     ]
   },

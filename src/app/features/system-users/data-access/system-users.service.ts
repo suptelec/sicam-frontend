@@ -11,12 +11,30 @@ export class SystemUsersService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/v1/SystemUsers`;
 
-  getAll(page = 1, take = 20, odataParams?: { filter?: string }): Observable<PaginatedResult<SystemUser>> {
+  getAll(
+    page = 1,
+    take = 20,
+    odataParams?: {
+      filter?: string;
+      orderby?: string;
+      select?: string;
+    }
+  ): Observable<PaginatedResult<SystemUser>> {
     let params = new HttpParams()
       .set('page', page)
       .set('take', take);
 
-    if (odataParams?.filter) params = params.set('$filter', odataParams.filter);
+    if (odataParams?.filter) {
+      params = params.set('$filter', odataParams.filter);
+    }
+
+    if (odataParams?.orderby) {
+      params = params.set('$orderby', odataParams.orderby);
+    }
+
+    if (odataParams?.select) {
+      params = params.set('$select', odataParams.select);
+    }
 
     return this.http.get<PaginatedResult<SystemUser>>(this.base, { params });
   }

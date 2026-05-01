@@ -1,35 +1,77 @@
-<div class="page">
-  <div class="page-header">
+<section class="page">
+  <header class="page__header">
     <div>
-      <h1 class="page-title">Empresas PMSE</h1>
-      <p class="page-sub">Participantes Mayoristas del Sector Eléctrico</p>
+      <p class="page__eyebrow">Administración</p>
+      <h1>Empresas PMSE</h1>
+      <p>Participantes Mayoristas del Sector Eléctrico registrados en SICAM.</p>
     </div>
-    <button mat-raised-button color="primary" (click)="drawerOpen.set(true)">
+
+    <button
+      mat-flat-button
+      class="page__primary-btn"
+      type="button"
+      (click)="drawerOpen.set(true)">
       <mat-icon>add</mat-icon>
       Nueva empresa
     </button>
-  </div>
+  </header>
 
-    <div class="toolbar">
-    <div class="search-wrap">
-      <mat-icon class="search-icon">search</mat-icon>
-      <input class="search-input"
-            placeholder="Buscar por nombre, RUC, código..."
-            [(ngModel)]="searchTerm"
-            (keyup.enter)="onSearch()">
+  <section class="toolbar">
+    <div class="search">
+      <mat-icon>search</mat-icon>
+
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        placeholder="Buscar por nombre, RUC o código CENACE..."
+        (keyup.enter)="onSearch()" />
+
+      @if (searchTerm) {
+        <button
+          mat-icon-button
+          type="button"
+          class="search__clear"
+          matTooltip="Limpiar búsqueda"
+          (click)="searchTerm = ''; onSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
     </div>
-  </div>
-  <div class="table-container">
-    <table mat-table [dataSource]="dataSource" style="width:100%">
-      
+
+    <button
+      mat-stroked-button
+      class="toolbar__refresh"
+      type="button"
+      (click)="load()"
+      [disabled]="isLoading()">
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+  </section>
+
+  <section class="table-card">
+    <table mat-table [dataSource]="dataSource" class="companies-table">
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef>Empresa</th>
-        <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+        <td mat-cell *matCellDef="let row">
+          <div class="company-name">
+            <div class="company-name__avatar">
+              <mat-icon>business</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.name }}</strong>
+              <span>ID interno: {{ row.id }}</span>
+            </div>
+          </div>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="externalCode">
         <th mat-header-cell *matHeaderCellDef>Código CENACE</th>
-        <td mat-cell *matCellDef="let row">{{ row.externalCode }}</td>
+        <td mat-cell *matCellDef="let row">
+          <code class="code-pill">{{ row.externalCode }}</code>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="ruc">
@@ -40,22 +82,28 @@
       <ng-container matColumnDef="type">
         <th mat-header-cell *matHeaderCellDef>Tipo</th>
         <td mat-cell *matCellDef="let row">
-          <span class="badge badge-type">{{ getTypeLabel(row.type) }}</span>
+          <span class="badge badge-type">
+            {{ getTypeLabel(row.type) }}
+          </span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="region">
         <th mat-header-cell *matHeaderCellDef>Región</th>
         <td mat-cell *matCellDef="let row">
-          <span class="badge badge-region">{{ getRegionLabel(row.region) }}</span>
+          <span class="badge badge-region">
+            {{ getRegionLabel(row.region) }}
+          </span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
         <td mat-cell *matCellDef="let row">
-          <span class="badge" [class.badge-active]="row.status === EntityStatus.Active"
-                              [class.badge-inactive]="row.status !== EntityStatus.Active">
+          <span
+            class="badge"
+            [class.badge-active]="row.status === EntityStatus.Active"
+            [class.badge-inactive]="row.status !== EntityStatus.Active">
             {{ row.status === EntityStatus.Active ? 'Activa' : 'Inactiva' }}
           </span>
         </td>
@@ -63,11 +111,14 @@
 
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let row">
-          <button mat-icon-button
-                  [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
-                  (click)="onToggleStatus(row)">
-            <mat-icon [style.color]="row.status === EntityStatus.Active ? '#f87171' : '#4ade80'">
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button
+            mat-icon-button
+            type="button"
+            [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
+            (click)="onToggleStatus(row)">
+            <mat-icon [class.action-danger]="row.status === EntityStatus.Active"
+                      [class.action-success]="row.status !== EntityStatus.Active">
               {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
             </mat-icon>
           </button>
@@ -80,7 +131,20 @@
       @if (!isLoading() && dataSource.data.length === 0) {
         <tr class="mat-row">
           <td [attr.colspan]="displayedColumns.length" class="no-data">
-            No hay empresas registradas
+            <div class="empty-state">
+              <mat-icon>business</mat-icon>
+              <h3>No hay empresas registradas</h3>
+              <p>Crea una empresa PMSE para iniciar la gestión dentro de SICAM.</p>
+
+              <button
+                mat-flat-button
+                class="page__primary-btn"
+                type="button"
+                (click)="drawerOpen.set(true)">
+                <mat-icon>add</mat-icon>
+                Crear empresa
+              </button>
+            </div>
           </td>
         </tr>
       }
@@ -94,8 +158,8 @@
       (page)="onPageChange($event)"
       showFirstLastButtons>
     </mat-paginator>
-  </div>
-</div>
+  </section>
+</section>
 
 @if (drawerOpen()) {
   <app-pmse-company-drawer

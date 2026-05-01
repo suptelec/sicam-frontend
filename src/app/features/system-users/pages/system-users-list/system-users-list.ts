@@ -53,16 +53,21 @@ export class SystemUsersListComponent implements OnInit {
 
   load(): void {
     this.isLoading.set(true);
-    const filter = this.searchTerm
-      ? `contains(fullName,'${this.searchTerm}') or contains(email,'${this.searchTerm}')`
-      : undefined;
 
-    this.service.getAll(this.pageIndex + 1, this.pageSize, { filter }).subscribe({
+    const filter = this.buildFilter();
+
+    this.service.getAll(this.pageIndex + 1, this.pageSize, {
+      filter,
+      orderby: 'Id desc'
+    }).subscribe({
       next: res => {
         if (res.succeed) {
           this.dataSource.data = res.result ?? [];
-          this.totalRecords    = res.totalRecords ?? 0;
+          this.totalRecords = res.totalRecords ?? 0;
+        } else {
+          this.toast.error(res.message ?? 'Error al cargar los usuarios');
         }
+
         this.isLoading.set(false);
       },
       error: () => {
@@ -71,6 +76,19 @@ export class SystemUsersListComponent implements OnInit {
       }
     });
   }
+
+private buildFilter(): string | undefined {
+  const value = this.searchTerm.trim().toLowerCase().replace(/'/g, "''");
+
+  if (!value) {
+    return undefined;
+  }
+
+  return [
+    `contains(tolower(FullName),'${value}')`,
+    `contains(tolower(Email),'${value}')`
+  ].join(' or ');
+}
 
   onSearch(): void {
     this.pageIndex = 0;

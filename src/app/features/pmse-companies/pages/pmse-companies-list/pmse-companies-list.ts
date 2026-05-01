@@ -59,16 +59,21 @@ export class PmseCompaniesListComponent implements OnInit {
 
   load(): void {
     this.isLoading.set(true);
-    const filter = this.searchTerm
-      ? `contains(name,'${this.searchTerm}') or contains(ruc,'${this.searchTerm}') or contains(externalCode,'${this.searchTerm}')`
-      : undefined;
 
-    this.service.getAll(this.pageIndex + 1, this.pageSize, { filter }).subscribe({
+    const filter = this.buildFilter();
+
+    this.service.getAll(this.pageIndex + 1, this.pageSize, {
+      filter,
+      orderby: 'Id desc'
+    }).subscribe({
       next: res => {
         if (res.succeed) {
-            this.dataSource.data = res.result ?? [];
-            this.totalRecords = res.totalRecords ?? 0;
+          this.dataSource.data = res.result ?? [];
+          this.totalRecords = res.totalRecords ?? 0;
+        } else {
+          this.toast.error(res.message ?? 'Error al cargar las empresas');
         }
+
         this.isLoading.set(false);
       },
       error: () => {
@@ -127,5 +132,19 @@ export class PmseCompaniesListComponent implements OnInit {
     this.drawerOpen.set(false);
     this.toast.success('Empresa creada correctamente');
     this.load();
+  }
+
+  private buildFilter(): string | undefined {
+    const value = this.searchTerm.trim().toLowerCase().replace(/'/g, "''");
+
+    if (!value) {
+      return undefined;
+    }
+
+    return [
+      `contains(tolower(Name),'${value}')`,
+      `contains(tolower(Ruc),'${value}')`,
+      `contains(tolower(ExternalCode),'${value}')`
+    ].join(' or ');
   }
 }

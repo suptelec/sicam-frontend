@@ -1,0 +1,160 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">CLIENTES M2M</p>
+      <h2>Crear cliente externo</h2>
+      <p class="drawer__description">
+        Registra una aplicación externa para consumir los servicios de SICAM mediante client credentials.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  @if (!hasCredentials) {
+    <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="drawer__field">
+        <mat-label>Nombre del sistema externo</mat-label>
+        <input
+          matInput
+          formControlName="displayName"
+          autocomplete="off"
+        />
+
+        @if (form.controls.displayName.hasError('required')) {
+          <mat-error>El nombre es obligatorio.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="drawer__field">
+        <mat-label>Email de contacto</mat-label>
+        <input
+          matInput
+          formControlName="contactEmail"
+          autocomplete="off"
+        />
+
+        @if (form.controls.contactEmail.hasError('required')) {
+          <mat-error>El email es obligatorio.</mat-error>
+        }
+
+        @if (form.controls.contactEmail.hasError('email')) {
+          <mat-error>Ingrese un email válido.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="drawer__field drawer__public-key">
+        <mat-label>Clave pública RSA</mat-label>
+        <textarea
+          matInput
+          formControlName="publicKey"
+          rows="8"
+        ></textarea>
+
+        <mat-hint>Formato PEM: -----BEGIN PUBLIC KEY-----</mat-hint>
+
+        @if (form.controls.publicKey.hasError('required')) {
+          <mat-error>La clave pública es obligatoria.</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="drawer__info">
+        <mat-icon>info</mat-icon>
+        <p>
+          La clave pública se usará para validar el contexto de auditoría firmado por el sistema externo.
+        </p>
+      </div>
+
+      <footer class="drawer__actions">
+        <button
+          mat-stroked-button
+          type="button"
+          class="drawer__btn drawer__btn--secondary"
+          (click)="close()"
+          [disabled]="loading"
+        >
+          <mat-icon>close</mat-icon>
+          Cancelar
+        </button>
+
+        <button
+          mat-flat-button
+          type="submit"
+          class="drawer__btn drawer__btn--primary"
+          [disabled]="loading"
+        >
+          @if (loading) {
+            <mat-spinner diameter="18" />
+          } @else {
+            <mat-icon>add</mat-icon>
+          }
+          Crear cliente
+        </button>
+      </footer>
+    </form>
+  } @else {
+    <section class="credentials">
+      <div class="credentials__icon">
+        <mat-icon>vpn_key</mat-icon>
+      </div>
+
+      <h3>Credenciales generadas</h3>
+
+      <p class="credentials__warning">
+        Copia el Client Secret ahora. Por seguridad, no se volverá a mostrar.
+      </p>
+
+      <div class="credential-field">
+        <label>CLIENT ID</label>
+        <div>
+          <code>{{ createdClient?.clientId }}</code>
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Copiar Client ID"
+            (click)="copy(createdClient?.clientId, 'Client ID')"
+          >
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="credential-field credential-field--secret">
+        <label>CLIENT SECRET</label>
+        <div>
+          <code>{{ createdClient?.clientSecret }}</code>
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Copiar Client Secret"
+            (click)="copy(createdClient?.clientSecret, 'Client Secret')"
+          >
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <footer class="drawer__actions">
+        <button
+          mat-flat-button
+          type="button"
+          class="drawer__btn drawer__btn--primary"
+          (click)="close()"
+        >
+          <mat-icon>check</mat-icon>
+          Entendido
+        </button>
+      </footer>
+    </section>
+  }
+</section>

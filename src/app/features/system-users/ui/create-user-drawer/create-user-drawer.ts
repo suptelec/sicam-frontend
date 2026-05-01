@@ -6,6 +6,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
 import { SystemUsersService } from '../../data-access/system-users.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { PmseCompaniesService } from '../../../pmse-companies/data-access/pmse-companies.service';
@@ -23,7 +25,8 @@ import { PermissionValue, PermissionLabels } from '../../domain/system-user.enum
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './create-user-drawer.html',
   styleUrl: './create-user-drawer.scss'
@@ -37,12 +40,13 @@ export class CreateUserDrawerComponent {
   private toast   = inject(ToastService);
   private companiesService = inject(PmseCompaniesService);
 
-  isLoading    = signal(false);
-  companies    = signal<PmseCompany[]>([]);
+  isLoading = signal(false);
+  companies = signal<PmseCompany[]>([]);
 
-  UserType         = UserType;
-  PermissionValue  = PermissionValue;
+  UserType = UserType;
+  PermissionValue = PermissionValue;
   PermissionLabels = PermissionLabels;
+
   permissionValues = [
     PermissionValue.None,
     PermissionValue.Read,
@@ -52,37 +56,37 @@ export class CreateUserDrawerComponent {
 
   selectedType = signal<UserType | null>(null);
   hidePassword = signal(true);
-  
+
   baseForm = this.fb.group({
-    username:  ['', Validators.required],
-    email:     ['', [Validators.required, Validators.email]],
-    name:      ['', Validators.required],
-    lastName:  ['', Validators.required],
-    password:  ['', [Validators.required, Validators.minLength(8)]],
-    phone:     [''],
-    position:  [''],
+    username: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]],
+    name: ['', Validators.required],
+    lastName: ['', Validators.required],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    phone: [''],
+    position: [''],
   });
 
   cenacePermissions = this.fb.group({
-    calibrationPlanPermission:    [PermissionValue.None],
+    calibrationPlanPermission: [PermissionValue.None],
     calibrationProcessPermission: [PermissionValue.None],
-    telemeteringPermission:       [PermissionValue.None],
-    auditPermission:              [PermissionValue.None],
-    companyPermission:            [PermissionValue.None],
-    systemUserPermission:         [PermissionValue.None],
-    reportPermission:             [PermissionValue.None],
+    telemeteringPermission: [PermissionValue.None],
+    auditPermission: [PermissionValue.None],
+    companyPermission: [PermissionValue.None],
+    systemUserPermission: [PermissionValue.None],
+    reportPermission: [PermissionValue.None],
   });
 
   pmsePermissions = this.fb.group({
     calibrationProcessPermission: [PermissionValue.None],
-    systemUserPermission:         [PermissionValue.None],
-    reportPermission:             [PermissionValue.None],
+    systemUserPermission: [PermissionValue.None],
+    reportPermission: [PermissionValue.None],
   });
 
   pmseOperatorPermissions = this.fb.group({
     calibrationProcessPermission: [PermissionValue.None],
-    telemeteringPermission:       [PermissionValue.None],
-    reportPermission:             [PermissionValue.None],
+    telemeteringPermission: [PermissionValue.None],
+    reportPermission: [PermissionValue.None],
   });
 
   pmseCompanyForm = this.fb.group({
@@ -91,46 +95,73 @@ export class CreateUserDrawerComponent {
 
   onTypeChange(type: UserType): void {
     this.selectedType.set(type);
+
     if (type === UserType.PmseAdmin) {
       this.loadCompanies();
     }
   }
 
   private loadCompanies(): void {
-    this.companiesService.getAll(1, 100).subscribe({
+    this.companiesService.getAll(1, 100, { orderby: 'Name asc' }).subscribe({
       next: res => {
-        if (res.succeed) this.companies.set(res.result ?? []);
+        if (res.succeed) {
+          this.companies.set(res.result ?? []);
+        }
       }
     });
   }
 
   onSubmit(): void {
     const type = this.selectedType();
-    if (!type) { this.toast.error('Selecciona el tipo de usuario'); return; }
+
+    if (!type) {
+      this.toast.error('Selecciona el tipo de usuario');
+      return;
+    }
 
     this.baseForm.markAllAsTouched();
-    if (this.baseForm.invalid) return;
+
+    if (this.baseForm.invalid) {
+      return;
+    }
 
     this.isLoading.set(true);
+
     const base = this.baseForm.value;
 
     if (type === UserType.CenaceStaff) {
       const perms = this.cenacePermissions.value;
+
       this.service.createCenaceUser({ ...base, ...perms } as any).subscribe({
         next: res => this.handleResult(res),
         error: () => this.handleError()
       });
-    } else if (type === UserType.PmseAdmin) {
+
+      return;
+    }
+
+    if (type === UserType.PmseAdmin) {
       this.pmseCompanyForm.markAllAsTouched();
-      if (this.pmseCompanyForm.invalid) { this.isLoading.set(false); return; }
-      const perms   = this.pmsePermissions.value;
+
+      if (this.pmseCompanyForm.invalid) {
+        this.isLoading.set(false);
+        return;
+      }
+
+      const perms = this.pmsePermissions.value;
       const company = this.pmseCompanyForm.value;
+
       this.service.createPmseAdmin({ ...base, ...perms, ...company } as any).subscribe({
         next: res => this.handleResult(res),
         error: () => this.handleError()
       });
-    } else if (type === UserType.PmseOperator) {
+
+      return;
+    }
+
+    if (type === UserType.PmseOperator) {
       const perms = this.pmseOperatorPermissions.value;
+
       this.service.createPmseOperator({ ...base, ...perms } as any).subscribe({
         next: res => this.handleResult(res),
         error: () => this.handleError()
@@ -144,6 +175,7 @@ export class CreateUserDrawerComponent {
     } else {
       this.toast.error(res.message ?? 'Error al crear el usuario');
     }
+
     this.isLoading.set(false);
   }
 

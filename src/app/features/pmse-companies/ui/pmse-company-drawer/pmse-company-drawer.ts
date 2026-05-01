@@ -1,3 +1,6 @@
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
 import { Component, output, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,7 +21,9 @@ import { PmseType, EcuadorRegion, PmseTypeLabels, EcuadorRegionLabels } from '..
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule
   ],
   templateUrl: './pmse-company-drawer.html',
   styleUrl: './pmse-company-drawer.scss'

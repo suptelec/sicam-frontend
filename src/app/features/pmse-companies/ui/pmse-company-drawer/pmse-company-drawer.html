@@ -1,155 +1,162 @@
 <div class="drawer-overlay" (click)="closed.emit()">
-  <div class="drawer" (click)="$event.stopPropagation()">
-
-    <div class="drawer-header">
+  <section class="drawer" (click)="$event.stopPropagation()">
+    <header class="drawer__header">
       <div>
-        <span class="drawer-title">Nueva empresa PMSE</span>
-        <p class="drawer-subtitle">Registra la información principal del participante.</p>
+        <p class="drawer__eyebrow">EMPRESAS PMSE</p>
+        <h2>Nueva empresa PMSE</h2>
+        <p class="drawer__description">
+          Registra la información principal del participante mayorista del sector eléctrico.
+        </p>
       </div>
 
-      <button mat-icon-button class="close-button" type="button" (click)="closed.emit()">
+      <button
+        mat-icon-button
+        class="drawer__close-btn"
+        type="button"
+        matTooltip="Cerrar"
+        (click)="closed.emit()">
         <mat-icon>close</mat-icon>
       </button>
-    </div>
+    </header>
 
-    <form class="drawer-form" [formGroup]="form" (ngSubmit)="onSubmit()">
-      <div class="drawer-body">
-
-        <div class="form-section">
+    <form class="drawer__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="drawer__body">
+        <section class="form-section">
           <div class="section-title">Información general</div>
 
-          <mat-form-field appearance="outline" class="full-field">
+          <mat-form-field appearance="outline" class="drawer__field full-field">
             <mat-label>Nombre</mat-label>
-            <input
-              matInput
-              [formControl]="form.controls.name">
+            <input matInput formControlName="name" />
 
             @if (form.controls.name.hasError('required') && form.controls.name.touched) {
-              <mat-error>El nombre es requerido</mat-error>
+              <mat-error>El nombre es obligatorio.</mat-error>
             }
           </mat-form-field>
 
           <div class="field-row">
-            <mat-form-field appearance="outline">
+            <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Código CENACE</mat-label>
-              <input
-                matInput
-                [formControl]="form.controls.externalCode">
+              <input matInput formControlName="externalCode" />
 
               @if (form.controls.externalCode.hasError('required') && form.controls.externalCode.touched) {
-                <mat-error>El código es requerido</mat-error>
+                <mat-error>El código es obligatorio.</mat-error>
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline">
+            <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>RUC</mat-label>
-              <input
-                matInput
-                [formControl]="form.controls.ruc"
-                maxlength="13">
+              <input matInput formControlName="ruc" maxlength="13" />
 
               @if (form.controls.ruc.hasError('required') && form.controls.ruc.touched) {
-                <mat-error>El RUC es requerido</mat-error>
+                <mat-error>El RUC es obligatorio.</mat-error>
               }
 
               @if (form.controls.ruc.hasError('minlength') && form.controls.ruc.touched) {
-                <mat-error>El RUC debe tener 13 dígitos</mat-error>
+                <mat-error>El RUC debe tener 13 dígitos.</mat-error>
               }
             </mat-form-field>
           </div>
 
           <div class="field-row">
-            <mat-form-field appearance="outline">
+            <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Tipo</mat-label>
-              <mat-select [formControl]="form.controls.type">
+              <mat-select formControlName="type">
                 @for (type of pmseTypes; track type) {
-                  <mat-option [value]="type">{{ PmseTypeLabels[type] }}</mat-option>
+                  <mat-option [value]="type">
+                    {{ PmseTypeLabels[type] }}
+                  </mat-option>
                 }
               </mat-select>
 
               @if (form.controls.type.hasError('required') && form.controls.type.touched) {
-                <mat-error>El tipo es requerido</mat-error>
+                <mat-error>El tipo es obligatorio.</mat-error>
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline">
+            <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Región</mat-label>
-              <mat-select [formControl]="form.controls.region">
+              <mat-select formControlName="region">
                 @for (region of regions; track region) {
-                  <mat-option [value]="region">{{ EcuadorRegionLabels[region] }}</mat-option>
+                  <mat-option [value]="region">
+                    {{ EcuadorRegionLabels[region] }}
+                  </mat-option>
                 }
               </mat-select>
 
               @if (form.controls.region.hasError('required') && form.controls.region.touched) {
-                <mat-error>La región es requerida</mat-error>
+                <mat-error>La región es obligatoria.</mat-error>
               }
             </mat-form-field>
           </div>
-        </div>
+        </section>
 
-        <div class="form-section">
+        <section class="form-section">
           <div class="section-title">Contacto y ubicación</div>
 
           <div class="field-row">
-            <mat-form-field appearance="outline">
+            <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Teléfono</mat-label>
-              <input
-                matInput
-                [formControl]="form.controls.phone">
+              <input matInput formControlName="phone" />
             </mat-form-field>
 
-            <mat-form-field appearance="outline">
+            <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Email</mat-label>
-              <input
-                matInput
-                [formControl]="form.controls.email"
-                type="email">
+              <input matInput type="email" formControlName="email" />
 
               @if (form.controls.email.hasError('email') && form.controls.email.touched) {
-                <mat-error>El email no es válido</mat-error>
+                <mat-error>Ingrese un email válido.</mat-error>
               }
             </mat-form-field>
           </div>
 
-          <mat-form-field appearance="outline" class="full-field">
+          <mat-form-field appearance="outline" class="drawer__field full-field">
             <mat-label>Provincia</mat-label>
-            <mat-select [formControl]="form.controls.province">
+            <mat-select formControlName="province">
               @for (province of ecuadorProvinces; track province) {
-                <mat-option [value]="province">{{ province }}</mat-option>
+                <mat-option [value]="province">
+                  {{ province }}
+                </mat-option>
               }
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-field">
+          <mat-form-field appearance="outline" class="drawer__field full-field drawer__textarea">
             <mat-label>Dirección</mat-label>
-            <textarea
-              matInput
-              rows="3"
-              [formControl]="form.controls.address"></textarea>
+            <textarea matInput rows="3" formControlName="address"></textarea>
           </mat-form-field>
-        </div>
-
+        </section>
       </div>
 
-      <div class="drawer-footer">
+      <footer class="drawer__actions">
         <button
           mat-stroked-button
-          class="cancel-button"
+          class="drawer__btn drawer__btn--secondary"
           type="button"
-          (click)="closed.emit()">
+          (click)="closed.emit()"
+          [disabled]="isLoading()">
+          <mat-icon>close</mat-icon>
           Cancelar
         </button>
 
         <button
-          mat-raised-button
-          color="primary"
-          class="submit-button"
+          mat-flat-button
+          class="drawer__btn drawer__btn--primary"
           type="submit"
           [disabled]="isLoading()">
-          @if (isLoading()) { Creando... } @else { Crear empresa }
-        </button>
-      </div>
-    </form>
 
-  </div>
+          @if (isLoading()) {
+            <mat-spinner diameter="18" />
+          }
+
+          @if (!isLoading()) {
+            <mat-icon>add</mat-icon>
+          }
+
+          <span>
+            {{ isLoading() ? 'Creando...' : 'Crear empresa' }}
+          </span>
+        </button>
+      </footer>
+    </form>
+  </section>
 </div>
