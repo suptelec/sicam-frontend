@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
-import { CurrentUser } from '../../models/current-user.model';
+import { CurrentUser, UserPermissions } from '../../models/current-user.model';
 import { AuthClaims } from '../constants/auth.constants';
 
 @Injectable({ providedIn: 'root' })
@@ -57,29 +57,55 @@ export class AuthService {
   getAccessToken(): string {
     return this.oauthService.getAccessToken();
   }
+  
   private loadCurrentUser(): void {
-    const claims = this.oauthService.getIdentityClaims() as any;
-    
-    // Intentar leer del access token si id_token no tiene los claims
     const accessToken = this.oauthService.getAccessToken();
-    let tokenClaims: any = claims;
-    
-    if (accessToken && !claims?.['name']) {
-      try {
-        const payload = accessToken.split('.')[1];
-        tokenClaims = JSON.parse(atob(payload));
-      } catch (e) {
-        tokenClaims = claims;
-      }
+    if (!accessToken) return;
+
+    let tokenClaims: any;
+    try {
+      const payload = accessToken.split('.')[1];
+      tokenClaims = JSON.parse(atob(payload));
+    } catch (e) {
+      return;
     }
 
     if (!tokenClaims) return;
 
-   this._currentUser.set({
-      id:       tokenClaims[AuthClaims.sub],
-      userName: tokenClaims[AuthClaims.sub],
-      email:    tokenClaims[AuthClaims.email] ?? tokenClaims['email'],
-      fullName: tokenClaims[AuthClaims.name] ?? tokenClaims[AuthClaims.sub],
+    this._currentUser.set({
+      id:          tokenClaims[AuthClaims.sub],
+      userName:    tokenClaims[AuthClaims.sub],
+      email:       tokenClaims[AuthClaims.email] ?? tokenClaims['email'],
+      fullName:    tokenClaims[AuthClaims.name]  ?? tokenClaims[AuthClaims.sub],
+      userType:    parseInt(tokenClaims[AuthClaims.userType] ?? '1'),
+      permissions: this.parsePermissions(tokenClaims[AuthClaims.permissions])
     });
+
+
+  }
+
+  private parsePermissions(raw: string | undefined): UserPermissions {
+      console.log('raw permissions:', raw);
+    if (!raw) return {};
+    try {
+      const arr: string[] = JSON.parse(raw);
+      const result: UserPermissions = {};
+      for (const entry of arr) {
+        const [key, value] = entry.split(':');
+        const num = parseInt(value);
+        switch (key) {
+          case 'calibration_plan':    result.calibrationPlan    = num; break;
+          case 'calibration_process': result.calibrationProcess = num; break;
+          case 'telemetering':        result.telemetering        = num; break;
+          case 'audit':               result.audit               = num; break;
+          case 'company':             result.company             = num; break;
+          case 'system_user':         result.systemUser          = num; break;
+          case 'report':              result.report              = num; break;
+        }
+      }
+      return result;
+    } catch {
+      return {};
+    }
   }
 }

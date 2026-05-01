@@ -1,0 +1,155 @@
+<div class="drawer-overlay" (click)="closed.emit()">
+  <div class="drawer" (click)="$event.stopPropagation()">
+
+    <div class="drawer-header">
+      <div>
+        <span class="drawer-title">Nueva empresa PMSE</span>
+        <p class="drawer-subtitle">Registra la información principal del participante.</p>
+      </div>
+
+      <button mat-icon-button class="close-button" type="button" (click)="closed.emit()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form class="drawer-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="drawer-body">
+
+        <div class="form-section">
+          <div class="section-title">Información general</div>
+
+          <mat-form-field appearance="outline" class="full-field">
+            <mat-label>Nombre</mat-label>
+            <input
+              matInput
+              [formControl]="form.controls.name">
+
+            @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+              <mat-error>El nombre es requerido</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Código CENACE</mat-label>
+              <input
+                matInput
+                [formControl]="form.controls.externalCode">
+
+              @if (form.controls.externalCode.hasError('required') && form.controls.externalCode.touched) {
+                <mat-error>El código es requerido</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>RUC</mat-label>
+              <input
+                matInput
+                [formControl]="form.controls.ruc"
+                maxlength="13">
+
+              @if (form.controls.ruc.hasError('required') && form.controls.ruc.touched) {
+                <mat-error>El RUC es requerido</mat-error>
+              }
+
+              @if (form.controls.ruc.hasError('minlength') && form.controls.ruc.touched) {
+                <mat-error>El RUC debe tener 13 dígitos</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Tipo</mat-label>
+              <mat-select [formControl]="form.controls.type">
+                @for (type of pmseTypes; track type) {
+                  <mat-option [value]="type">{{ PmseTypeLabels[type] }}</mat-option>
+                }
+              </mat-select>
+
+              @if (form.controls.type.hasError('required') && form.controls.type.touched) {
+                <mat-error>El tipo es requerido</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Región</mat-label>
+              <mat-select [formControl]="form.controls.region">
+                @for (region of regions; track region) {
+                  <mat-option [value]="region">{{ EcuadorRegionLabels[region] }}</mat-option>
+                }
+              </mat-select>
+
+              @if (form.controls.region.hasError('required') && form.controls.region.touched) {
+                <mat-error>La región es requerida</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Contacto y ubicación</div>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Teléfono</mat-label>
+              <input
+                matInput
+                [formControl]="form.controls.phone">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input
+                matInput
+                [formControl]="form.controls.email"
+                type="email">
+
+              @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+                <mat-error>El email no es válido</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-field">
+            <mat-label>Provincia</mat-label>
+            <mat-select [formControl]="form.controls.province">
+              @for (province of ecuadorProvinces; track province) {
+                <mat-option [value]="province">{{ province }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-field">
+            <mat-label>Dirección</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              [formControl]="form.controls.address"></textarea>
+          </mat-form-field>
+        </div>
+
+      </div>
+
+      <div class="drawer-footer">
+        <button
+          mat-stroked-button
+          class="cancel-button"
+          type="button"
+          (click)="closed.emit()">
+          Cancelar
+        </button>
+
+        <button
+          mat-raised-button
+          color="primary"
+          class="submit-button"
+          type="submit"
+          [disabled]="isLoading()">
+          @if (isLoading()) { Creando... } @else { Crear empresa }
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>

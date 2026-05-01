@@ -10,7 +10,6 @@
     "target": "https://localhost:7128",
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "info",
-    "pathRewrite": { "^/api": "" }
+    "logLevel": "info"
   }
 }

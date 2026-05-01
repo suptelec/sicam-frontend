@@ -65,3 +65,113 @@ a { color: var(--color-primary); text-decoration: none; }
   border-radius: 16px !important;
   padding: 0 !important;
 }
+
+// ── Angular Material Dark Mode Bridge ────────────────
+html, body {
+  --mat-app-background-color: var(--bg-base);
+  --mat-app-text-color: var(--text-primary);
+
+  // Table
+  --mat-table-background-color: var(--bg-surface);
+  --mat-table-header-headline-color: var(--text-secondary);
+  --mat-table-row-item-label-text-color: var(--text-primary);
+  --mat-table-row-item-outline-color: var(--border-subtle);
+
+  // Paginator
+  --mat-paginator-container-background-color: var(--bg-surface);
+  --mat-paginator-container-text-color: var(--text-secondary);
+  --mat-paginator-select-trigger-text-color: var(--text-primary);
+
+  // Form fields
+  --mdc-outlined-text-field-container-color: var(--bg-elevated);
+  --mdc-outlined-text-field-input-text-color: var(--text-primary);
+  --mdc-outlined-text-field-label-text-color: var(--text-secondary);
+  --mdc-outlined-text-field-outline-color: var(--border-default);
+  --mdc-outlined-text-field-focus-outline-color: var(--color-primary);
+  --mdc-outlined-text-field-hover-outline-color: var(--text-secondary);
+
+  // Select
+  --mat-select-trigger-text-color: var(--text-primary);
+  --mat-select-panel-background-color: var(--bg-surface);
+  --mat-option-label-text-color: var(--text-primary);
+  --mat-option-hover-state-layer-color: rgba(26,110,181,0.1);
+  --mat-option-selected-state-label-text-color: var(--color-primary);
+
+  // Dialog
+  --mat-dialog-container-color: var(--bg-surface);
+  --mat-dialog-content-color: var(--text-primary);
+
+  // Buttons
+  --mdc-filled-button-container-color: var(--color-primary);
+  --mdc-filled-button-label-text-color: #fff;
+}
+
+// ── Table overrides ───────────────────────────────────
+.mat-mdc-table {
+  background: var(--bg-surface) !important;
+}
+
+.mat-mdc-header-row {
+  background: var(--bg-elevated) !important;
+}
+
+.mat-mdc-header-cell {
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+  border-bottom-color: var(--border-default) !important;
+}
+
+.mat-mdc-cell {
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border-subtle) !important;
+}
+
+.mat-mdc-row:hover .mat-mdc-cell {
+  background: var(--bg-elevated) !important;
+}
+
+// ── Paginator overrides ───────────────────────────────
+.mat-mdc-paginator {
+  background: var(--bg-surface) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+
+.mat-mdc-paginator-container {
+  justify-content: flex-end !important;
+}
+
+.mat-mdc-paginator-range-label {
+  color: var(--text-secondary) !important;
+}
+
+.mat-mdc-icon-button {
+  color: var(--text-secondary) !important;
+}
+
+// ── Select overrides ──────────────────────────────────
+.mat-mdc-select-value,
+.mat-mdc-select-trigger {
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-select-panel,
+.mat-mdc-option {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+}
+
+// ── Button raised primary ─────────────────────────────
+button.mat-mdc-raised-button.mat-primary {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+}
+
+.mat-mdc-paginator-page-size-select .mat-mdc-text-field-wrapper {
+  padding: 0 12px !important;
+}
+.mat-mdc-paginator-page-size-select .mat-mdc-select-trigger {
+  padding-left: 4px !important;
+}

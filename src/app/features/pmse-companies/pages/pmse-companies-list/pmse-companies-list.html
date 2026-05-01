@@ -1,0 +1,104 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Empresas PMSE</h1>
+      <p class="page-sub">Participantes Mayoristas del Sector Eléctrico</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="drawerOpen.set(true)">
+      <mat-icon>add</mat-icon>
+      Nueva empresa
+    </button>
+  </div>
+
+    <div class="toolbar">
+    <div class="search-wrap">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input class="search-input"
+            placeholder="Buscar por nombre, RUC, código..."
+            [(ngModel)]="searchTerm"
+            (keyup.enter)="onSearch()">
+    </div>
+  </div>
+  <div class="table-container">
+    <table mat-table [dataSource]="dataSource" style="width:100%">
+      
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Empresa</th>
+        <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="externalCode">
+        <th mat-header-cell *matHeaderCellDef>Código CENACE</th>
+        <td mat-cell *matCellDef="let row">{{ row.externalCode }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="ruc">
+        <th mat-header-cell *matHeaderCellDef>RUC</th>
+        <td mat-cell *matCellDef="let row">{{ row.ruc }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge badge-type">{{ getTypeLabel(row.type) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="region">
+        <th mat-header-cell *matHeaderCellDef>Región</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge badge-region">{{ getRegionLabel(row.region) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [class.badge-active]="row.status === EntityStatus.Active"
+                              [class.badge-inactive]="row.status !== EntityStatus.Active">
+            {{ row.status === EntityStatus.Active ? 'Activa' : 'Inactiva' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button
+                  [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
+                  (click)="onToggleStatus(row)">
+            <mat-icon [style.color]="row.status === EntityStatus.Active ? '#f87171' : '#4ade80'">
+              {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
+            </mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+      @if (!isLoading() && dataSource.data.length === 0) {
+        <tr class="mat-row">
+          <td [attr.colspan]="displayedColumns.length" class="no-data">
+            No hay empresas registradas
+          </td>
+        </tr>
+      }
+    </table>
+
+    <mat-paginator
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+  </div>
+</div>
+
+@if (drawerOpen()) {
+  <app-pmse-company-drawer
+    (created)="onCompanyCreated()"
+    (closed)="drawerOpen.set(false)" />
+}

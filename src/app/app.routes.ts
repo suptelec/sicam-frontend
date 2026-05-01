@@ -10,13 +10,18 @@ export const routes: Routes = [
             .then(m => m.ShellComponent),
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      // TODO: agregar features del proyecto aquí
-      // {
-      //   path: 'calibration',
-      //   loadChildren: () =>
-      //     import('./features/calibration/calibration.routes')
-      //       .then(m => m.CALIBRATION_ROUTES)
-      // }
+      {
+        path: 'pmse-companies',
+        loadChildren: () =>
+          import('./features/pmse-companies/pmse-companies.routes')
+            .then(m => m.PMSE_COMPANIES_ROUTES)
+      },
+      {
+        path: 'system-users',
+        loadChildren: () =>
+          import('./features/system-users/system-users.routes')
+            .then(m => m.SYSTEM_USERS_ROUTES)
+      }
     ]
   },
   {
