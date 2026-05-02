@@ -1,0 +1,137 @@
+.page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.certificates-table {
+  width: 100%;
+  min-width: 1280px;
+  background: transparent;
+
+  th {
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  td {
+    color: var(--color-text, #f9fafb);
+  }
+
+  tr.mat-mdc-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.certificate-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  strong {
+    display: block;
+    color: var(--color-text, #f9fafb);
+    font-weight: 700;
+  }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.8rem;
+  }
+}
+
+.certificate-name__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--color-primary, #60a5fa);
+  display: grid;
+  place-items: center;
+}
+
+.stacked-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    color: var(--color-text, #f9fafb);
+    font-size: 0.9rem;
+  }
+
+  span {
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.78rem;
+  }
+}
+
+.muted {
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.source-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.actions-cell {
+  width: 120px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.row-actions__btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #cbd5e1;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-1px);
+  }
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.action-danger {
+  color: #f87171;
+}
+
+.action-success {
+  color: #22c55e;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 16px;
+  }
+}

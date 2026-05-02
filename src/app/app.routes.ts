@@ -40,6 +40,12 @@ export const routes: Routes = [
           import('./features/meters/meters.routes')
             .then(m => m.METERS_ROUTES)
       },
+      {
+        path: 'meter-calibration-certificates',
+        loadChildren: () =>
+          import('./features/meter-calibration-certificates/meter-calibration-certificates.routes')
+            .then(m => m.METER_CALIBRATION_CERTIFICATES_ROUTES)
+      },
        {
         path: 'system-users',
         loadChildren: () =>

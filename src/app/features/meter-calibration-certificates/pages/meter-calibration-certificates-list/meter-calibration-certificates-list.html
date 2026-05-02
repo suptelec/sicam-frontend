@@ -1,0 +1,192 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Catálogos técnicos"
+    title="Certificados históricos"
+    description="Registra los certificados previos de calibración que servirán como base para generar el Plan Anual."
+    actionText="Nuevo certificado"
+    actionIcon="add"
+    (actionClicked)="onCreateClicked()"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por certificado, medidor, PMSE o laboratorio..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando certificados históricos..."
+    emptyIcon="workspace_premium"
+    emptyTitle="No hay certificados históricos"
+    emptyDescription="Registra el último certificado válido de cada medidor para generar el Plan Anual de Calibración."
+    emptyActionText="Crear certificado"
+    emptyActionIcon="add"
+    (emptyActionClicked)="onCreateClicked()"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="certificates-table"
+    >
+      <ng-container matColumnDef="certificateNumber">
+        <th mat-header-cell *matHeaderCellDef>Certificado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="certificate-name">
+            <div class="certificate-name__avatar">
+              <mat-icon>workspace_premium</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.certificateNumber }}</strong>
+              <span>
+                Secundario: {{ row.secondaryCertificateNumber ?? '—' }}
+              </span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="meter">
+        <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.meterCode ?? '—' }}</strong>
+            <span>Serial: {{ row.meterSerial ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="pmse">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.pmseCompanyName ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="laboratory">
+        <th mat-header-cell *matHeaderCellDef>Laboratorio</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.accreditedLaboratoryName ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="dates">
+        <th mat-header-cell *matHeaderCellDef>Vigencia</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.issueDate }}</strong>
+            <span>Hasta: {{ row.validUntil }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="result">
+        <th mat-header-cell *matHeaderCellDef>Resultado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <app-status-chip
+            [label]="getResultLabel(row.calibrationResult)"
+            [tone]="getResultTone(row.calibrationResult)"
+            [icon]="row.calibrationResult === 1 ? 'verified' : 'cancel'"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="source">
+        <th mat-header-cell *matHeaderCellDef>Origen</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="source-pill">
+            {{ getSourceLabel(row.calibrationSource) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          @let chip = getEntityStatusChip(row.status);
+
+          <app-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon ?? null"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <div class="row-actions">
+            @if (row.pdfUrl) {
+              <a
+                mat-icon-button
+                class="row-actions__btn"
+                matTooltip="Abrir PDF"
+                [href]="row.pdfUrl"
+                target="_blank"
+                rel="noopener"
+              >
+                <mat-icon>picture_as_pdf</mat-icon>
+              </a>
+            }
+
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn"
+              [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar certificado' : 'Activar certificado'"
+              (click)="onToggleStatus(row)"
+            >
+              <mat-icon
+                [class.action-danger]="row.status === EntityStatus.Active"
+                [class.action-success]="row.status !== EntityStatus.Active"
+              >
+                {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
+              </mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>
+
+@if (drawerOpen()) {
+  <app-drawer-shell
+    [open]="drawerOpen()"
+    width="720px"
+    (closed)="onDrawerClosed()"
+  >
+    <app-meter-calibration-certificate-drawer
+      (created)="onCertificateCreated()"
+      (closed)="onDrawerClosed()"
+    />
+  </app-drawer-shell>
+}

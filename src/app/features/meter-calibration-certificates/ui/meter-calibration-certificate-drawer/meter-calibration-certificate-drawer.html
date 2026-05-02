@@ -1,0 +1,195 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">CERTIFICADOS</p>
+      <h2>Registrar certificado histórico</h2>
+      <p class="drawer__description">
+        Registra el certificado previo de calibración de un medidor para alimentar el Plan Anual.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    @if (loadingCatalogs()) {
+      <div class="drawer__loading">
+        <mat-spinner diameter="34" />
+        <span>Cargando catálogos...</span>
+      </div>
+    } @else {
+      <div class="drawer__body">
+        <section class="form-section">
+          <div class="section-title">Medidor y laboratorio</div>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Medidor</mat-label>
+
+            <mat-select formControlName="meterId">
+              @for (meter of meters(); track meter.id) {
+                <mat-option [value]="meter.id">
+                  {{ getMeterLabel(meter) }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (form.controls.meterId.hasError('required') && form.controls.meterId.touched) {
+              <mat-error>El medidor es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (selectedMeter) {
+            <section class="meter-preview">
+              <div>
+                <span>Empresa PMSE</span>
+                <strong>{{ selectedMeter.pmseCompanyName ?? '—' }}</strong>
+              </div>
+
+              <div>
+                <span>Última calibración</span>
+                <strong>{{ selectedMeter.lastCalibrationDate ?? '—' }}</strong>
+              </div>
+
+              <div>
+                <span>Próxima calibración actual</span>
+                <strong>{{ selectedMeter.nextCalibrationDate ?? '—' }}</strong>
+              </div>
+            </section>
+          }
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Laboratorio acreditado</mat-label>
+
+            <mat-select formControlName="accreditedLaboratoryId">
+              <mat-option [value]="null">
+                Sin laboratorio asociado
+              </mat-option>
+
+              @for (laboratory of laboratories(); track laboratory.id) {
+                <mat-option [value]="laboratory.id">
+                  {{ getLaboratoryLabel(laboratory) }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">Datos del certificado</div>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Número de certificado</mat-label>
+            <input matInput formControlName="certificateNumber" autocomplete="off" />
+
+            @if (form.controls.certificateNumber.hasError('required') && form.controls.certificateNumber.touched) {
+              <mat-error>El número de certificado es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Número secundario</mat-label>
+            <input matInput formControlName="secondaryCertificateNumber" autocomplete="off" />
+          </mat-form-field>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Fecha de emisión</mat-label>
+              <input matInput type="date" formControlName="issueDate" />
+
+              @if (form.controls.issueDate.hasError('required') && form.controls.issueDate.touched) {
+                <mat-error>La fecha de emisión es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Válido hasta</mat-label>
+              <input matInput type="date" formControlName="validUntil" />
+
+              @if (form.controls.validUntil.hasError('required') && form.controls.validUntil.touched) {
+                <mat-error>La fecha de vigencia es obligatoria.</mat-error>
+              }
+
+              @if (form.hasError('validUntilBeforeIssueDate') && form.controls.validUntil.touched) {
+                <mat-error>La vigencia no puede ser anterior a la emisión.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Resultado de calibración</mat-label>
+
+            <mat-select formControlName="calibrationResult">
+              @for (result of calibrationResults; track result) {
+                <mat-option [value]="result">
+                  {{ getResultLabel(result) }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (form.controls.calibrationResult.hasError('required') && form.controls.calibrationResult.touched) {
+              <mat-error>El resultado es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field drawer__textarea full-field">
+            <mat-label>Notas</mat-label>
+            <textarea matInput rows="3" formControlName="notes"></textarea>
+          </mat-form-field>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">Documento PDF</div>
+
+          @if (hasPdf) {
+            <section class="pdf-card">
+              <div>
+                <mat-icon>picture_as_pdf</mat-icon>
+
+                <div>
+                  <strong>PDF asociado</strong>
+                  <span>{{ selectedPdfUrl }}</span>
+                </div>
+              </div>
+
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Quitar PDF"
+                (click)="clearPdf()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </section>
+          } @else {
+            <app-document-uploader
+              label="Subir certificado PDF"
+              description="Carga el certificado emitido por el laboratorio acreditado."
+              folder="meter-calibration-certificates"
+              accept=".pdf"
+              (uploaded)="onPdfUploaded($event)"
+            />
+          }
+        </section>
+      </div>
+    }
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Registrar certificado"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>
