@@ -1,0 +1,91 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">PLAN ANUAL</p>
+      <h2>Crear plan de calibración</h2>
+      <p class="drawer__description">
+        Define el año y rango oficial para generar los ítems del Plan Anual CENACE.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      <section class="form-section">
+        <div class="section-title">Datos generales</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Año</mat-label>
+          <input matInput type="number" formControlName="year" />
+
+          @if (form.controls.year.hasError('required') && form.controls.year.touched) {
+            <mat-error>El año es obligatorio.</mat-error>
+          }
+
+          @if ((form.controls.year.hasError('min') || form.controls.year.hasError('max')) && form.controls.year.touched) {
+            <mat-error>Ingrese un año válido.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="name" autocomplete="off" />
+
+          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+            <mat-error>El nombre es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Fecha inicio</mat-label>
+            <input matInput type="date" formControlName="startDate" />
+
+            @if (form.controls.startDate.hasError('required') && form.controls.startDate.touched) {
+              <mat-error>La fecha inicio es obligatoria.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Fecha fin</mat-label>
+            <input matInput type="date" formControlName="endDate" />
+
+            @if (form.controls.endDate.hasError('required') && form.controls.endDate.touched) {
+              <mat-error>La fecha fin es obligatoria.</mat-error>
+            }
+
+            @if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
+              <mat-error>La fecha fin no puede ser anterior a la fecha inicio.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Descripción</mat-label>
+          <textarea matInput rows="4" formControlName="description"></textarea>
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear plan"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

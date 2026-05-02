@@ -52,6 +52,12 @@ export const routes: Routes = [
           import('./features/system-users/system-users.routes')
             .then(m => m.SYSTEM_USERS_ROUTES)
       },
+      {
+        path: 'calibration-plans',
+        loadChildren: () =>
+          import('./features/calibration-plans/calibration-plans.routes')
+            .then(m => m.CALIBRATION_PLANS_ROUTES)
+      },
     ]
   },
   {

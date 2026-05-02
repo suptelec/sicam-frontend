@@ -1,0 +1,171 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">VALIDACIÓN CENACE</p>
+      <h2>Resultado de validación</h2>
+      <p class="drawer__description">
+        Revisa errores y advertencias antes de exportar o publicar el Plan Anual.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <section class="drawer__body">
+    <section class="summary-card">
+      <div>
+        <span>Plan</span>
+        <strong>{{ validation().planName }}</strong>
+        <small>Año {{ validation().planYear }}</small>
+      </div>
+
+      <app-status-chip
+        [label]="canExportLabel"
+        [tone]="canExportTone"
+        [icon]="validation().canExport ? 'check_circle' : 'block'"
+      />
+    </section>
+
+    <section class="metrics-grid">
+      <article class="metric-card">
+        <span>Total ítems</span>
+        <strong>{{ validation().totalItems }}</strong>
+      </article>
+
+      <article class="metric-card metric-card--error">
+        <span>Errores</span>
+        <strong>{{ validation().errorCount }}</strong>
+      </article>
+
+      <article class="metric-card metric-card--warning">
+        <span>Advertencias</span>
+        <strong>{{ validation().warningCount }}</strong>
+      </article>
+    </section>
+
+    @if (!hasIssues) {
+      <section class="empty-validation">
+        <mat-icon>verified</mat-icon>
+        <h3>Plan validado correctamente</h3>
+        <p>No se encontraron errores ni advertencias.</p>
+      </section>
+    } @else {
+      @if (errorIssues.length > 0) {
+        <section class="issues-section">
+          <h3>Errores bloqueantes</h3>
+
+          @for (issue of errorIssues; track issue.calibrationPlanItemId + issue.field + issue.message) {
+            <article class="issue-card issue-card--error">
+              <div class="issue-card__icon">
+                <mat-icon>{{ getSeverityIcon(issue.severity) }}</mat-icon>
+              </div>
+
+              <div class="issue-card__content">
+                <header>
+                  <strong>{{ issue.meterCode }}</strong>
+                  <span>{{ issue.pmseCompanyName }}</span>
+                </header>
+
+                <p>{{ issue.message }}</p>
+
+                <footer>
+                  <code>{{ issue.field }}</code>
+                  <span>Serial: {{ issue.meterSerial }}</span>
+                </footer>
+              </div>
+            </article>
+          }
+        </section>
+      }
+
+      @if (warningIssues.length > 0) {
+        <section class="issues-section">
+          <h3>Advertencias</h3>
+
+          @for (issue of warningIssues; track issue.calibrationPlanItemId + issue.field + issue.message) {
+            <article class="issue-card issue-card--warning">
+              <div class="issue-card__icon">
+                <mat-icon>{{ getSeverityIcon(issue.severity) }}</mat-icon>
+              </div>
+
+              <div class="issue-card__content">
+                <header>
+                  <strong>{{ issue.meterCode }}</strong>
+                  <span>{{ issue.pmseCompanyName }}</span>
+                </header>
+
+                <p>{{ issue.message }}</p>
+
+                <footer>
+                  <code>{{ issue.field }}</code>
+                  <span>Serial: {{ issue.meterSerial }}</span>
+                </footer>
+              </div>
+            </article>
+          }
+        </section>
+      }
+
+      @if (otherIssues.length > 0) {
+        <section class="issues-section">
+          <h3>Observaciones</h3>
+
+          @for (issue of otherIssues; track issue.calibrationPlanItemId + issue.field + issue.message) {
+            <article class="issue-card issue-card--info">
+              <div class="issue-card__icon">
+                <mat-icon>{{ getSeverityIcon(issue.severity) }}</mat-icon>
+              </div>
+
+              <div class="issue-card__content">
+                <header>
+                  <strong>{{ issue.meterCode }}</strong>
+                  <span>{{ issue.pmseCompanyName }}</span>
+                </header>
+
+                <p>{{ issue.message }}</p>
+
+                <footer>
+                  <code>{{ issue.field }}</code>
+                  <span>Serial: {{ issue.meterSerial }}</span>
+                </footer>
+              </div>
+            </article>
+          }
+        </section>
+      }
+    }
+  </section>
+
+  <footer class="drawer__actions">
+    <button
+      mat-stroked-button
+      type="button"
+      class="drawer__btn drawer__btn--secondary"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+      Cerrar
+    </button>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="drawer__btn drawer__btn--primary"
+      [disabled]="!validation().canExport"
+      (click)="export()"
+    >
+      <mat-icon>download</mat-icon>
+      Exportar Excel
+    </button>
+  </footer>
+</section>

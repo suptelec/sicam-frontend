@@ -1,0 +1,230 @@
+<section class="page">
+  <button
+    mat-button
+    type="button"
+    class="back-button"
+    (click)="back()"
+  >
+    <mat-icon>arrow_back</mat-icon>
+    Volver a planes
+  </button>
+
+  @if (plan(); as currentPlan) {
+    <app-page-header
+      eyebrow="Plan anual"
+      [title]="currentPlan.name"
+      [description]="currentPlan.description ?? 'Detalle del Plan Anual de Calibración CENACE.'"
+      [showAction]="false"
+    />
+
+    <section class="summary-card">
+      <article>
+        <span>Año</span>
+        <strong>{{ currentPlan.year }}</strong>
+      </article>
+
+      <article>
+        <span>Rango</span>
+        <strong>{{ currentPlan.startDate }}</strong>
+        <small>Hasta {{ currentPlan.endDate }}</small>
+      </article>
+
+      <article>
+        <span>Ítems</span>
+        <strong>{{ currentPlan.itemsCount ?? 0 }}</strong>
+        <small>Pendientes {{ currentPlan.pendingItemsCount ?? 0 }}</small>
+      </article>
+
+      <article>
+        <span>Estado</span>
+        <app-status-chip
+          [label]="getPlanStatusLabel(currentPlan.planStatus)"
+          [tone]="getPlanStatusTone(currentPlan.planStatus)"
+          [icon]="currentPlan.planStatus === CalibrationPlanStatus.Draft ? 'edit_note' : 'verified'"
+        />
+      </article>
+    </section>
+
+    <section class="actions-bar">
+      <button
+        mat-stroked-button
+        type="button"
+        class="actions-bar__btn"
+        [disabled]="!canGenerateItems"
+        [matTooltip]="canGenerateItems ? 'Generar ítems desde certificados históricos' : 'Solo se puede generar ítems en borrador'"
+        (click)="onGenerateItems()"
+      >
+        <mat-icon>auto_fix_high</mat-icon>
+        Generar ítems
+      </button>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="actions-bar__btn"
+        (click)="onValidate()"
+      >
+        <mat-icon>fact_check</mat-icon>
+        Validar
+      </button>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="actions-bar__btn"
+        (click)="onExport()"
+      >
+        <mat-icon>download</mat-icon>
+        Exportar
+      </button>
+
+      <button
+        mat-flat-button
+        type="button"
+        class="actions-bar__btn actions-bar__btn--primary"
+        [disabled]="!canPublish"
+        [matTooltip]="canPublish ? 'Publicar plan anual' : 'El plan ya no está en borrador'"
+        (click)="onPublish()"
+      >
+        <mat-icon>publish</mat-icon>
+        Publicar
+      </button>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="actions-bar__refresh"
+        matTooltip="Actualizar"
+        (click)="refresh()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </section>
+
+    <app-table-card
+      [loading]="isLoadingItems()"
+      [empty]="dataSource.data.length === 0"
+      loadingText="Cargando ítems del plan..."
+      emptyIcon="checklist"
+      emptyTitle="No hay ítems generados"
+      emptyDescription="Genera los ítems desde los certificados históricos para llenar el plan anual."
+      emptyActionText="Generar ítems"
+      emptyActionIcon="auto_fix_high"
+      [showEmptyAction]="canGenerateItems"
+      (emptyActionClicked)="onGenerateItems()"
+    >
+      <table
+        table-content
+        mat-table
+        [dataSource]="dataSource"
+        class="items-table"
+      >
+        <ng-container matColumnDef="meter">
+          <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="meter-name">
+              <div class="meter-name__avatar">
+                <mat-icon>electric_meter</mat-icon>
+              </div>
+
+              <div>
+                <strong>{{ row.meterCode ?? '—' }}</strong>
+                <span>Serial: {{ row.meterSerial ?? '—' }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="pmse">
+          <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+          <td mat-cell *matCellDef="let row">
+            <span class="muted">{{ row.pmseCompanyName ?? '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="certificate">
+          <th mat-header-cell *matHeaderCellDef>Certificado anterior</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="stacked-cell">
+              <strong>{{ row.certificateNumber ?? '—' }}</strong>
+              <span>Vigente hasta: {{ row.lastCertificateValidUntil ?? '—' }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="plannedRange">
+          <th mat-header-cell *matHeaderCellDef>Rango planificado</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="stacked-cell">
+              <strong>{{ row.plannedStartDate ?? '—' }}</strong>
+              <span>Hasta: {{ row.plannedEndDate ?? '—' }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="scheduledDate">
+          <th mat-header-cell *matHeaderCellDef>Fecha cronograma</th>
+
+          <td mat-cell *matCellDef="let row">
+            <span class="muted">{{ row.scheduledDate ?? '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="itemStatus">
+          <th mat-header-cell *matHeaderCellDef>Estado ítem</th>
+
+          <td mat-cell *matCellDef="let row">
+            <app-status-chip
+              [label]="getItemStatusLabel(row.itemStatus)"
+              [tone]="getItemStatusTone(row.itemStatus)"
+              icon="flag"
+            />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn"
+              matTooltip="Ver medidor"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </app-table-card>
+  } @else {
+    <section class="loading-page">
+      <mat-spinner diameter="36" />
+      <span>Cargando plan...</span>
+    </section>
+  }
+</section>
+
+@if (validationDrawerOpen()) {
+  @if (validationResult(); as result) {
+    <app-drawer-shell
+      [open]="validationDrawerOpen()"
+      width="820px"
+      (closed)="onValidationDrawerClosed()"
+    >
+      <app-calibration-plan-validation-drawer
+        [validation]="result"
+        (closed)="onValidationDrawerClosed()"
+        (exportRequested)="onExportValidationResult()"
+      />
+    </app-drawer-shell>
+  }
+}

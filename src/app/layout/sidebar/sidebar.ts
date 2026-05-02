@@ -93,7 +93,7 @@ export class SidebarComponent {
       },
       {
         label: 'Plan Anual',
-        route: '/plan',
+        route: '/calibration-plans',
         icon: 'plan',
         section: 'Calibración',
         permission: 'calibrationPlan',
