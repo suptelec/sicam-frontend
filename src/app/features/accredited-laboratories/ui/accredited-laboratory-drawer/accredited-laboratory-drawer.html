@@ -1,0 +1,130 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">LABORATORIOS</p>
+      <h2>Crear laboratorio acreditado</h2>
+      <p class="drawer__description">
+        Registra la información del laboratorio que podrá asociarse a certificados,
+        cronogramas y procesos de calibración.
+      </p>
+    </div>
+
+    <button
+  mat-icon-button
+  type="button"
+  class="drawer__close-btn"
+  matTooltip="Cerrar"
+  (click)="close()"
+>
+  <mat-icon>close</mat-icon>
+</button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field appearance="outline" class="drawer__field">
+      <mat-label>Nombre del laboratorio</mat-label>
+      <input matInput formControlName="name" autocomplete="off" />
+
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>El nombre es obligatorio.</mat-error>
+      }
+
+      @if (form.controls.name.hasError('maxlength')) {
+        <mat-error>Máximo 200 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="drawer__field">
+      <mat-label>Código de acreditación</mat-label>
+      <input matInput formControlName="accreditationCode" autocomplete="off" />
+
+      @if (form.controls.accreditationCode.hasError('required')) {
+        <mat-error>El código de acreditación es obligatorio.</mat-error>
+      }
+
+      @if (form.controls.accreditationCode.hasError('maxlength')) {
+        <mat-error>Máximo 100 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+      <mat-label>Alcance</mat-label>
+      <textarea
+        matInput
+        formControlName="scope"
+        rows="4"
+      ></textarea>
+
+      <mat-hint>Ejemplo: medidores de energía activa/reactiva, clase 0.2S, 0.5S, etc.</mat-hint>
+
+      @if (form.controls.scope.hasError('maxlength')) {
+        <mat-error>Máximo 500 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="drawer__field">
+      <mat-label>Email de contacto</mat-label>
+      <input matInput formControlName="contactEmail" autocomplete="off" />
+
+      @if (form.controls.contactEmail.hasError('email')) {
+        <mat-error>Ingrese un email válido.</mat-error>
+      }
+
+      @if (form.controls.contactEmail.hasError('maxlength')) {
+        <mat-error>Máximo 180 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="drawer__field">
+      <mat-label>Teléfono</mat-label>
+      <input matInput formControlName="phone" autocomplete="off" />
+
+      @if (form.controls.phone.hasError('maxlength')) {
+        <mat-error>Máximo 50 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+      <mat-label>Dirección</mat-label>
+      <textarea
+        matInput
+        formControlName="address"
+        rows="3"
+      ></textarea>
+
+      @if (form.controls.address.hasError('maxlength')) {
+        <mat-error>Máximo 300 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <footer class="drawer__actions">
+      <button
+        mat-stroked-button
+        type="button"
+        class="drawer__btn drawer__btn--secondary"
+        (click)="close()"
+        [disabled]="loading"
+      >
+        <mat-icon>close</mat-icon>
+        Cancelar
+      </button>
+
+      <button
+        mat-flat-button
+        type="submit"
+        class="drawer__btn drawer__btn--primary"
+        [disabled]="loading"
+      >
+        @if (loading) {
+          <mat-spinner diameter="18" />
+        } @else {
+          <mat-icon>add</mat-icon>
+        }
+
+        Crear
+      </button>
+    </footer>
+  </form>
+</section>

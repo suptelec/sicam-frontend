@@ -120,13 +120,12 @@
   </app-table-card>
 </section>
 
-@if (drawerOpen) {
-  <div class="drawer-backdrop" (click)="closeDrawer()"></div>
-
-  <aside class="drawer-panel">
-    <app-create-client-drawer
-      (closed)="closeDrawer()"
-      (created)="onClientCreated()"
-    />
-  </aside>
-}
+<app-drawer-shell
+  [open]="drawerOpen"
+  width="480px"
+  (closed)="closeDrawer()">
+  <app-create-client-drawer
+    (closed)="closeDrawer()"
+    (created)="onClientCreated()"
+  />
+</app-drawer-shell>

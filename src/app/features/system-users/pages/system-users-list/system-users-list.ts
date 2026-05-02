@@ -18,6 +18,7 @@ import { getUserTypeChip } from '../../domain/system-user-chip.util';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
 import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
 
 @Component({
   selector: 'app-system-users-list',
@@ -33,7 +34,8 @@ import { TableCardComponent } from '../../../../shared/components/table-card/tab
     StatusChipComponent,
     PageHeaderComponent,
     SearchToolbarComponent,
-    TableCardComponent
+    TableCardComponent,
+    DrawerShellComponent
   ],
   templateUrl: './system-users-list.html',
   styleUrl: './system-users-list.scss'

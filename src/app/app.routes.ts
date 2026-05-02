@@ -33,6 +33,12 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/external-clients/external-clients.routes')
             .then(m => m.EXTERNAL_CLIENTS_ROUTES)
+      },
+      {
+        path: 'accredited-laboratories',
+        loadChildren: () =>
+          import('./features/accredited-laboratories/accredited-laboratories.routes')
+            .then(m => m.ACCREDITED_LABORATORIES_ROUTES)
       }
     ]
   },

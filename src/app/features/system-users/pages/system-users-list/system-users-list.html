@@ -112,9 +112,12 @@
   </app-table-card>
 </section>
 
-@if (drawerOpen()) {
+<app-drawer-shell
+  [open]="drawerOpen()"
+  width="540px"
+  (closed)="drawerOpen.set(false)">
   <app-create-user-drawer
     (created)="onUserCreated()"
     (closed)="drawerOpen.set(false)"
   />
-}
+</app-drawer-shell>

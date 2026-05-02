@@ -132,6 +132,14 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
+        label: 'Laboratorios',
+        route: '/accredited-laboratories',
+        icon: 'science',
+        section: null,
+        permission: 'calibrationPlan',
+        action: PermissionAction.Read
+      },
+      {
         label: 'Usuarios',
         route: '/system-users',
         icon: 'user',
@@ -265,7 +273,8 @@ export class SidebarComponent {
       list: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
       settings: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
       building: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M5 13V8h2v5M9 13V8h2v5M2 6h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
-      api: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 8h2m0 0l2-2.5M8 8l2 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`
+      api: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 8h2m0 0l2-2.5M8 8l2 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+      science: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 2h4M7 2v4l-4 6.5A1 1 0 004 14h8a1 1 0 00.9-1.5L9 6V2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
     };
 
     return this.sanitizer.bypassSecurityTrustHtml(icons[name] ?? icons['list']);

@@ -22,6 +22,7 @@ import { CreateClientDrawerComponent } from '../../ui/create-client-drawer/creat
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
 import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
 
 
 @Component({
@@ -41,7 +42,8 @@ import { TableCardComponent } from '../../../../shared/components/table-card/tab
     StatusChipComponent,
     PageHeaderComponent,
     SearchToolbarComponent,
-    TableCardComponent
+    TableCardComponent,
+    DrawerShellComponent
   ],
   templateUrl: './external-clients-list.html',
   styleUrl: './external-clients-list.scss'

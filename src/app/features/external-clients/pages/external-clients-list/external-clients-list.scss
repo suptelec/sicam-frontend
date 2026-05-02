@@ -136,23 +136,6 @@
 }
 
 
-.drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
-}
-
-.drawer-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  z-index: 61;
-  height: 100vh;
-  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.35);
-}
-
 .page__primary-btn {
   min-height: 42px;
   padding: 0 18px !important;

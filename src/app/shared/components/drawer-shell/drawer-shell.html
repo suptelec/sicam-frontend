@@ -1,0 +1,12 @@
+@if (open()) {
+  <div
+    class="drawer-shell__backdrop"
+    (click)="onBackdropClick()">
+  </div>
+
+  <aside
+    class="drawer-shell__panel"
+    [style.width]="'min(' + width() + ', ' + maxWidth() + ')'">
+    <ng-content />
+  </aside>
+}

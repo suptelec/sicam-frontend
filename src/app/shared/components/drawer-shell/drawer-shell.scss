@@ -1,0 +1,18 @@
+.drawer-shell__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.drawer-shell__panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 61;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.35);
+}

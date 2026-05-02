@@ -22,6 +22,7 @@ import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.ser
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
 import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
 
 @Component({
   selector: 'app-pmse-companies-list',
@@ -39,7 +40,8 @@ import { TableCardComponent } from '../../../../shared/components/table-card/tab
     StatusChipComponent,
     PageHeaderComponent,
     SearchToolbarComponent,
-    TableCardComponent
+    TableCardComponent,
+    DrawerShellComponent
   ],
   templateUrl: './pmse-companies-list.html',
   styleUrl: './pmse-companies-list.scss'
