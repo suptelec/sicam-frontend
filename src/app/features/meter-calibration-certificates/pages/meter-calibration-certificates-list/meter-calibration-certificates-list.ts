@@ -27,6 +27,7 @@ import {
 } from '../../domain/meter-calibration-certificate.model';
 
 import { MeterCalibrationCertificateDrawerComponent } from '../../ui/meter-calibration-certificate-drawer/meter-calibration-certificate-drawer';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 @Component({
   selector: 'app-meter-calibration-certificates-list',
@@ -52,6 +53,7 @@ export class MeterCalibrationCertificatesListComponent implements OnInit {
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly userScope = inject(UserScopeService);
 
   readonly EntityStatus = EntityStatus;
   readonly getEntityStatusChip = getEntityStatusChip;
@@ -86,22 +88,31 @@ export class MeterCalibrationCertificatesListComponent implements OnInit {
   load(): void {
     this.isLoading.set(true);
 
+    const searchFilter = this.odata.searchInFields(
+  [
+    'CertificateNumber',
+    'SecondaryCertificateNumber',
+    'MeterCode',
+    'MeterSerial',
+    'PmseCompanyName',
+    'AccreditedLaboratoryName'
+  ],
+  this.searchTerm
+);
+
+const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
+
+const filter = [searchFilter, pmseFilter]
+  .filter(Boolean)
+  .map(value => `(${value})`)
+  .join(' and ');
+
     this.service.getAll({
-      page: this.pageIndex + 1,
-      take: this.pageSize,
-      filter: this.odata.searchInFields(
-        [
-          'CertificateNumber',
-          'SecondaryCertificateNumber',
-          'MeterCode',
-          'MeterSerial',
-          'PmseCompanyName',
-          'AccreditedLaboratoryName'
-        ],
-        this.searchTerm
-      ),
-      orderBy: 'CreatedAt desc'
-    }).subscribe({
+  page: this.pageIndex + 1,
+  take: this.pageSize,
+  filter: filter || undefined,
+  orderBy: 'CreatedAt desc'
+}).subscribe({
       next: response => {
         if (response.succeed) {
           this.dataSource.data = response.result ?? [];

@@ -1,0 +1,117 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Cambios de rango"
+    title="Mis solicitudes de cambio"
+    [description]="'Consulta las solicitudes de cambio de rango enviadas por ' + pmseCompanyName + '.'"
+    [showAction]="false"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por motivo o comentario de revisión..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando solicitudes..."
+    emptyIcon="date_range"
+    emptyTitle="No hay solicitudes de cambio"
+    emptyDescription="Cuando solicites un cambio de rango desde Mis procesos, aparecerá aquí."
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="requests-table"
+    >
+      <ng-container matColumnDef="item">
+        <th mat-header-cell *matHeaderCellDef>Solicitud</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="request-name">
+            <div class="request-name__avatar">
+              <mat-icon>date_range</mat-icon>
+            </div>
+
+            <div>
+              <strong>#{{ row.id }}</strong>
+              <span>Ítem plan: {{ row.calibrationPlanItemId }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="currentRange">
+        <th mat-header-cell *matHeaderCellDef>Rango actual</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.currentPlannedStartDate ?? '—' }}</strong>
+            <span>Hasta: {{ row.currentPlannedEndDate ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="requestedRange">
+        <th mat-header-cell *matHeaderCellDef>Rango solicitado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.requestedPlannedStartDate ?? '—' }}</strong>
+            <span>Hasta: {{ row.requestedPlannedEndDate ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="reason">
+        <th mat-header-cell *matHeaderCellDef>Motivo</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="reason-text">
+            {{ row.reason ?? '—' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="requestStatus">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <app-status-chip
+            [label]="getStatusLabel(row.requestStatus)"
+            [tone]="getStatusTone(row.requestStatus)"
+            [icon]="getStatusIcon(row.requestStatus)"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="review">
+        <th mat-header-cell *matHeaderCellDef>Revisión CENACE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.reviewedAt ?? 'Pendiente' }}</strong>
+            <span>{{ row.reviewNotes ?? 'Sin observaciones' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>

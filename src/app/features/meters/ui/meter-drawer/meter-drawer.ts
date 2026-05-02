@@ -1,4 +1,5 @@
 import { Component, EventEmitter, OnInit, Output, inject, input, signal } from '@angular/core';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 import {
   FormBuilder,
@@ -64,6 +65,8 @@ export class MeterDrawerComponent implements OnInit {
   private readonly metersService = inject(MetersService);
   private readonly companiesService = inject(PmseCompaniesService);
   private readonly toast = inject(ToastService);
+  private readonly userScope = inject(UserScopeService);
+
   meterId = input<number | null>(null);
 
   @Output() updated = new EventEmitter<Meter>();
@@ -134,13 +137,35 @@ export class MeterDrawerComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadCompanies();
-    this.configurePrincipalValidation();
+  this.loadCompanies();
+  this.configurePrincipalValidation();
 
-    if (this.meterId()) {
-      this.loadMeter(this.meterId()!);
-    }
+  if (this.isPmseUser && this.currentPmseCompanyId) {
+    this.identificationForm.patchValue({
+      pmseCompanyId: this.currentPmseCompanyId
+    });
   }
+
+  if (this.meterId()) {
+    this.loadMeter(this.meterId()!);
+  }
+}
+
+  get isPmseUser(): boolean {
+  return this.userScope.isPmseUser();
+}
+
+get isCenaceUser(): boolean {
+  return this.userScope.isCenaceUser();
+}
+
+get currentPmseCompanyId(): number | null {
+  return this.userScope.pmseCompanyId();
+}
+
+get currentPmseCompanyName(): string | null {
+  return this.userScope.pmseCompanyName();
+}
 
   get isEditMode(): boolean {
     return !!this.meterId();
@@ -430,9 +455,16 @@ export class MeterDrawerComponent implements OnInit {
     const location = this.locationForm.getRawValue();
     const network = this.networkForm.getRawValue();
     const seals = this.sealsForm.getRawValue();
+    const pmseCompanyId = this.isPmseUser
+  ? this.currentPmseCompanyId
+  : identification.pmseCompanyId;
 
     return {
-      pmseCompanyId: Number(identification.pmseCompanyId),
+      pmseCompanyId: Number(
+        this.isPmseUser
+          ? this.currentPmseCompanyId
+          : identification.pmseCompanyId
+      ),
 
       code: this.normalizeRequired(identification.code),
       serial: this.normalizeRequired(identification.serial),

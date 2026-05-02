@@ -36,8 +36,11 @@
 
     <div class="drawer__tab-content">
       <app-meter-identification-section
-        [form]="identificationForm"
-        [companies]="companies()"
+      [form]="identificationForm"
+      [companies]="companies()"
+      [showCompanySelect]="isCenaceUser"
+      [companyName]="currentPmseCompanyName"
+    />
       />
     </div>
   </mat-tab>

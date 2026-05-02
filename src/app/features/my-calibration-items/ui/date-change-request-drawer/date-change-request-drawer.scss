@@ -67,17 +67,80 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
 }
 
-.drawer__loading {
-  min-height: 420px;
-  flex: 1;
+.item-summary {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  span {
+    display: block;
+    color: #8ea0bd;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    margin-top: 4px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+
+  small {
+    display: block;
+    margin-top: 4px;
+    color: #a8b3c7;
+  }
+}
+
+.item-summary__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: 14px;
-  color: var(--color-text-muted, #9ca3af);
+}
+
+.current-range {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+
+  span {
+    display: block;
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  small {
+    display: block;
+    margin-top: 4px;
+    color: #a8b3c7;
+  }
 }
 
 .form-section {
@@ -104,81 +167,34 @@
   width: 100%;
 }
 
-.full-field {
-  width: 100%;
-}
-
 .drawer__textarea textarea {
   resize: vertical;
 }
 
-.meter-preview {
-  margin-bottom: 16px;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.18);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-
-  span {
-    display: block;
-    margin-bottom: 4px;
-    color: #8ea0bd;
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  strong {
-    display: block;
-    color: #f9fafb;
-    font-size: 0.88rem;
-    font-weight: 650;
-    word-break: break-word;
-  }
-}
-
-.pdf-card {
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  > div {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+.empty-state {
+  padding: 36px 20px;
+  border-radius: 18px;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  text-align: center;
 
   mat-icon {
-    color: #f87171;
+    width: 44px;
+    height: 44px;
+    font-size: 44px;
+    color: #fbbf24;
   }
 
-  strong {
-    display: block;
+  h3 {
+    margin: 14px 0 6px;
     color: #ffffff;
-    font-weight: 750;
+    font-weight: 800;
   }
 
-  span {
-    display: block;
-    margin-top: 2px;
+  p {
+    margin: 0;
     color: #a8b3c7;
-    font-size: 0.82rem;
-    word-break: break-all;
-  }
-
-  button {
-    flex: 0 0 auto;
-    color: #cbd5e1;
+    line-height: 1.5;
   }
 }
 
@@ -200,8 +216,7 @@
   font-size: 0.96rem;
 }
 
-.drawer ::ng-deep .mdc-floating-label,
-.drawer ::ng-deep .mat-mdc-select-value {
+.drawer ::ng-deep .mdc-floating-label {
   color: #a8b3c7 !important;
 }
 
@@ -232,42 +247,8 @@
   font-size: 0.82rem;
 }
 
-.drawer ::ng-deep .mat-mdc-form-field-hint {
-  color: #7f90aa !important;
-  font-size: 0.8rem;
-}
-.scope-card {
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.18);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  mat-icon {
-    color: #60a5fa;
-  }
-
-  span {
-    display: block;
-    color: #8ea0bd;
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  strong {
-    display: block;
-    margin-top: 4px;
-    color: #f9fafb;
-    font-weight: 750;
-  }
-}
 @media (max-width: 760px) {
-  .field-row,
-  .meter-preview {
+  .field-row {
     grid-template-columns: 1fr;
   }
 }

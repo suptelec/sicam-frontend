@@ -1,0 +1,164 @@
+<section class="page">
+  <button
+    mat-button
+    type="button"
+    class="back-button"
+    (click)="back()"
+  >
+    <mat-icon>arrow_back</mat-icon>
+    Volver a cronogramas
+  </button>
+
+  @if (submission(); as current) {
+    <app-page-header
+      eyebrow="Cronograma PMSE"
+      [title]="current.planName"
+      [description]="'Detalle del cronograma de ' + (current.pmseCompanyName ?? 'tu empresa') + ' para el año ' + current.planYear + '.'"
+      [showAction]="false"
+    />
+
+    <section class="summary-card">
+      <article>
+        <span>Plan</span>
+        <strong>{{ current.planYear }}</strong>
+        <small>{{ current.planName }}</small>
+      </article>
+
+      <article>
+        <span>Ítems</span>
+        <strong>{{ itemsCount }}</strong>
+        <small>Medidores agregados</small>
+      </article>
+
+      <article>
+        <span>Documento oficial</span>
+
+        @if (current.documentUrl) {
+          <a
+            class="document-link"
+            [href]="current.documentUrl"
+            target="_blank"
+            rel="noopener"
+          >
+            Ver documento
+          </a>
+        } @else {
+          <strong class="warning-text">Pendiente</strong>
+          <small>Debe adjuntarse antes de enviar</small>
+        }
+      </article>
+
+      <article>
+        <span>Estado</span>
+        <app-status-chip
+          [label]="getStatusLabel(current.submissionStatus)"
+          [tone]="getStatusTone(current.submissionStatus)"
+          [icon]="getStatusIcon(current.submissionStatus)"
+        />
+      </article>
+    </section>
+
+    @if (current.rejectionReason) {
+      <section class="rejection-card">
+        <mat-icon>error</mat-icon>
+
+        <div>
+          <strong>Motivo de rechazo</strong>
+          <p>{{ current.rejectionReason }}</p>
+        </div>
+      </section>
+    }
+
+    <section class="actions-bar">
+      <button
+        mat-flat-button
+        type="button"
+        class="actions-bar__btn actions-bar__btn--primary"
+        [disabled]="!canSubmit || isSubmitting()"
+        [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe estar en borrador, tener ítems y documento oficial'"
+        (click)="onSubmit()"
+      >
+        <mat-icon>send</mat-icon>
+        Enviar a CENACE
+      </button>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="actions-bar__refresh"
+        matTooltip="Actualizar"
+        (click)="load()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </section>
+
+    <app-table-card
+      [loading]="isLoading()"
+      [empty]="dataSource.data.length === 0"
+      loadingText="Cargando ítems del cronograma..."
+      emptyIcon="event_note"
+      emptyTitle="No hay ítems agregados"
+      emptyDescription="Agrega ítems desde Mis procesos para construir el cronograma."
+    >
+      <table
+        table-content
+        mat-table
+        [dataSource]="dataSource"
+        class="items-table"
+      >
+        <ng-container matColumnDef="meter">
+          <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="meter-name">
+              <div class="meter-name__avatar">
+                <mat-icon>electric_meter</mat-icon>
+              </div>
+
+              <div>
+                <strong>{{ row.meterCode ?? '—' }}</strong>
+                <span>Serial: {{ row.meterSerial ?? '—' }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="proposedDate">
+          <th mat-header-cell *matHeaderCellDef>Fecha propuesta</th>
+
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ row.proposedCalibrationDate ?? '—' }}</strong>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="laboratory">
+          <th mat-header-cell *matHeaderCellDef>Laboratorio</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="stacked-cell">
+              <strong>{{ row.accreditedLaboratoryName ?? row.laboratoryName ?? '—' }}</strong>
+              <span>Laboratorio propuesto</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="notes">
+          <th mat-header-cell *matHeaderCellDef>Observaciones</th>
+
+          <td mat-cell *matCellDef="let row">
+            <span class="muted">{{ row.notes ?? '—' }}</span>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </app-table-card>
+  } @else {
+    <section class="loading-page">
+      <mat-spinner diameter="36" />
+      <span>Cargando cronograma...</span>
+    </section>
+  }
+</section>

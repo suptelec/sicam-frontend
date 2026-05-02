@@ -1,0 +1,130 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">CRONOGRAMA PMSE</p>
+      <h2>Proponer cronograma</h2>
+      <p class="drawer__description">
+        Selecciona la fecha propuesta y el laboratorio acreditado que ejecutará la calibración.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentItem; as item) {
+        <section class="item-summary">
+          <div class="item-summary__icon">
+            <mat-icon>electric_meter</mat-icon>
+          </div>
+
+          <div>
+            <span>Medidor</span>
+            <strong>{{ item.meterCode ?? '—' }}</strong>
+            <small>Serial: {{ item.meterSerial ?? '—' }}</small>
+          </div>
+        </section>
+
+        <section class="detail-grid">
+          <article>
+            <span>Certificado anterior</span>
+            <strong>{{ item.certificateNumber ?? '—' }}</strong>
+          </article>
+
+          <article>
+            <span>Vigente hasta</span>
+            <strong>{{ item.lastCertificateValidUntil ?? '—' }}</strong>
+          </article>
+
+          <article>
+            <span>Rango planificado</span>
+            <strong>{{ item.plannedStartDate ?? '—' }}</strong>
+            <small>Hasta {{ item.plannedEndDate ?? '—' }}</small>
+          </article>
+
+          <article>
+            <span>PMSE</span>
+            <strong>{{ item.pmseCompanyName ?? '—' }}</strong>
+          </article>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">Propuesta de calibración</div>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Fecha propuesta</mat-label>
+
+            <input
+              matInput
+              type="date"
+              formControlName="scheduledDate"
+              [attr.min]="minDate"
+              [attr.max]="maxDate"
+            />
+
+            @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+              <mat-error>La fecha propuesta es obligatoria.</mat-error>
+            }
+
+            @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+              <mat-error>La fecha debe estar dentro del rango planificado.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Laboratorio acreditado</mat-label>
+
+            <mat-select formControlName="accreditedLaboratoryId">
+              @for (laboratory of laboratories(); track laboratory.id) {
+                <mat-option [value]="laboratory.id">
+                  {{ getLaboratoryLabel(laboratory) }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
+              <mat-error>El laboratorio es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+            <mat-label>Observaciones</mat-label>
+
+            <textarea
+              matInput
+              rows="4"
+              formControlName="notes"
+              placeholder="Ejemplo: coordinación preliminar con SUPTELEC, disponibilidad de cuadrilla, restricciones operativas..."
+            ></textarea>
+          </mat-form-field>
+        </section>
+      } @else {
+        <section class="empty-state">
+          <mat-icon>warning</mat-icon>
+          <h3>No se recibió el ítem del plan</h3>
+          <p>Cierra este panel y vuelve a seleccionar el ítem desde la tabla.</p>
+        </section>
+      }
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Enviar cronograma"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

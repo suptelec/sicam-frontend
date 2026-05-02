@@ -1,0 +1,103 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">CRONOGRAMA PMSE</p>
+      <h2>Crear cronograma</h2>
+      <p class="drawer__description">
+        Crea el cronograma oficial de calibración para un plan publicado y adjunta la URL del documento oficial.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      <section class="scope-card">
+        <mat-icon>business</mat-icon>
+
+        <div>
+          <span>Empresa PMSE</span>
+          <strong>{{ pmseCompanyName }}</strong>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">Datos del cronograma</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Plan anual publicado</mat-label>
+
+          <mat-select formControlName="calibrationPlanId">
+            @for (plan of plans(); track plan.id) {
+              <mat-option [value]="plan.id">
+                {{ plan.name }} · {{ plan.year }}
+              </mat-option>
+            }
+          </mat-select>
+
+          @if (form.controls.calibrationPlanId.hasError('required') && form.controls.calibrationPlanId.touched) {
+            <mat-error>El plan anual es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>URL del documento oficial</mat-label>
+
+          <input
+            matInput
+            formControlName="documentUrl"
+            autocomplete="off"
+            placeholder="https://..."
+          />
+
+          @if (form.controls.documentUrl.hasError('required') && form.controls.documentUrl.touched) {
+            <mat-error>La URL del documento oficial es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Observaciones</mat-label>
+
+          <textarea
+            matInput
+            rows="4"
+            formControlName="notes"
+            placeholder="Ejemplo: Cronograma propuesto para calibraciones del periodo 2027."
+          ></textarea>
+        </mat-form-field>
+      </section>
+
+      <section class="info-card">
+        <mat-icon>info</mat-icon>
+
+        <div>
+          <strong>Importante</strong>
+          <p>
+            El cronograma se crea en estado borrador. Luego podrás agregar ítems desde
+            Mis procesos y enviarlo a CENACE cuando tenga al menos un ítem.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear cronograma"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

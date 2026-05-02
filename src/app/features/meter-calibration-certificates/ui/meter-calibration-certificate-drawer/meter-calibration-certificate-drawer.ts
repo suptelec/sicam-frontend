@@ -35,6 +35,7 @@ import {
   CreateMeterCalibrationCertificateRequest,
   MeterCalibrationCertificate
 } from '../../domain/meter-calibration-certificate.model';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 @Component({
   selector: 'app-meter-calibration-certificate-drawer',
@@ -61,6 +62,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   private readonly metersService = inject(MetersService);
   private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
   private readonly toast = inject(ToastService);
+  private readonly userScope = inject(UserScopeService);
 
   @Output() closed = new EventEmitter<void>();
   @Output() created = new EventEmitter<MeterCalibrationCertificate>();
@@ -101,6 +103,14 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   ngOnInit(): void {
     this.loadCatalogs();
   }
+
+  get isPmseUser(): boolean {
+  return this.userScope.isPmseUser();
+}
+
+get currentPmseCompanyName(): string | null {
+  return this.userScope.pmseCompanyName();
+}
 
   get saveDisabled(): boolean {
     return this.loading || this.loadingCatalogs() || this.form.invalid;
@@ -210,6 +220,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
 
   private loadCatalogs(): void {
     this.loadingCatalogs.set(true);
+    const meterFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
     let completed = 0;
 
@@ -222,24 +233,25 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
     };
 
     this.metersService.getAll({
-      page: 1,
-      take: 500,
-      orderBy: 'Code asc'
-    }).subscribe({
-      next: response => {
-        if (response.succeed) {
-          this.meters.set(response.result ?? []);
-        } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
-        }
+  page: 1,
+  take: 500,
+  filter: meterFilter || undefined,
+  orderBy: 'Code asc'
+}).subscribe({
+  next: response => {
+    if (response.succeed) {
+      this.meters.set(response.result ?? []);
+    } else {
+      this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
+    }
 
-        finish();
-      },
-      error: () => {
-        this.toast.warning('No se pudieron cargar los medidores.');
-        finish();
-      }
-    });
+    finish();
+  },
+  error: () => {
+    this.toast.warning('No se pudieron cargar los medidores.');
+    finish();
+  }
+});
 
     this.laboratoriesService.getAll({
       page: 1,

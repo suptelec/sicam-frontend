@@ -1,0 +1,288 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Mis procesos"
+    title="Ítems del Plan Anual"
+    [description]="'Consulta los medidores asignados a ' + pmseCompanyName + ' para coordinar su calibración.'"
+    [showAction]="false"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por medidor, serial o certificado..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando tus ítems del plan..."
+    emptyIcon="assignment"
+    emptyTitle="No tienes ítems asignados"
+    emptyDescription="Cuando CENACE publique un plan anual con medidores de tu empresa, aparecerán aquí."
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="items-table"
+    >
+      <ng-container matColumnDef="meter">
+        <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="meter-name">
+            <div class="meter-name__avatar">
+              <mat-icon>electric_meter</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.meterCode ?? '—' }}</strong>
+              <span>Serial: {{ row.meterSerial ?? '—' }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="certificate">
+        <th mat-header-cell *matHeaderCellDef>Certificado anterior</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.certificateNumber ?? '—' }}</strong>
+            <span>Vigente hasta: {{ row.lastCertificateValidUntil ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="plannedRange">
+        <th mat-header-cell *matHeaderCellDef>Rango planificado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.plannedStartDate ?? '—' }}</strong>
+            <span>Hasta: {{ row.plannedEndDate ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="scheduledDate">
+        <th mat-header-cell *matHeaderCellDef>Fecha aprobada</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">
+            {{ row.scheduledDate ?? 'Pendiente' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="itemStatus">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <app-status-chip
+            [label]="getItemStatusLabel(row.itemStatus)"
+            [tone]="getItemStatusTone(row.itemStatus)"
+            [icon]="getItemStatusIcon(row.itemStatus)"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <div class="row-actions">
+            @if (row.itemStatus === CalibrationPlanItemStatus.Pending) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Solicitar cambio de rango"
+                (click)="onDateChangeClicked(row)"
+              >
+                <mat-icon>date_range</mat-icon>
+              </button>
+
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Agregar a cronograma"
+                (click)="onScheduleClicked(row)"
+              >
+                <mat-icon>event_available</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.DateChangeRequested) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Solicitud de cambio pendiente"
+                disabled
+              >
+                <mat-icon>hourglass_top</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.ScheduledByPmse) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Cronograma enviado a CENACE"
+                disabled
+              >
+                <mat-icon>send</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.ScheduleApproved) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Solicitar autorización de inicio"
+                disabled
+              >
+                <mat-icon>approval</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.AuthorizationRequested) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Autorización pendiente"
+                disabled
+              >
+                <mat-icon>pending</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.Authorized) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Iniciar proceso de calibración"
+                disabled
+              >
+                <mat-icon>engineering</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.InProcess) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Continuar proceso"
+                disabled
+              >
+                <mat-icon>play_circle</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.InReview) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Proceso en revisión CENACE"
+                disabled
+              >
+                <mat-icon>fact_check</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.Approved) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Ver calibración aprobada"
+                disabled
+              >
+                <mat-icon>check_circle</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.Rejected) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Ver rechazo / corregir"
+                disabled
+              >
+                <mat-icon>error</mat-icon>
+              </button>
+            }
+
+            @if (row.itemStatus === CalibrationPlanItemStatus.Expired) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                matTooltip="Ítem expirado"
+                disabled
+              >
+                <mat-icon>event_busy</mat-icon>
+              </button>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>
+
+@if (scheduleDrawerOpen()) {
+  @if (selectedItem(); as item) {
+    <app-drawer-shell
+      [open]="scheduleDrawerOpen()"
+      width="620px"
+      (closed)="onScheduleDrawerClosed()"
+    >
+      <app-schedule-proposal-drawer
+        [item]="item"
+        (closed)="onScheduleDrawerClosed()"
+        (submitted)="onScheduleSubmitted()"
+      ></app-schedule-proposal-drawer>
+    </app-drawer-shell>
+  }
+}
+
+@if (dateChangeDrawerOpen()) {
+  @if (selectedDateChangeItem(); as item) {
+    <app-drawer-shell
+      [open]="dateChangeDrawerOpen()"
+      width="620px"
+      (closed)="onDateChangeDrawerClosed()"
+    >
+      <app-date-change-request-drawer
+        [item]="item"
+        (closed)="onDateChangeDrawerClosed()"
+        (created)="onDateChangeCreated()"
+      ></app-date-change-request-drawer>
+    </app-drawer-shell>
+  }
+}

@@ -5,24 +5,31 @@
   </div>
 
   <div class="form-grid">
-    <mat-form-field appearance="outline">
-      <mat-label>Empresa PMSE</mat-label>
+    @if (showCompanySelect()) {
+      <mat-form-field appearance="outline">
+        <mat-label>Empresa PMSE</mat-label>
 
-      <mat-select formControlName="pmseCompanyId">
-        @for (company of companies(); track company.id) {
-          <mat-option [value]="company.id">
-            {{ company.name }}
-            @if (company.externalCode) {
-              — {{ company.externalCode }}
-            }
-          </mat-option>
+        <mat-select formControlName="pmseCompanyId">
+          @for (company of companies(); track company.id) {
+            <mat-option [value]="company.id">
+              {{ company.name }}
+              @if (company.externalCode) {
+                — {{ company.externalCode }}
+              }
+            </mat-option>
+          }
+        </mat-select>
+
+        @if (form().get('pmseCompanyId')?.hasError('required')) {
+          <mat-error>La empresa PMSE es obligatoria.</mat-error>
         }
-      </mat-select>
-
-      @if (form().get('pmseCompanyId')?.hasError('required')) {
-        <mat-error>La empresa PMSE es obligatoria.</mat-error>
-      }
-    </mat-form-field>
+      </mat-form-field>
+    } @else {
+      <section class="company-card">
+        <span>Empresa PMSE</span>
+        <strong>{{ companyName() ?? 'Empresa asociada al usuario' }}</strong>
+      </section>
+    }
 
     <mat-form-field appearance="outline">
       <mat-label>Código del medidor</mat-label>

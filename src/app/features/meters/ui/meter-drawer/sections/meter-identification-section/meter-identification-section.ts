@@ -26,4 +26,7 @@ export interface MeterCompanyOption {
 export class MeterIdentificationSectionComponent {
   form = input.required<FormGroup>();
   companies = input.required<MeterCompanyOption[]>();
+
+  showCompanySelect = input<boolean>(true);
+  companyName = input<string | null>(null);
 }

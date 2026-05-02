@@ -91,7 +91,9 @@ export class AuthService {
       email:       tokenClaims[AuthClaims.email] ?? tokenClaims['email'],
       fullName:    tokenClaims[AuthClaims.name]  ?? tokenClaims[AuthClaims.sub],
       userType:    parseInt(tokenClaims[AuthClaims.userType] ?? '1'),
-      permissions: this.parsePermissions(tokenClaims[AuthClaims.permissions])
+      permissions: this.parsePermissions(tokenClaims[AuthClaims.permissions]),
+      pmseCompanyId: this.parseNullableNumber(tokenClaims[AuthClaims.pmseCompanyId]),
+      pmseCompanyName: this.parseNullableString(tokenClaims[AuthClaims.pmseCompanyName])
     });
 
 
@@ -155,6 +157,26 @@ export class AuthService {
 
   hasRefreshToken(): boolean {
   return !!this.oauthService.getRefreshToken();
+}
+
+private parseNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+private parseNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const parsed = String(value).trim();
+
+  return parsed ? parsed : null;
 }
 
 async ensureValidAccessToken(): Promise<string | null> {

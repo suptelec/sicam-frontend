@@ -29,6 +29,17 @@
       </div>
     } @else {
       <div class="drawer__body">
+        @if (isPmseUser) {
+          <section class="scope-card">
+            <mat-icon>business</mat-icon>
+
+            <div>
+              <span>Empresa PMSE </span>
+              <strong>{{ currentPmseCompanyName ?? 'Empresa asociada al usuario' }}</strong>
+            </div>
+          </section>
+        }
+
         <section class="form-section">
           <div class="section-title">Medidor y laboratorio</div>
 

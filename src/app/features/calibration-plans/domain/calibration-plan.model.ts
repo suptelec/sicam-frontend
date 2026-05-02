@@ -104,13 +104,16 @@ export const CalibrationPlanStatusLabels: Record<CalibrationPlanStatus, string> 
 
 export enum CalibrationPlanItemStatus {
   Pending = 1,
-  Scheduled = 2,
-  Authorized = 3,
-  InCalibration = 4,
-  UnderReview = 5,
-  Approved = 6,
-  Rejected = 7,
-  Closed = 8
+  DateChangeRequested = 2,
+  ScheduledByPmse = 3,
+  ScheduleApproved = 4,
+  AuthorizationRequested = 5,
+  Authorized = 6,
+  InProcess = 7,
+  InReview = 8,
+  Approved = 9,
+  Rejected = 10,
+  Expired = 11
 }
 
 export interface CalibrationPlanItem {
@@ -141,11 +144,14 @@ export interface CalibrationPlanItem {
 
 export const CalibrationPlanItemStatusLabels: Record<CalibrationPlanItemStatus, string> = {
   [CalibrationPlanItemStatus.Pending]: 'Pendiente',
-  [CalibrationPlanItemStatus.Scheduled]: 'Cronogramado',
+  [CalibrationPlanItemStatus.DateChangeRequested]: 'Cambio de rango solicitado',
+  [CalibrationPlanItemStatus.ScheduledByPmse]: 'Cronograma enviado',
+  [CalibrationPlanItemStatus.ScheduleApproved]: 'Cronograma aprobado',
+  [CalibrationPlanItemStatus.AuthorizationRequested]: 'Autorización solicitada',
   [CalibrationPlanItemStatus.Authorized]: 'Autorizado',
-  [CalibrationPlanItemStatus.InCalibration]: 'En calibración',
-  [CalibrationPlanItemStatus.UnderReview]: 'En revisión',
+  [CalibrationPlanItemStatus.InProcess]: 'En proceso',
+  [CalibrationPlanItemStatus.InReview]: 'En revisión',
   [CalibrationPlanItemStatus.Approved]: 'Aprobado',
   [CalibrationPlanItemStatus.Rejected]: 'Rechazado',
-  [CalibrationPlanItemStatus.Closed]: 'Cerrado'
+  [CalibrationPlanItemStatus.Expired]: 'Expirado'
 };

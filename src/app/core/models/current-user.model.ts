@@ -7,6 +7,8 @@ export interface CurrentUser {
   fullName: string;
   userType: UserType;
   permissions: UserPermissions;
+  pmseCompanyId?: number | null;
+  pmseCompanyName?: string | null;
 }
 
 export enum UserType {

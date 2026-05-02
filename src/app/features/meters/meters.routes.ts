@@ -8,10 +8,16 @@ export const METERS_ROUTES: Routes = [
     path: '',
     canActivate: [permissionGuard],
     data: {
-      permission: {
-        resource: 'calibrationPlan',
-        action: PermissionAction.Read
-      }
+      anyPermission: [
+        {
+          resource: 'calibrationPlan',
+          action: PermissionAction.Read
+        },
+        {
+          resource: 'calibrationProcess',
+          action: PermissionAction.Read
+        }
+      ]
     },
     loadComponent: () =>
       import('./pages/meters-list/meters-list')

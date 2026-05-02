@@ -6,4 +6,6 @@ export const AuthClaims = {
   familyName:  'family_name',
   userType:    'scm.user_type',
   permissions: 'scm.permissions',
+  pmseCompanyId: 'scm.pmse_company_id',
+  pmseCompanyName: 'scm.pmse_company_name'
 } as const;

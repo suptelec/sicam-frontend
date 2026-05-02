@@ -4,6 +4,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
@@ -54,6 +55,7 @@ export class MetersListComponent implements OnInit {
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly userScope = inject(UserScopeService);
 
   readonly getEntityStatusChip = getEntityStatusChip;
   readonly EntityStatus = EntityStatus;
@@ -92,26 +94,34 @@ export class MetersListComponent implements OnInit {
 
   load(): void {
     this.isLoading.set(true);
+    const searchFilter = this.odata.searchInFields(
+  [
+    'Code',
+    'Serial',
+    'TplCode',
+    'CenaceCode',
+    'PmseCompanyName',
+    'MeasurementPointCode',
+    'MeasurementPointWbCode',
+    'BorderPointCode',
+    'InstallationName'
+  ],
+  this.searchTerm
+);
+
+const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
+
+const filter = [searchFilter, pmseFilter]
+  .filter(Boolean)
+  .map(value => `(${value})`)
+  .join(' and ');
 
     this.service.getAll({
-      page: this.pageIndex + 1,
-      take: this.pageSize,
-      filter: this.odata.searchInFields(
-        [
-          'Code',
-          'Serial',
-          'TplCode',
-          'CenaceCode',
-          'PmseCompanyName',
-          'MeasurementPointCode',
-          'MeasurementPointWbCode',
-          'BorderPointCode',
-          'InstallationName'
-        ],
-        this.searchTerm
-      ),
-      orderBy: 'CreatedAt desc'
-    }).subscribe({
+  page: this.pageIndex + 1,
+  take: this.pageSize,
+  filter: filter || undefined,
+  orderBy: 'CreatedAt desc'
+}).subscribe({
       next: response => {
         if (response.succeed) {
           this.dataSource.data = response.result ?? [];

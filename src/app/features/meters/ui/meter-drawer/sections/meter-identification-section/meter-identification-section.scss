@@ -26,6 +26,34 @@
   gap: 16px;
 }
 
+.company-card {
+  min-height: 56px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  span {
+    display: block;
+    color: #8ea0bd;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    color: #f9fafb;
+    font-size: 0.96rem;
+    font-weight: 750;
+  }
+}
+
 @media (max-width: 760px) {
   .form-grid {
     grid-template-columns: 1fr;

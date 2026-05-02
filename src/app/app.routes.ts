@@ -57,6 +57,23 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/calibration-plans/calibration-plans.routes')
             .then(m => m.CALIBRATION_PLANS_ROUTES)
+      },{
+        path: 'my-calibration-items',
+        loadChildren: () =>
+          import('./features/my-calibration-items/my-calibration-items.routes')
+            .then(m => m.MY_CALIBRATION_ITEMS_ROUTES)
+      },
+      {
+        path: 'my-date-change-requests',
+        loadChildren: () =>
+          import('./features/my-date-change-requests/my-date-change-requests.routes')
+            .then(m => m.MY_DATE_CHANGE_REQUESTS_ROUTES)
+      },
+      {
+        path: 'my-schedule-submissions',
+        loadChildren: () =>
+          import('./features/my-schedule-submissions/my-schedule-submissions.routes')
+            .then(m => m.MY_SCHEDULE_SUBMISSIONS_ROUTES)
       },
     ]
   },

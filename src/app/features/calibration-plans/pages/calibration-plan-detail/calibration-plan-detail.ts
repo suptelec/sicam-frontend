@@ -304,15 +304,14 @@ export class CalibrationPlanDetailComponent implements OnInit {
       case CalibrationPlanItemStatus.Pending:
         return 'warning';
 
-      case CalibrationPlanItemStatus.Scheduled:
+      case CalibrationPlanItemStatus.ScheduledByPmse:
         return 'info';
 
       case CalibrationPlanItemStatus.Authorized:
         return 'primary';
 
       case CalibrationPlanItemStatus.Approved:
-      case CalibrationPlanItemStatus.Closed:
-        return 'success';
+      
 
       case CalibrationPlanItemStatus.Rejected:
         return 'danger';

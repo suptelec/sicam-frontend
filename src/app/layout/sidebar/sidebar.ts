@@ -197,21 +197,45 @@ export class SidebarComponent {
         section: 'Principal'
       },
       {
-        label: 'Mi plan',
-        route: '/plan',
-        icon: 'plan',
-        section: 'Calibración',
-        permission: 'calibrationPlan',
-        action: PermissionAction.Read
-      },
-      {
         label: 'Mis procesos',
-        route: '/procesos',
-        icon: 'clock',
+        route: '/my-calibration-items',
+        icon: 'process',
         section: null,
         permission: 'calibrationProcess',
         action: PermissionAction.Read
       },
+      {
+        label: 'Cambios de rango',
+        route: '/my-date-change-requests',
+        icon: 'dateChange',
+        section: null,
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Mis cronogramas',
+        route: '/my-schedule-submissions',
+        icon: 'schedule',
+        section: null,
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Mis medidores',
+        route: '/meters',
+        icon: 'meter',
+        section: 'Catálogos técnicos',
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Mis certificados',
+        route: '/meter-calibration-certificates',
+        icon: 'certificate',
+        section: null,
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },    
       {
         label: 'Usuarios',
         route: '/system-users',
@@ -293,6 +317,7 @@ export class SidebarComponent {
       science: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 2h4M7 2v4l-4 6.5A1 1 0 004 14h8a1 1 0 00.9-1.5L9 6V2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
       meter: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 6.5h5M6 10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="5" r="1" fill="currentColor"/></svg>`,
       certificate: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4 2h8a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 5h5M5.5 8h5M6 11h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+      schedule: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4 2v2M12 2v2M3 6h10M4 3h8a1 1 0 011 1v8.5a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6 9h1.5M6 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
     };
 
     return this.sanitizer.bypassSecurityTrustHtml(icons[name] ?? icons['list']);

@@ -1,0 +1,113 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">CAMBIO DE RANGO</p>
+      <h2>Solicitar cambio de rango</h2>
+      <p class="drawer__description">
+        Solicita a CENACE modificar el rango planificado antes de agregar el medidor al cronograma.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentItem; as item) {
+        <section class="item-summary">
+          <div class="item-summary__icon">
+            <mat-icon>electric_meter</mat-icon>
+          </div>
+
+          <div>
+            <span>Medidor</span>
+            <strong>{{ item.meterCode ?? '—' }}</strong>
+            <small>Serial: {{ item.meterSerial ?? '—' }}</small>
+          </div>
+        </section>
+
+        <section class="current-range">
+          <span>Rango actual definido por CENACE</span>
+          <strong>{{ item.plannedStartDate ?? '—' }}</strong>
+          <small>Hasta {{ item.plannedEndDate ?? '—' }}</small>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">Nuevo rango solicitado</div>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Fecha inicio solicitada</mat-label>
+              <input
+                matInput
+                type="date"
+                formControlName="requestedPlannedStartDate"
+              />
+
+              @if (form.controls.requestedPlannedStartDate.hasError('required') && form.controls.requestedPlannedStartDate.touched) {
+                <mat-error>La fecha inicio es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Fecha fin solicitada</mat-label>
+              <input
+                matInput
+                type="date"
+                formControlName="requestedPlannedEndDate"
+              />
+
+              @if (form.controls.requestedPlannedEndDate.hasError('required') && form.controls.requestedPlannedEndDate.touched) {
+                <mat-error>La fecha fin es obligatoria.</mat-error>
+              }
+
+              @if (form.hasError('endDateBeforeStartDate') && form.controls.requestedPlannedEndDate.touched) {
+                <mat-error>La fecha fin no puede ser anterior a la fecha inicio.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+            <mat-label>Motivo</mat-label>
+
+            <textarea
+              matInput
+              rows="5"
+              formControlName="reason"
+              placeholder="Ejemplo: Se solicita mover la calibración por disponibilidad del laboratorio acreditado."
+            ></textarea>
+
+            @if (form.controls.reason.hasError('required') && form.controls.reason.touched) {
+              <mat-error>El motivo es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+        </section>
+      } @else {
+        <section class="empty-state">
+          <mat-icon>warning</mat-icon>
+          <h3>No se recibió el ítem del plan</h3>
+          <p>Cierra este panel y vuelve a seleccionar el ítem desde la tabla.</p>
+        </section>
+      }
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Enviar solicitud"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>
