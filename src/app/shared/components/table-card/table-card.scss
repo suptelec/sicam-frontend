@@ -1,0 +1,24 @@
+.table-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--color-surface, #111827);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+}
+
+.table-card__content {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-card__loading {
+  min-height: 340px;
+  padding: 32px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  text-align: center;
+  color: var(--color-text-muted, #9ca3af);
+}

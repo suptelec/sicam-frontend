@@ -1,56 +1,38 @@
 <section class="page">
-  <header class="page__header">
-    <div>
-      <p class="page__eyebrow">Administración</p>
-      <h1>Usuarios del sistema</h1>
-      <p>Gestiona usuarios CENACE, administradores PMSE y operadores PMSE.</p>
-    </div>
+  <app-page-header
+    eyebrow="Administración"
+    title="Usuarios del sistema"
+    description="Gestiona usuarios CENACE, administradores PMSE y operadores PMSE."
+    actionText="Nuevo usuario"
+    actionIcon="add"
+    (actionClicked)="drawerOpen.set(true)"
+  />
 
-    <button
-      mat-flat-button
-      class="page__primary-btn"
-      type="button"
-      (click)="drawerOpen.set(true)">
-      <mat-icon>add</mat-icon>
-      Nuevo usuario
-    </button>
-  </header>
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por nombre o email..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
 
-  <section class="toolbar">
-    <div class="search">
-      <mat-icon>search</mat-icon>
-
-      <input
-        type="text"
-        [(ngModel)]="searchTerm"
-        placeholder="Buscar por nombre o email..."
-        (keyup.enter)="onSearch()" />
-
-      @if (searchTerm) {
-        <button
-          mat-icon-button
-          type="button"
-          class="search__clear"
-          matTooltip="Limpiar búsqueda"
-          (click)="searchTerm = ''; onSearch()">
-          <mat-icon>close</mat-icon>
-        </button>
-      }
-    </div>
-
-    <button
-      mat-stroked-button
-      class="toolbar__refresh"
-      type="button"
-      (click)="load()"
-      [disabled]="isLoading()">
-      <mat-icon>refresh</mat-icon>
-      Actualizar
-    </button>
-  </section>
-
-  <section class="table-card">
-    <table mat-table [dataSource]="dataSource" class="users-table">
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando usuarios..."
+    emptyIcon="group"
+    emptyTitle="No hay usuarios registrados"
+    emptyDescription="Crea un usuario CENACE o PMSE para administrar el acceso al sistema."
+    emptyActionText="Crear usuario"
+    emptyActionIcon="add"
+    (emptyActionClicked)="drawerOpen.set(true)"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="users-table"
+    >
       <ng-container matColumnDef="fullName">
         <th mat-header-cell *matHeaderCellDef>Usuario</th>
 
@@ -107,7 +89,8 @@
           <button
             mat-icon-button
             type="button"
-            matTooltip="Ver detalle">
+            matTooltip="Ver detalle"
+          >
             <mat-icon>visibility</mat-icon>
           </button>
         </td>
@@ -115,42 +98,23 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-
-      @if (!isLoading() && dataSource.data.length === 0) {
-        <tr class="mat-row">
-          <td [attr.colspan]="displayedColumns.length" class="no-data">
-            <div class="empty-state">
-              <mat-icon>group</mat-icon>
-              <h3>No hay usuarios registrados</h3>
-              <p>Crea un usuario CENACE o PMSE para administrar el acceso al sistema.</p>
-
-              <button
-                mat-flat-button
-                class="page__primary-btn"
-                type="button"
-                (click)="drawerOpen.set(true)">
-                <mat-icon>add</mat-icon>
-                Crear usuario
-              </button>
-            </div>
-          </td>
-        </tr>
-      }
     </table>
 
     <mat-paginator
+      table-footer
       [length]="totalRecords"
       [pageSize]="pageSize"
       [pageIndex]="pageIndex"
       [pageSizeOptions]="pageSizeOptions"
       (page)="onPageChange($event)"
-      showFirstLastButtons>
-    </mat-paginator>
-  </section>
+      showFirstLastButtons
+    />
+  </app-table-card>
 </section>
 
 @if (drawerOpen()) {
   <app-create-user-drawer
     (created)="onUserCreated()"
-    (closed)="drawerOpen.set(false)" />
+    (closed)="drawerOpen.set(false)"
+  />
 }

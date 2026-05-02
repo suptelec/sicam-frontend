@@ -1,58 +1,41 @@
 <section class="page">
-  <header class="page__header">
-    <div>
-      <p class="page__eyebrow">Administración</p>
-      <h1>Empresas PMSE</h1>
-      <p>Participantes Mayoristas del Sector Eléctrico registrados en SICAM.</p>
-    </div>
+  <app-page-header
+    eyebrow="Administración"
+    title="Empresas PMSE"
+    description="Participantes Mayoristas del Sector Eléctrico registrados en SICAM."
+    actionText="Nueva empresa"
+    actionIcon="add"
+    (actionClicked)="drawerOpen.set(true)"
+  />
 
-    <button
-      mat-flat-button
-      class="page__primary-btn"
-      type="button"
-      (click)="drawerOpen.set(true)">
-      <mat-icon>add</mat-icon>
-      Nueva empresa
-    </button>
-  </header>
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por nombre, RUC o código CENACE..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
 
-  <section class="toolbar">
-    <div class="search">
-      <mat-icon>search</mat-icon>
-
-      <input
-        type="text"
-        [(ngModel)]="searchTerm"
-        placeholder="Buscar por nombre, RUC o código CENACE..."
-        (keyup.enter)="onSearch()" />
-
-      @if (searchTerm) {
-        <button
-          mat-icon-button
-          type="button"
-          class="search__clear"
-          matTooltip="Limpiar búsqueda"
-          (click)="searchTerm = ''; onSearch()">
-          <mat-icon>close</mat-icon>
-        </button>
-      }
-    </div>
-
-    <button
-      mat-stroked-button
-      class="toolbar__refresh"
-      type="button"
-      (click)="load()"
-      [disabled]="isLoading()">
-      <mat-icon>refresh</mat-icon>
-      Actualizar
-    </button>
-  </section>
-
-  <section class="table-card">
-    <table mat-table [dataSource]="dataSource" class="companies-table">
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando empresas PMSE..."
+    emptyIcon="business"
+    emptyTitle="No hay empresas registradas"
+    emptyDescription="Crea una empresa PMSE para iniciar la gestión dentro de SICAM."
+    emptyActionText="Crear empresa"
+    emptyActionIcon="add"
+    (emptyActionClicked)="drawerOpen.set(true)"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="companies-table"
+    >
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef>Empresa</th>
+
         <td mat-cell *matCellDef="let row">
           <div class="company-name">
             <div class="company-name__avatar">
@@ -69,6 +52,7 @@
 
       <ng-container matColumnDef="externalCode">
         <th mat-header-cell *matHeaderCellDef>Código CENACE</th>
+
         <td mat-cell *matCellDef="let row">
           <code class="code-pill">{{ row.externalCode }}</code>
         </td>
@@ -76,11 +60,15 @@
 
       <ng-container matColumnDef="ruc">
         <th mat-header-cell *matHeaderCellDef>RUC</th>
-        <td mat-cell *matCellDef="let row">{{ row.ruc }}</td>
+
+        <td mat-cell *matCellDef="let row">
+          {{ row.ruc }}
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="type">
         <th mat-header-cell *matHeaderCellDef>Tipo</th>
+
         <td mat-cell *matCellDef="let row">
           <span class="badge badge-type">
             {{ getTypeLabel(row.type) }}
@@ -90,6 +78,7 @@
 
       <ng-container matColumnDef="region">
         <th mat-header-cell *matHeaderCellDef>Región</th>
+
         <td mat-cell *matCellDef="let row">
           <span class="badge badge-region">
             {{ getRegionLabel(row.region) }}
@@ -99,28 +88,32 @@
 
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
-        <td mat-cell *matCellDef="let row">
-          
-          @let chip = getEntityStatusChip(row.status);
-        <app-status-chip
-          [label]="chip.label"
-          [tone]="chip.tone"
-          [icon]="chip.icon ?? null"
-        />
 
+        <td mat-cell *matCellDef="let row">
+          @let chip = getEntityStatusChip(row.status);
+
+          <app-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon ?? null"
+          />
         </td>
       </ng-container>
 
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
+
         <td mat-cell *matCellDef="let row" class="actions-cell">
           <button
             mat-icon-button
             type="button"
             [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
-            (click)="onToggleStatus(row)">
-            <mat-icon [class.action-danger]="row.status === EntityStatus.Active"
-                      [class.action-success]="row.status !== EntityStatus.Active">
+            (click)="onToggleStatus(row)"
+          >
+            <mat-icon
+              [class.action-danger]="row.status === EntityStatus.Active"
+              [class.action-success]="row.status !== EntityStatus.Active"
+            >
               {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
             </mat-icon>
           </button>
@@ -129,42 +122,23 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-
-      @if (!isLoading() && dataSource.data.length === 0) {
-        <tr class="mat-row">
-          <td [attr.colspan]="displayedColumns.length" class="no-data">
-            <div class="empty-state">
-              <mat-icon>business</mat-icon>
-              <h3>No hay empresas registradas</h3>
-              <p>Crea una empresa PMSE para iniciar la gestión dentro de SICAM.</p>
-
-              <button
-                mat-flat-button
-                class="page__primary-btn"
-                type="button"
-                (click)="drawerOpen.set(true)">
-                <mat-icon>add</mat-icon>
-                Crear empresa
-              </button>
-            </div>
-          </td>
-        </tr>
-      }
     </table>
 
     <mat-paginator
+      table-footer
       [length]="totalRecords"
       [pageSize]="pageSize"
       [pageIndex]="pageIndex"
       [pageSizeOptions]="pageSizeOptions"
       (page)="onPageChange($event)"
-      showFirstLastButtons>
-    </mat-paginator>
-  </section>
+      showFirstLastButtons
+    />
+  </app-table-card>
 </section>
 
 @if (drawerOpen()) {
   <app-pmse-company-drawer
     (created)="onCompanyCreated()"
-    (closed)="drawerOpen.set(false)" />
+    (closed)="drawerOpen.set(false)"
+  />
 }

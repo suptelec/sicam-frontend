@@ -11,6 +11,12 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
+        path: 'dashboard',
+        loadChildren: () =>
+          import('./features/dashboard/dashboard.routes')
+            .then(m => m.DASHBOARD_ROUTES)
+      },
+      {
         path: 'pmse-companies',
         loadChildren: () =>
           import('./features/pmse-companies/pmse-companies.routes')

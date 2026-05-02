@@ -19,6 +19,10 @@ import { getEntityStatusChip } from '../../../../shared/utils/status-chip.util';
 
 import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
 
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
+import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
+import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+
 @Component({
   selector: 'app-pmse-companies-list',
   standalone: true,
@@ -32,7 +36,10 @@ import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.ser
     MatTooltipModule,
     FormsModule,
     PmseCompanyDrawerComponent,
-    StatusChipComponent
+    StatusChipComponent,
+    PageHeaderComponent,
+    SearchToolbarComponent,
+    TableCardComponent
   ],
   templateUrl: './pmse-companies-list.html',
   styleUrl: './pmse-companies-list.scss'

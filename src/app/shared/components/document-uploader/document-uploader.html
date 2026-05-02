@@ -1,0 +1,70 @@
+<section class="document-uploader">
+  <div class="document-uploader__info">
+    <div class="document-uploader__icon">
+      <mat-icon>upload_file</mat-icon>
+    </div>
+
+    <div>
+      <h3>{{ label() }}</h3>
+
+      @if (description()) {
+        <p>{{ description() }}</p>
+      }
+    </div>
+  </div>
+
+  <label class="document-uploader__dropzone">
+    <input
+      type="file"
+      [accept]="accept()"
+      [disabled]="disabled() || uploading()"
+      (change)="onFileSelected($event)"
+    />
+
+    @if (selectedFile()) {
+      <div class="document-uploader__selected">
+        <mat-icon>description</mat-icon>
+
+        <div>
+          <strong>{{ selectedFile()?.name }}</strong>
+          <span>{{ selectedFile()?.size ?? 0 }} bytes</span>
+        </div>
+      </div>
+    } @else {
+      <div class="document-uploader__placeholder">
+        <mat-icon>cloud_upload</mat-icon>
+        <span>Selecciona o arrastra un archivo</span>
+      </div>
+    }
+  </label>
+
+  <footer class="document-uploader__actions">
+    @if (selectedFile()) {
+      <button
+        mat-stroked-button
+        type="button"
+        class="document-uploader__secondary"
+        [disabled]="uploading()"
+        (click)="clear()">
+        <mat-icon>close</mat-icon>
+        Quitar
+      </button>
+    }
+
+    <button
+      mat-flat-button
+      type="button"
+      class="document-uploader__primary"
+      [disabled]="!selectedFile() || uploading() || disabled()"
+      (click)="upload()">
+
+      @if (uploading()) {
+        <mat-spinner diameter="18" />
+      } @else {
+        <mat-icon>upload</mat-icon>
+      }
+
+      Subir archivo
+    </button>
+  </footer>
+</section>

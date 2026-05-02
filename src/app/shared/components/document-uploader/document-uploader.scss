@@ -1,0 +1,129 @@
+.document-uploader {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--color-surface, #111827);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.document-uploader__info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  h3 {
+    margin: 0 0 4px;
+    color: var(--color-text, #f9fafb);
+    font-size: 1rem;
+    font-weight: 750;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+}
+
+.document-uploader__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--color-primary, #60a5fa);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.document-uploader__dropzone {
+  min-height: 120px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+
+  &:hover {
+    border-color: rgba(96, 165, 250, 0.6);
+    background: rgba(96, 165, 250, 0.06);
+  }
+
+  input {
+    display: none;
+  }
+}
+
+.document-uploader__placeholder {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  color: var(--color-text-muted, #9ca3af);
+
+  mat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 36px;
+    color: var(--color-primary, #60a5fa);
+  }
+}
+
+.document-uploader__selected {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text, #f9fafb);
+
+  mat-icon {
+    color: var(--color-primary, #60a5fa);
+  }
+
+  strong {
+    display: block;
+    word-break: break-word;
+  }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.8rem;
+  }
+}
+
+.document-uploader__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.document-uploader__secondary,
+.document-uploader__primary {
+  min-height: 42px;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+
+  mat-icon {
+    margin-right: 6px;
+  }
+}
+
+.document-uploader__secondary {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.document-uploader__primary {
+  background: #2b77bb !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 22px rgba(43, 119, 187, 0.25);
+}

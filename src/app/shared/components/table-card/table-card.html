@@ -1,0 +1,24 @@
+<section class="table-card">
+  @if (loading()) {
+    <div class="table-card__loading">
+      <mat-spinner diameter="36" />
+      <span>{{ loadingText() }}</span>
+    </div>
+  } @else if (empty()) {
+    <app-empty-state
+      [icon]="emptyIcon()"
+      [title]="emptyTitle()"
+      [description]="emptyDescription()"
+      [actionText]="emptyActionText()"
+      [actionIcon]="emptyActionIcon()"
+      [showAction]="showEmptyAction()"
+      (actionClicked)="onEmptyActionClick()"
+    />
+  } @else {
+    <div class="table-card__content">
+      <ng-content select="[table-content]" />
+    </div>
+
+    <ng-content select="[table-footer]" />
+  }
+</section>

@@ -1,0 +1,36 @@
+<section class="search-toolbar">
+  <div class="search-toolbar__search">
+    <mat-icon>search</mat-icon>
+
+    <input
+      type="text"
+      [ngModel]="value()"
+      [placeholder]="placeholder()"
+      (ngModelChange)="onValueChange($event)"
+      (keyup.enter)="onSearch()"
+    />
+
+    @if (value()) {
+      <button
+        mat-icon-button
+        type="button"
+        class="search-toolbar__clear"
+        matTooltip="Limpiar búsqueda"
+        (click)="onClear()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
+
+  @if (showRefresh()) {
+    <button
+      mat-stroked-button
+      class="search-toolbar__refresh"
+      type="button"
+      (click)="onRefresh()"
+      [disabled]="loading()">
+      <mat-icon>refresh</mat-icon>
+      {{ refreshText() }}
+    </button>
+  }
+</section>

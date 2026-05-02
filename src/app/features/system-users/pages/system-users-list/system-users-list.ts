@@ -15,6 +15,10 @@ import { StatusChipComponent } from '../../../../shared/components/status-chip/s
 import { SystemUser } from '../../domain/system-user.model';
 import { getUserTypeChip } from '../../domain/system-user-chip.util';
 
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
+import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
+import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+
 @Component({
   selector: 'app-system-users-list',
   standalone: true,
@@ -26,7 +30,10 @@ import { getUserTypeChip } from '../../domain/system-user-chip.util';
     MatTooltipModule,
     FormsModule,
     CreateUserDrawerComponent,
-    StatusChipComponent
+    StatusChipComponent,
+    PageHeaderComponent,
+    SearchToolbarComponent,
+    TableCardComponent
   ],
   templateUrl: './system-users-list.html',
   styleUrl: './system-users-list.scss'

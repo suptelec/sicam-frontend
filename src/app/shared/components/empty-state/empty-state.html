@@ -1,0 +1,26 @@
+<div class="empty-state">
+  <mat-icon class="empty-state__icon">
+    {{ icon() }}
+  </mat-icon>
+
+  <h3>{{ title() }}</h3>
+
+  @if (description()) {
+    <p>{{ description() }}</p>
+  }
+
+  @if (showAction() && actionText()) {
+    <button
+      mat-flat-button
+      type="button"
+      class="empty-state__action"
+      (click)="onActionClick()">
+
+      @if (actionIcon()) {
+        <mat-icon>{{ actionIcon() }}</mat-icon>
+      }
+
+      {{ actionText() }}
+    </button>
+  }
+</div>

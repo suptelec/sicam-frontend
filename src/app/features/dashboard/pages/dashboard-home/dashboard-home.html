@@ -1,0 +1,59 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Principal"
+    title="Dashboard SICAM"
+    [description]="welcomeDescription"
+    [showAction]="false"
+  />
+
+  <section class="welcome-card">
+    <div class="welcome-card__content">
+      <div class="welcome-card__icon">
+        <mat-icon>speed</mat-icon>
+      </div>
+
+      <div>
+        <h2>Bienvenido, {{ user()?.fullName ?? 'Usuario' }}</h2>
+
+        <p>
+          Este panel será el punto de entrada para el seguimiento del proceso de calibración de medidores.
+        </p>
+      </div>
+    </div>
+
+    <app-status-chip
+      [label]="roleLabel"
+      tone="primary"
+      icon="account_circle"
+    />
+  </section>
+
+  <section class="metrics-grid">
+    @for (card of cards; track card.title) {
+      <article class="metric-card">
+        <div class="metric-card__header">
+          <div class="metric-card__icon">
+            <mat-icon>{{ card.icon }}</mat-icon>
+          </div>
+
+          <span>{{ card.title }}</span>
+        </div>
+
+        <strong>{{ card.value }}</strong>
+
+        <p>{{ card.description }}</p>
+      </article>
+    }
+  </section>
+
+  <section class="roadmap-card">
+    <div>
+      <p class="roadmap-card__eyebrow">Siguiente etapa</p>
+      <h3>Construcción del flujo funcional</h3>
+      <p>
+        La base técnica del frontend ya está lista. El siguiente paso es construir los catálogos técnicos:
+        laboratorios acreditados, medidores y certificados históricos.
+      </p>
+    </div>
+  </section>
+</section>

@@ -1,7 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
 
@@ -21,12 +19,16 @@ import { ExternalClientsService } from '../../data-access/external-clients.servi
 import { EntityStatus, ExternalClient } from '../../domain/external-client.model';
 import { CreateClientDrawerComponent } from '../../ui/create-client-drawer/create-client-drawer';
 
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
+import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
+import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+
+
 @Component({
   selector: 'app-external-clients-list',
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule,
     MatButtonModule,
     MatChipsModule,
     MatIconModule,
@@ -36,7 +38,10 @@ import { CreateClientDrawerComponent } from '../../ui/create-client-drawer/creat
     MatTableModule,
     MatTooltipModule,
     CreateClientDrawerComponent,
-    StatusChipComponent
+    StatusChipComponent,
+    PageHeaderComponent,
+    SearchToolbarComponent,
+    TableCardComponent
   ],
   templateUrl: './external-clients-list.html',
   styleUrl: './external-clients-list.scss'
@@ -46,8 +51,7 @@ export class ExternalClientsListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly odata = inject(ODataQueryBuilder);
   readonly getEntityStatusChip = getEntityStatusChip;
-
-  readonly searchControl = new FormControl('', { nonNullable: true });
+  searchTerm = '';
 
   readonly displayedColumns = [
     'displayName',
@@ -69,20 +73,18 @@ export class ExternalClientsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
 
-    this.searchControl.valueChanges
-      .pipe(debounceTime(350), distinctUntilChanged())
-      .subscribe(() => {
-        this.pageIndex = 0;
-        this.load();
-      });
+  onSearch(): void {
+    this.pageIndex = 0;
+    this.load();
   }
 
   load(): void {
     this.loading = true;
 
-    const search = this.searchControl.value.trim();
-
+    const search = this.searchTerm.trim();  
+    
     this.service
       .getAll({
         page: this.pageIndex + 1,

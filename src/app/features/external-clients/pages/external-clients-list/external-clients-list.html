@@ -1,162 +1,123 @@
 <section class="page">
-  <header class="page__header">
-    <div>
-      <p class="page__eyebrow">Administración</p>
-      <h1>Clientes externos M2M</h1>
-      <p>
-        Gestiona aplicaciones externas que consumen los servicios de SICAM mediante client credentials.
-      </p>
-    </div>
+  <app-page-header
+    eyebrow="Administración"
+    title="Clientes externos M2M"
+    description="Gestiona aplicaciones externas que consumen los servicios de SICAM mediante client credentials."
+    actionText="Nuevo cliente"
+    actionIcon="add"
+    (actionClicked)="openDrawer()"
+  />
 
-    <button
-        mat-flat-button
-        class="page__primary-btn"
-        type="button"
-        (click)="openDrawer()">
-        <mat-icon>add</mat-icon>
-        Nuevo cliente
-    </button>
-  </header>
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por nombre, email o Client ID..."
+    [loading]="loading"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
 
-  <section class="toolbar">
-    <div class="search">
-      <mat-icon>search</mat-icon>
-
-      <input
-        type="text"
-        [formControl]="searchControl"
-        placeholder="Buscar por nombre, email o Client ID..."
-      />
-
-      @if (searchControl.value) {
-        <button
-          mat-icon-button
-          type="button"
-          matTooltip="Limpiar búsqueda"
-          (click)="searchControl.setValue('')"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-      }
-    </div>
-
-    <button
-      mat-stroked-button
-      type="button"
-      (click)="load()"
-      [disabled]="loading"
+  <app-table-card
+    [loading]="loading"
+    [empty]="clients.length === 0"
+    loadingText="Cargando clientes externos..."
+    emptyIcon="hub"
+    emptyTitle="No hay clientes externos registrados"
+    emptyDescription="Crea un cliente M2M para permitir que un sistema externo consuma los servicios de SICAM."
+    emptyActionText="Crear cliente externo"
+    emptyActionIcon="add"
+    (emptyActionClicked)="openDrawer()"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="clients"
+      class="clients-table"
     >
-      <mat-icon>refresh</mat-icon>
-      Actualizar
-    </button>
-  </section>
+      <ng-container matColumnDef="displayName">
+        <th mat-header-cell *matHeaderCellDef>Sistema</th>
 
-  <section class="table-card">
-    @if (loading) {
-      <div class="loading">
-        <mat-spinner diameter="36" />
-        <span>Cargando clientes externos...</span>
-      </div>
-    } @else if (!clients.length) {
-      <div class="empty-state">
-        <mat-icon>hub</mat-icon>
-        <h3>No hay clientes externos registrados</h3>
-        <p>
-          Crea un cliente M2M para permitir que un sistema externo consuma los servicios de SICAM.
-        </p>
-
-        <button mat-flat-button color="primary" type="button" (click)="openDrawer()">
-          <mat-icon>add</mat-icon>
-          Crear cliente externo
-        </button>
-      </div>
-    } @else {
-      <table mat-table [dataSource]="clients" class="clients-table">
-        <ng-container matColumnDef="displayName">
-          <th mat-header-cell *matHeaderCellDef>Sistema</th>
-
-          <td mat-cell *matCellDef="let client">
-            <div class="client-name">
-              <div class="client-name__avatar">
-                <mat-icon>dns</mat-icon>
-              </div>
-
-              <div>
-                <strong>{{ client.displayName }}</strong>
-                <span>ID interno: {{ client.id }}</span>
-              </div>
+        <td mat-cell *matCellDef="let client">
+          <div class="client-name">
+            <div class="client-name__avatar">
+              <mat-icon>dns</mat-icon>
             </div>
-          </td>
-        </ng-container>
 
-        <ng-container matColumnDef="clientId">
-          <th mat-header-cell *matHeaderCellDef>Client ID</th>
+            <div>
+              <strong>{{ client.displayName }}</strong>
+              <span>ID interno: {{ client.id }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
 
-          <td mat-cell *matCellDef="let client">
-            <button
-              class="client-id"
-              type="button"
-              matTooltip="Copiar Client ID"
-              (click)="copy(client.clientId)"
-            >
-              <code>{{ client.clientId }}</code>
-              <mat-icon>content_copy</mat-icon>
-            </button>
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="clientId">
+        <th mat-header-cell *matHeaderCellDef>Client ID</th>
 
-        <ng-container matColumnDef="contactEmail">
-          <th mat-header-cell *matHeaderCellDef>Contacto</th>
+        <td mat-cell *matCellDef="let client">
+          <button
+            class="client-id"
+            type="button"
+            matTooltip="Copiar Client ID"
+            (click)="copy(client.clientId)"
+          >
+            <code>{{ client.clientId }}</code>
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </td>
+      </ng-container>
 
-          <td mat-cell *matCellDef="let client">
-            <span class="email">{{ client.contactEmail }}</span>
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="contactEmail">
+        <th mat-header-cell *matHeaderCellDef>Contacto</th>
 
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let client">
+          <span class="email">{{ client.contactEmail }}</span>
+        </td>
+      </ng-container>
 
-          <td mat-cell *matCellDef="let client">
-            @let chip = getEntityStatusChip(client.status);
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
 
-            <app-status-chip
-              [label]="chip.label"
-              [tone]="chip.tone"
-              [icon]="chip.icon ?? null"
-            />
-          </td>
-        </ng-container>
+        <td mat-cell *matCellDef="let client">
+          @let chip = getEntityStatusChip(client.status);
 
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
+          <app-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon ?? null"
+          />
+        </td>
+      </ng-container>
 
-          <td mat-cell *matCellDef="let client" class="actions-cell">
-            <button
-              mat-icon-button
-              color="warn"
-              type="button"
-              matTooltip="Revocar cliente"
-              (click)="revoke(client)"
-            >
-              <mat-icon>delete_outline</mat-icon>
-            </button>
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-      </table>
+        <td mat-cell *matCellDef="let client" class="actions-cell">
+          <button
+            mat-icon-button
+            color="warn"
+            type="button"
+            matTooltip="Revocar cliente"
+            (click)="revoke(client)"
+          >
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </td>
+      </ng-container>
 
-      <mat-paginator
-        [length]="totalRecords"
-        [pageIndex]="pageIndex"
-        [pageSize]="pageSize"
-        [pageSizeOptions]="[5, 10, 20, 50]"
-        showFirstLastButtons
-        (page)="onPageChange($event)"
-      />
-    }
-  </section>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[5, 10, 20, 50]"
+      showFirstLastButtons
+      (page)="onPageChange($event)"
+    />
+  </app-table-card>
 </section>
 
 @if (drawerOpen) {
