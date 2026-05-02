@@ -1,22 +1,26 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
+import { PermissionService } from '../permissions/permission.service';
+import {
+  PermissionCheckMode,
+  PermissionRequirement
+} from '../permissions/permission.model';
 
 export const permissionGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
-  const authService = inject(AuthService);
+  const permissionService = inject(PermissionService);
   const router = inject(Router);
 
-  const requiredPermission = route.data['permission'];
+  const requiredPermission = route.data['permission'] as
+    | PermissionRequirement
+    | PermissionRequirement[]
+    | undefined;
 
-  if (!requiredPermission) return true;
+  const mode = (route.data['permissionMode'] ?? 'all') as PermissionCheckMode;
 
-  const user = authService.currentUser();
-  if (!user) {
-    router.navigate(['/forbidden']);
-    return false;
+  if (permissionService.hasPermission(requiredPermission, mode)) {
+    return true;
   }
 
-  // TODO: implementar lógica de permisos según el proyecto
-  // ejemplo: return user.permissions.includes(requiredPermission);
-  return true;
+  router.navigate(['/forbidden']);
+  return false;
 };

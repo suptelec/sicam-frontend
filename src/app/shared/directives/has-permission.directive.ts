@@ -1,43 +1,56 @@
-import { Directive, Input, OnInit, TemplateRef, ViewContainerRef } from '@angular/core';
-import { AuthService } from '../../core/auth/services/auth.service';
+import {
+  Directive,
+  Input,
+  OnChanges,
+  TemplateRef,
+  ViewContainerRef
+} from '@angular/core';
+
+import {
+  PermissionCheckMode,
+  PermissionRequirement
+} from '../../core/auth/permissions/permission.model';
+
+import { PermissionService } from '../../core/auth/permissions/permission.service';
 
 @Directive({
   selector: '[hasPermission]',
   standalone: true
 })
-export class HasPermissionDirective implements OnInit {
-  @Input() hasPermission: string | string[] = [];
+export class HasPermissionDirective implements OnChanges {
+  @Input('hasPermission')
+  requirement: PermissionRequirement | PermissionRequirement[] | null = null;
+
+  @Input()
+  hasPermissionMode: PermissionCheckMode = 'all';
+
+  private hasView = false;
 
   constructor(
-    private templateRef: TemplateRef<any>,
-    private viewContainer: ViewContainerRef,
-    private authService: AuthService
+    private readonly templateRef: TemplateRef<unknown>,
+    private readonly viewContainer: ViewContainerRef,
+    private readonly permissionService: PermissionService
   ) {}
 
-  ngOnInit(): void {
+  ngOnChanges(): void {
     this.updateView();
   }
 
   private updateView(): void {
-    const user = this.authService.currentUser();
+    const hasAccess = this.permissionService.hasPermission(
+      this.requirement,
+      this.hasPermissionMode
+    );
 
-    if (!user) {
-      this.viewContainer.clear();
+    if (hasAccess && !this.hasView) {
+      this.viewContainer.createEmbeddedView(this.templateRef);
+      this.hasView = true;
       return;
     }
 
-    const permissions = Array.isArray(this.hasPermission)
-      ? this.hasPermission
-      : [this.hasPermission];
-
-    // TODO: implementar lógica de permisos según el proyecto
-    // ejemplo: const hasAccess = permissions.every(p => user.permissions?.includes(p));
-    const hasAccess = permissions.length === 0 || !!user;
-
-    if (hasAccess) {
-      this.viewContainer.createEmbeddedView(this.templateRef);
-    } else {
+    if (!hasAccess && this.hasView) {
       this.viewContainer.clear();
+      this.hasView = false;
     }
   }
 }

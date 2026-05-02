@@ -15,6 +15,8 @@ import { PmseCompany } from '../../../pmse-companies/domain/pmse-company.model';
 import { UserType } from '../../../../core/models/current-user.model';
 import { PermissionValue, PermissionLabels } from '../../domain/system-user.enum';
 
+import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
+
 @Component({
   selector: 'app-create-user-drawer',
   standalone: true,
@@ -39,6 +41,7 @@ export class CreateUserDrawerComponent {
   private service = inject(SystemUsersService);
   private toast   = inject(ToastService);
   private companiesService = inject(PmseCompaniesService);
+  private readonly odata = inject(ODataQueryBuilder);
 
   isLoading = signal(false);
   companies = signal<PmseCompany[]>([]);
@@ -102,7 +105,11 @@ export class CreateUserDrawerComponent {
   }
 
   private loadCompanies(): void {
-    this.companiesService.getAll(1, 100, { orderby: 'Name asc' }).subscribe({
+    this.companiesService.getAll({
+      page: 1,
+      take: 100,
+      orderBy: 'Name asc'
+    }).subscribe({
       next: res => {
         if (res.succeed) {
           this.companies.set(res.result ?? []);

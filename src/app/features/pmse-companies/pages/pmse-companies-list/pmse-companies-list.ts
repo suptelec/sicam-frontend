@@ -14,6 +14,11 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { PmseCompany } from '../../domain/pmse-company.model';
 import { EcuadorRegion, EcuadorRegionLabels, EntityStatus, PmseType, PmseTypeLabels } from '../../domain/pmse-company.enum';
 
+import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
+import { getEntityStatusChip } from '../../../../shared/utils/status-chip.util';
+
+import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
+
 @Component({
   selector: 'app-pmse-companies-list',
   standalone: true,
@@ -26,7 +31,8 @@ import { EcuadorRegion, EcuadorRegionLabels, EntityStatus, PmseType, PmseTypeLab
     MatIconModule,
     MatTooltipModule,
     FormsModule,
-    PmseCompanyDrawerComponent
+    PmseCompanyDrawerComponent,
+    StatusChipComponent
   ],
   templateUrl: './pmse-companies-list.html',
   styleUrl: './pmse-companies-list.scss'
@@ -37,6 +43,8 @@ export class PmseCompaniesListComponent implements OnInit {
   private service        = inject(PmseCompaniesService);
   private confirmDialog  = inject(ConfirmDialogService);
   private toast          = inject(ToastService);
+  private readonly odata = inject(ODataQueryBuilder);
+  readonly getEntityStatusChip = getEntityStatusChip;
 
   dataSource    = new MatTableDataSource<PmseCompany>([]);
   displayedColumns = ['name', 'externalCode', 'ruc', 'type', 'region', 'status', 'actions'];
@@ -60,11 +68,14 @@ export class PmseCompaniesListComponent implements OnInit {
   load(): void {
     this.isLoading.set(true);
 
-    const filter = this.buildFilter();
-
-    this.service.getAll(this.pageIndex + 1, this.pageSize, {
-      filter,
-      orderby: 'Id desc'
+    this.service.getAll({
+      page: this.pageIndex + 1,
+      take: this.pageSize,
+      filter: this.odata.searchInFields(
+        ['Name', 'Ruc', 'ExternalCode'],
+        this.searchTerm
+      ),
+      orderBy: 'CreatedAt desc'
     }).subscribe({
       next: res => {
         if (res.succeed) {
@@ -134,17 +145,5 @@ export class PmseCompaniesListComponent implements OnInit {
     this.load();
   }
 
-  private buildFilter(): string | undefined {
-    const value = this.searchTerm.trim().toLowerCase().replace(/'/g, "''");
-
-    if (!value) {
-      return undefined;
-    }
-
-    return [
-      `contains(tolower(Name),'${value}')`,
-      `contains(tolower(Ruc),'${value}')`,
-      `contains(tolower(ExternalCode),'${value}')`
-    ].join(' or ');
-  }
+  
 }

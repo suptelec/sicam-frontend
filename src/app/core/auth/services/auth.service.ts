@@ -5,6 +5,10 @@ import { environment } from '../../../../environments/environment';
 import { CurrentUser, UserPermissions } from '../../models/current-user.model';
 import { AuthClaims } from '../constants/auth.constants';
 
+import {
+  PermissionResourceClaimMap
+} from '../permissions/permission.model';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
@@ -84,28 +88,59 @@ export class AuthService {
 
   }
 
-  private parsePermissions(raw: string | undefined): UserPermissions {
-      console.log('raw permissions:', raw);
-    if (!raw) return {};
-    try {
-      const arr: string[] = JSON.parse(raw);
-      const result: UserPermissions = {};
-      for (const entry of arr) {
-        const [key, value] = entry.split(':');
-        const num = parseInt(value);
-        switch (key) {
-          case 'calibration_plan':    result.calibrationPlan    = num; break;
-          case 'calibration_process': result.calibrationProcess = num; break;
-          case 'telemetering':        result.telemetering        = num; break;
-          case 'audit':               result.audit               = num; break;
-          case 'company':             result.company             = num; break;
-          case 'system_user':         result.systemUser          = num; break;
-          case 'report':              result.report              = num; break;
-        }
-      }
-      return result;
-    } catch {
-      return {};
+  private parsePermissions(raw: unknown): UserPermissions {
+    const entries = this.normalizePermissionEntries(raw);
+    const result: UserPermissions = {};
+
+    for (const entry of entries) {
+      const [rawKey, rawValue] = entry.split(':', 2);
+
+      if (!rawKey || !rawValue) continue;
+
+      const resource = PermissionResourceClaimMap[rawKey.trim()];
+      if (!resource) continue;
+
+      const value = Number(rawValue);
+
+      if (Number.isNaN(value)) continue;
+
+      result[resource] = value;
     }
+
+    return result;
+  }
+
+  private normalizePermissionEntries(raw: unknown): string[] {
+    if (!raw) return [];
+
+    if (Array.isArray(raw)) {
+      return raw
+        .filter(item => typeof item === 'string')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    if (typeof raw !== 'string') return [];
+
+    const value = raw.trim();
+
+    if (!value) return [];
+
+    if (value.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(value);
+
+        if (!Array.isArray(parsed)) return [];
+
+        return parsed
+          .filter(item => typeof item === 'string')
+          .map(item => item.trim())
+          .filter(Boolean);
+      } catch {
+        return [];
+      }
+    }
+
+    return [value];
   }
 }

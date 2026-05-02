@@ -100,12 +100,14 @@
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
         <td mat-cell *matCellDef="let row">
-          <span
-            class="badge"
-            [class.badge-active]="row.status === EntityStatus.Active"
-            [class.badge-inactive]="row.status !== EntityStatus.Active">
-            {{ row.status === EntityStatus.Active ? 'Activa' : 'Inactiva' }}
-          </span>
+          
+          @let chip = getEntityStatusChip(row.status);
+        <app-status-chip
+          [label]="chip.label"
+          [tone]="chip.tone"
+          [icon]="chip.icon ?? null"
+        />
+
         </td>
       </ng-container>
 

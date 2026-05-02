@@ -1,0 +1,16 @@
+<span
+  class="status-chip"
+  [class.status-chip--compact]="compact()"
+  [class.status-chip--success]="tone() === 'success'"
+  [class.status-chip--warning]="tone() === 'warning'"
+  [class.status-chip--danger]="tone() === 'danger'"
+  [class.status-chip--info]="tone() === 'info'"
+  [class.status-chip--neutral]="tone() === 'neutral'"
+  [class.status-chip--primary]="tone() === 'primary'">
+
+  @if (icon()) {
+    <mat-icon>{{ icon() }}</mat-icon>
+  }
+
+  <span>{{ label() }}</span>
+</span>

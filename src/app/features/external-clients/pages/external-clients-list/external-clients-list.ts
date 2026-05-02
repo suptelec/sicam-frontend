@@ -3,6 +3,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
+import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
+
+import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
+import { getEntityStatusChip } from '../../../../shared/utils/status-chip.util';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
@@ -30,7 +35,8 @@ import { CreateClientDrawerComponent } from '../../ui/create-client-drawer/creat
     MatSnackBarModule,
     MatTableModule,
     MatTooltipModule,
-    CreateClientDrawerComponent
+    CreateClientDrawerComponent,
+    StatusChipComponent
   ],
   templateUrl: './external-clients-list.html',
   styleUrl: './external-clients-list.scss'
@@ -38,6 +44,8 @@ import { CreateClientDrawerComponent } from '../../ui/create-client-drawer/creat
 export class ExternalClientsListComponent implements OnInit {
   private readonly service = inject(ExternalClientsService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly odata = inject(ODataQueryBuilder);
+  readonly getEntityStatusChip = getEntityStatusChip;
 
   readonly searchControl = new FormControl('', { nonNullable: true });
 
@@ -76,9 +84,14 @@ export class ExternalClientsListComponent implements OnInit {
     const search = this.searchControl.value.trim();
 
     this.service
-      .getAll(this.pageIndex + 1, this.pageSize, {
-        filter: this.buildFilter(search),
-        orderby: 'CreatedAt desc'
+      .getAll({
+        page: this.pageIndex + 1,
+        take: this.pageSize,
+        filter: this.odata.searchInFields(
+          ['DisplayName', 'ContactEmail', 'ClientId'],
+          search
+        ),
+        orderBy: 'CreatedAt desc'
       })
       .subscribe({
         next: response => {
@@ -177,17 +190,5 @@ export class ExternalClientsListComponent implements OnInit {
         duration: 2500
       });
     });
-  }
-
-  private buildFilter(search: string): string | undefined {
-    if (!search) return undefined;
-
-    const value = search.toLowerCase().replace(/'/g, "''");
-
-    return [
-      `contains(tolower(DisplayName),'${value}')`,
-      `contains(tolower(ContactEmail),'${value}')`,
-      `contains(tolower(ClientId),'${value}')`
-    ].join(' or ');
-  }
+  }  
 }
