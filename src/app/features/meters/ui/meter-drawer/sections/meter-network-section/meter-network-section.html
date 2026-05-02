@@ -1,0 +1,53 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Comunicación / red</h3>
+    <p>Información de conectividad asociada al medidor.</p>
+  </div>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Gateway</mat-label>
+      <input matInput formControlName="gateway" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>IP</mat-label>
+      <input matInput formControlName="ipAddress" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>MAC</mat-label>
+      <input matInput formControlName="macAddress" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Máscara de subred</mat-label>
+      <input matInput formControlName="subnetMask" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Puerto switch LAN</mat-label>
+      <input matInput formControlName="switchLanPort" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo de red</mat-label>
+      <input matInput formControlName="networkType" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Medidor activo</mat-label>
+      <input matInput formControlName="activeMeter" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Router activo</mat-label>
+      <input matInput formControlName="activeRouter" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nivel de batería</mat-label>
+      <input matInput formControlName="batteryLevelPercent" autocomplete="off" />
+    </mat-form-field>
+  </div>
+</section>

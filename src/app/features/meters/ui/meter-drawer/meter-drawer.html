@@ -1,0 +1,187 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">MEDIDORES</p>
+      <h2>{{ drawerTitle }}</h2>
+      <p class="drawer__description">
+        {{ drawerDescription }}
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <mat-tab-group animationDuration="180ms" class="drawer__tabs">
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Identificación
+
+        @if (hasGroupError('identification')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      <app-meter-identification-section
+        [form]="identificationForm"
+        [companies]="companies()"
+      />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Datos CENACE
+
+        @if (hasGroupError('cenace')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        } @else if (hasCenaceWarnings()) {
+          <mat-icon class="tab-label__warning">warning</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      @if (hasCenaceWarnings()) {
+        <section class="warning-panel">
+          <div class="warning-panel__header">
+            <mat-icon>warning</mat-icon>
+            <div>
+              <strong>Información CENACE incompleta</strong>
+              <p>
+                El medidor se puede guardar, pero estos datos serán necesarios para validar
+                el Plan Anual CENACE.
+              </p>
+            </div>
+          </div>
+
+          <ul>
+            @for (warning of getCenaceWarnings(); track warning) {
+              <li>{{ warning }}</li>
+            }
+          </ul>
+        </section>
+      }
+
+      <app-meter-cenace-section
+        [form]="cenaceForm"
+      />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Principal / respaldo
+
+        @if (hasGroupError('relationship')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      <app-meter-relationship-section
+        [form]="relationshipForm"
+      />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Técnico
+
+        @if (hasGroupError('technical')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      <app-meter-technical-section
+        [form]="technicalForm"
+      />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Ubicación
+
+        @if (hasGroupError('location')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      <app-meter-location-section
+        [form]="locationForm"
+      />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Red
+
+        @if (hasGroupError('network')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      <app-meter-network-section
+        [form]="networkForm"
+      />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        Sellos
+
+        @if (hasGroupError('seals')) {
+          <mat-icon class="tab-label__error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    <div class="drawer__tab-content">
+      <app-meter-seals-section
+        [form]="sealsForm"
+      />
+    </div>
+  </mat-tab>
+</mat-tab-group>
+
+ <app-drawer-actions
+    cancelText="Cancelar"
+    cancelIcon="close"
+    [submitText]="submitText"
+    submitIcon="save"
+    [loading]="loading"
+    [disabled]="saveDisabled"
+    (cancelled)="close()"
+  />
+  </form>
+</section>

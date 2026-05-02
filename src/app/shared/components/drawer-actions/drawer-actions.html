@@ -1,0 +1,28 @@
+<footer class="drawer-actions">
+  <button
+    mat-stroked-button
+    type="button"
+    class="drawer-actions__btn drawer-actions__btn--secondary"
+    [disabled]="loading()"
+    (click)="onCancel()"
+  >
+    <mat-icon>{{ cancelIcon() }}</mat-icon>
+    {{ cancelText() }}
+  </button>
+
+  <button
+    mat-flat-button
+    [type]="submitType()"
+    class="drawer-actions__btn drawer-actions__btn--primary"
+    [disabled]="loading() || disabled()"
+    (click)="onSubmit()"
+  >
+    @if (loading()) {
+      <mat-spinner diameter="18" />
+    } @else {
+      <mat-icon>{{ submitIcon() }}</mat-icon>
+    }
+
+    {{ submitText() }}
+  </button>
+</footer>

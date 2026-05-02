@@ -99,32 +99,13 @@
       }
     </mat-form-field>
 
-    <footer class="drawer__actions">
-      <button
-        mat-stroked-button
-        type="button"
-        class="drawer__btn drawer__btn--secondary"
-        (click)="close()"
-        [disabled]="loading"
-      >
-        <mat-icon>close</mat-icon>
-        Cancelar
-      </button>
-
-      <button
-        mat-flat-button
-        type="submit"
-        class="drawer__btn drawer__btn--primary"
-        [disabled]="loading"
-      >
-        @if (loading) {
-          <mat-spinner diameter="18" />
-        } @else {
-          <mat-icon>add</mat-icon>
-        }
-
-        Crear
-      </button>
-    </footer>
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
   </form>
 </section>

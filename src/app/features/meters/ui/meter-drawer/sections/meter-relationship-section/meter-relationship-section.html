@@ -1,0 +1,27 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Principal / respaldo</h3>
+    <p>Define si el medidor es principal o si funciona como respaldo de otro medidor.</p>
+  </div>
+
+  <div class="relationship-card">
+    <mat-checkbox formControlName="isPrincipal">
+      Este medidor es principal
+    </mat-checkbox>
+
+    <p>
+      Si el medidor no es principal, debe asociarse al código del medidor principal.
+    </p>
+  </div>
+
+  @if (!isPrincipal) {
+    <mat-form-field appearance="outline">
+      <mat-label>Código del medidor principal</mat-label>
+      <input matInput formControlName="principalCode" autocomplete="off" />
+
+      @if (form().get('principalCode')?.hasError('required')) {
+        <mat-error>El código del medidor principal es obligatorio para medidores de respaldo.</mat-error>
+      }
+    </mat-form-field>
+  }
+</section>

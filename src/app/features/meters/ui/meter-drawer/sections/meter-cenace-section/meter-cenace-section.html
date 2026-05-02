@@ -1,0 +1,80 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Datos CENACE</h3>
+    <p>Información requerida para el Plan Anual y validación del Excel oficial CENACE.</p>
+  </div>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo de instalación</mat-label>
+
+      <mat-select formControlName="installationType">
+        @for (type of installationTypes; track type) {
+          <mat-option [value]="type">
+            {{ getInstallationTypeLabel(type) }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Obligatorio / redundante</mat-label>
+
+      <mat-select formControlName="requirementType">
+        @for (type of requirementTypes; track type) {
+          <mat-option [value]="type">
+            {{ getRequirementTypeLabel(type) }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre de instalación</mat-label>
+      <input matInput formControlName="installationName" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Punto de medida</mat-label>
+      <input matInput formControlName="measurementPointCode" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Punto de medida WB</mat-label>
+      <input matInput formControlName="measurementPointWbCode" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Punto frontera</mat-label>
+      <input matInput formControlName="borderPointCode" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-grid__full">
+      <mat-label>Descripción de instalación</mat-label>
+      <textarea
+        matInput
+        formControlName="installationDescription"
+        rows="3">
+      </textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-grid__full">
+      <mat-label>Ubicación de instalación</mat-label>
+      <textarea
+        matInput
+        formControlName="installationLocation"
+        rows="2">
+      </textarea>
+    </mat-form-field>
+
+    <div class="checkbox-card form-grid__full">
+      <mat-checkbox formControlName="isPartOfSni">
+        Forma parte del SNI
+      </mat-checkbox>
+
+      <span>
+        Este dato será usado para validaciones regulatorias y reportería del plan anual.
+      </span>
+    </div>
+  </div>
+</section>

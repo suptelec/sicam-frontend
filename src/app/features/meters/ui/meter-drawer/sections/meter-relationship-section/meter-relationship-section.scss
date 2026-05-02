@@ -1,0 +1,35 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section__header {
+  h3 {
+    margin: 0 0 4px;
+    color: var(--color-text, #f9fafb);
+    font-size: 1.05rem;
+    font-weight: 750;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+}
+
+.relationship-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+
+  p {
+    margin: 6px 0 0;
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+}

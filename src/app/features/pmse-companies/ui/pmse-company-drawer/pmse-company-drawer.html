@@ -1,162 +1,142 @@
-<div class="drawer-overlay" (click)="closed.emit()">
-  <section class="drawer" (click)="$event.stopPropagation()">
-    <header class="drawer__header">
-      <div>
-        <p class="drawer__eyebrow">EMPRESAS PMSE</p>
-        <h2>Nueva empresa PMSE</h2>
-        <p class="drawer__description">
-          Registra la información principal del participante mayorista del sector eléctrico.
-        </p>
-      </div>
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">EMPRESAS PMSE</p>
+      <h2>Nueva empresa PMSE</h2>
+      <p class="drawer__description">
+        Registra la información principal del participante mayorista del sector eléctrico.
+      </p>
+    </div>
 
-      <button
-        mat-icon-button
-        class="drawer__close-btn"
-        type="button"
-        matTooltip="Cerrar"
-        (click)="closed.emit()">
-        <mat-icon>close</mat-icon>
-      </button>
-    </header>
+    <button
+      mat-icon-button
+      class="drawer__close-btn"
+      type="button"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
 
-    <form class="drawer__form" [formGroup]="form" (ngSubmit)="onSubmit()">
-      <div class="drawer__body">
-        <section class="form-section">
-          <div class="section-title">Información general</div>
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="drawer__body">
+      <section class="form-section">
+        <div class="section-title">Información general</div>
 
-          <mat-form-field appearance="outline" class="drawer__field full-field">
-            <mat-label>Nombre</mat-label>
-            <input matInput formControlName="name" />
+        <mat-form-field appearance="outline" class="drawer__field full-field">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="name" />
 
-            @if (form.controls.name.hasError('required') && form.controls.name.touched) {
-              <mat-error>El nombre es obligatorio.</mat-error>
+          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+            <mat-error>El nombre es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Código CENACE</mat-label>
+            <input matInput formControlName="externalCode" />
+
+            @if (form.controls.externalCode.hasError('required') && form.controls.externalCode.touched) {
+              <mat-error>El código es obligatorio.</mat-error>
             }
           </mat-form-field>
 
-          <div class="field-row">
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Código CENACE</mat-label>
-              <input matInput formControlName="externalCode" />
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>RUC</mat-label>
+            <input matInput formControlName="ruc" maxlength="13" />
 
-              @if (form.controls.externalCode.hasError('required') && form.controls.externalCode.touched) {
-                <mat-error>El código es obligatorio.</mat-error>
-              }
-            </mat-form-field>
+            @if (form.controls.ruc.hasError('required') && form.controls.ruc.touched) {
+              <mat-error>El RUC es obligatorio.</mat-error>
+            }
 
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>RUC</mat-label>
-              <input matInput formControlName="ruc" maxlength="13" />
+            @if (form.controls.ruc.hasError('minlength') && form.controls.ruc.touched) {
+              <mat-error>El RUC debe tener 13 dígitos.</mat-error>
+            }
+          </mat-form-field>
+        </div>
 
-              @if (form.controls.ruc.hasError('required') && form.controls.ruc.touched) {
-                <mat-error>El RUC es obligatorio.</mat-error>
-              }
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Tipo</mat-label>
 
-              @if (form.controls.ruc.hasError('minlength') && form.controls.ruc.touched) {
-                <mat-error>El RUC debe tener 13 dígitos.</mat-error>
-              }
-            </mat-form-field>
-          </div>
-
-          <div class="field-row">
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Tipo</mat-label>
-              <mat-select formControlName="type">
-                @for (type of pmseTypes; track type) {
-                  <mat-option [value]="type">
-                    {{ PmseTypeLabels[type] }}
-                  </mat-option>
-                }
-              </mat-select>
-
-              @if (form.controls.type.hasError('required') && form.controls.type.touched) {
-                <mat-error>El tipo es obligatorio.</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Región</mat-label>
-              <mat-select formControlName="region">
-                @for (region of regions; track region) {
-                  <mat-option [value]="region">
-                    {{ EcuadorRegionLabels[region] }}
-                  </mat-option>
-                }
-              </mat-select>
-
-              @if (form.controls.region.hasError('required') && form.controls.region.touched) {
-                <mat-error>La región es obligatoria.</mat-error>
-              }
-            </mat-form-field>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="section-title">Contacto y ubicación</div>
-
-          <div class="field-row">
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Teléfono</mat-label>
-              <input matInput formControlName="phone" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email" />
-
-              @if (form.controls.email.hasError('email') && form.controls.email.touched) {
-                <mat-error>Ingrese un email válido.</mat-error>
-              }
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="drawer__field full-field">
-            <mat-label>Provincia</mat-label>
-            <mat-select formControlName="province">
-              @for (province of ecuadorProvinces; track province) {
-                <mat-option [value]="province">
-                  {{ province }}
+            <mat-select formControlName="type">
+              @for (type of pmseTypes; track type) {
+                <mat-option [value]="type">
+                  {{ PmseTypeLabels[type] }}
                 </mat-option>
               }
             </mat-select>
+
+            @if (form.controls.type.hasError('required') && form.controls.type.touched) {
+              <mat-error>El tipo es obligatorio.</mat-error>
+            }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="drawer__field full-field drawer__textarea">
-            <mat-label>Dirección</mat-label>
-            <textarea matInput rows="3" formControlName="address"></textarea>
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Región</mat-label>
+
+            <mat-select formControlName="region">
+              @for (region of regions; track region) {
+                <mat-option [value]="region">
+                  {{ EcuadorRegionLabels[region] }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (form.controls.region.hasError('required') && form.controls.region.touched) {
+              <mat-error>La región es obligatoria.</mat-error>
+            }
           </mat-form-field>
-        </section>
-      </div>
+        </div>
+      </section>
 
-      <footer class="drawer__actions">
-        <button
-          mat-stroked-button
-          class="drawer__btn drawer__btn--secondary"
-          type="button"
-          (click)="closed.emit()"
-          [disabled]="isLoading()">
-          <mat-icon>close</mat-icon>
-          Cancelar
-        </button>
+      <section class="form-section">
+        <div class="section-title">Contacto y ubicación</div>
 
-        <button
-          mat-flat-button
-          class="drawer__btn drawer__btn--primary"
-          type="submit"
-          [disabled]="isLoading()">
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Teléfono</mat-label>
+            <input matInput formControlName="phone" />
+          </mat-form-field>
 
-          @if (isLoading()) {
-            <mat-spinner diameter="18" />
-          }
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" />
 
-          @if (!isLoading()) {
-            <mat-icon>add</mat-icon>
-          }
+            @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+              <mat-error>Ingrese un email válido.</mat-error>
+            }
+          </mat-form-field>
+        </div>
 
-          <span>
-            {{ isLoading() ? 'Creando...' : 'Crear empresa' }}
-          </span>
-        </button>
-      </footer>
-    </form>
-  </section>
-</div>
+        <mat-form-field appearance="outline" class="drawer__field full-field">
+          <mat-label>Provincia</mat-label>
+
+          <mat-select formControlName="province">
+            @for (province of ecuadorProvinces; track province) {
+              <mat-option [value]="province">
+                {{ province }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field full-field drawer__textarea">
+          <mat-label>Dirección</mat-label>
+          <textarea matInput rows="3" formControlName="address"></textarea>
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear empresa"
+      [loading]="isLoading()"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

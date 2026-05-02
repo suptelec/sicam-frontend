@@ -1,0 +1,65 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Identificación</h3>
+    <p>Datos principales del medidor y empresa PMSE asociada.</p>
+  </div>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Empresa PMSE</mat-label>
+
+      <mat-select formControlName="pmseCompanyId">
+        @for (company of companies(); track company.id) {
+          <mat-option [value]="company.id">
+            {{ company.name }}
+            @if (company.externalCode) {
+              — {{ company.externalCode }}
+            }
+          </mat-option>
+        }
+      </mat-select>
+
+      @if (form().get('pmseCompanyId')?.hasError('required')) {
+        <mat-error>La empresa PMSE es obligatoria.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Código del medidor</mat-label>
+      <input matInput formControlName="code" autocomplete="off" />
+
+      @if (form().get('code')?.hasError('required')) {
+        <mat-error>El código es obligatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Número de serie</mat-label>
+      <input matInput formControlName="serial" autocomplete="off" />
+
+      @if (form().get('serial')?.hasError('required')) {
+        <mat-error>El número de serie es obligatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Código TPL</mat-label>
+      <input matInput formControlName="tplCode" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Código CENACE</mat-label>
+      <input matInput formControlName="cenaceCode" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Marca</mat-label>
+      <input matInput formControlName="brand" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Modelo</mat-label>
+      <input matInput formControlName="model" autocomplete="off" />
+    </mat-form-field>
+  </div>
+</section>

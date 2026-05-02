@@ -1,0 +1,47 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Datos técnicos</h3>
+    <p>Información eléctrica y metrológica del medidor.</p>
+  </div>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Clase de precisión</mat-label>
+      <input matInput formControlName="accuracyClass" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>kV nominal</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="nominalKv"
+        autocomplete="off"
+      />
+
+      @if (form().get('nominalKv')?.hasError('min')) {
+        <mat-error>El valor debe ser mayor o igual a 0.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Relación TC</mat-label>
+      <input matInput formControlName="tcRatio" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Relación TP</mat-label>
+      <input matInput formControlName="tpRatio" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Relación secundaria TC</mat-label>
+      <input matInput formControlName="tcSecondaryRatio" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Relación secundaria TP</mat-label>
+      <input matInput formControlName="tpSecondaryRatio" autocomplete="off" />
+    </mat-form-field>
+  </div>
+</section>

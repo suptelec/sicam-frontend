@@ -1,0 +1,56 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Ubicación</h3>
+    <p>Datos geográficos y referencia física del medidor.</p>
+  </div>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Provincia</mat-label>
+      <input matInput formControlName="province" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sector</mat-label>
+      <input matInput formControlName="sector" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-grid__full">
+      <mat-label>Dirección</mat-label>
+      <textarea matInput formControlName="address" rows="3"></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Latitud</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="latitude"
+        autocomplete="off"
+      />
+
+      @if (form().get('latitude')?.hasError('min') || form().get('latitude')?.hasError('max')) {
+        <mat-error>La latitud debe estar entre -90 y 90.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Longitud</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="longitude"
+        autocomplete="off"
+      />
+
+      @if (form().get('longitude')?.hasError('min') || form().get('longitude')?.hasError('max')) {
+        <mat-error>La longitud debe estar entre -180 y 180.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-grid__full">
+      <mat-label>Referencia</mat-label>
+      <textarea matInput formControlName="reference" rows="2"></textarea>
+    </mat-form-field>
+  </div>
+</section>

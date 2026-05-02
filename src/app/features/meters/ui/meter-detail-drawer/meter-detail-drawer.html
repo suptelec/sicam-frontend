@@ -1,0 +1,290 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">MEDIDORES</p>
+      <h2>Detalle del medidor</h2>
+      <p class="drawer__description">
+        Consulta la información técnica, regulatoria y operativa del medidor.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  @if (loading()) {
+    <div class="drawer__loading">
+      <mat-spinner diameter="36" />
+      <span>Cargando detalle...</span>
+    </div>
+  } @else if (meter()) {
+    @let item = meter();
+    @let chip = getEntityStatusChip(item!.status);
+
+    <section class="drawer__body">
+      <section class="summary-card">
+        <div class="summary-card__icon">
+          <mat-icon>electric_meter</mat-icon>
+        </div>
+
+        <div class="summary-card__content">
+          <h3>{{ item!.code }}</h3>
+          <p>{{ item!.pmseCompanyName ?? 'Empresa PMSE no definida' }}</p>
+        </div>
+
+        <app-status-chip
+          [label]="chip.label"
+          [tone]="chip.tone"
+          [icon]="chip.icon ?? null"
+        />
+      </section>
+
+      <section class="detail-section">
+        <h3>Identificación</h3>
+
+        <div class="detail-grid">
+          <div>
+            <span>Código</span>
+            <strong>{{ item!.code }}</strong>
+          </div>
+
+          <div>
+            <span>Serial</span>
+            <strong>{{ item!.serial }}</strong>
+          </div>
+
+          <div>
+            <span>Código TPL</span>
+            <strong>{{ item!.tplCode ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Código CENACE</span>
+            <strong>{{ item!.cenaceCode ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Marca</span>
+            <strong>{{ item!.brand ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Modelo</span>
+            <strong>{{ item!.model ?? '—' }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Datos CENACE</h3>
+
+        <div class="detail-grid">
+          <div>
+            <span>Tipo instalación</span>
+            <strong>{{ getInstallationTypeLabel(item!.installationType) }}</strong>
+          </div>
+
+          <div>
+            <span>Obligatorio / redundante</span>
+            <strong>{{ getRequirementTypeLabel(item!.requirementType) }}</strong>
+          </div>
+
+          <div>
+            <span>Forma parte del SNI</span>
+            <strong>{{ item!.isPartOfSni ? 'Sí' : 'No' }}</strong>
+          </div>
+
+          <div>
+            <span>Instalación</span>
+            <strong>{{ item!.installationName ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Punto medida</span>
+            <strong>{{ item!.measurementPointCode ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Punto medida WB</span>
+            <strong>{{ item!.measurementPointWbCode ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Punto frontera</span>
+            <strong>{{ item!.borderPointCode ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Rol</span>
+            <strong>{{ getPrincipalLabel(item!) }}</strong>
+          </div>
+
+          <div>
+            <span>Medidor principal</span>
+            <strong>{{ item!.principalCode ?? '—' }}</strong>
+          </div>
+        </div>
+
+        @if (item!.installationDescription) {
+          <div class="detail-text">
+            <span>Descripción instalación</span>
+            <p>{{ item!.installationDescription }}</p>
+          </div>
+        }
+      </section>
+
+      <section class="detail-section">
+        <h3>Datos técnicos</h3>
+
+        <div class="detail-grid">
+          <div>
+            <span>Clase precisión</span>
+            <strong>{{ item!.accuracyClass ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>kV nominal</span>
+            <strong>{{ item!.nominalKv ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Relación TC</span>
+            <strong>{{ item!.tcRatio ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Relación TP</span>
+            <strong>{{ item!.tpRatio ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Relación secundaria TC</span>
+            <strong>{{ item!.tcSecondaryRatio ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Relación secundaria TP</span>
+            <strong>{{ item!.tpSecondaryRatio ?? '—' }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Ubicación</h3>
+
+        <div class="detail-grid">
+          <div>
+            <span>Provincia</span>
+            <strong>{{ item!.province ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Sector</span>
+            <strong>{{ item!.sector ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Latitud</span>
+            <strong>{{ item!.latitude ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Longitud</span>
+            <strong>{{ item!.longitude ?? '—' }}</strong>
+          </div>
+        </div>
+
+        <div class="detail-text">
+          <span>Dirección</span>
+          <p>{{ item!.address ?? '—' }}</p>
+        </div>
+
+        <div class="detail-text">
+          <span>Referencia</span>
+          <p>{{ item!.reference ?? '—' }}</p>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Comunicación / red</h3>
+
+        <div class="detail-grid">
+          <div>
+            <span>Gateway</span>
+            <strong>{{ item!.gateway ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>IP</span>
+            <strong>{{ item!.ipAddress ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>MAC</span>
+            <strong>{{ item!.macAddress ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Máscara</span>
+            <strong>{{ item!.subnetMask ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Puerto switch</span>
+            <strong>{{ item!.switchLanPort ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Tipo red</span>
+            <strong>{{ item!.networkType ?? '—' }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>Sellos y certificado</h3>
+
+        <div class="detail-grid">
+          <div>
+            <span>Sello medidor</span>
+            <strong>{{ item!.mainMeterSeal ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Sello bornera 1</span>
+            <strong>{{ item!.terminalBlockSealOne ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Sello bornera 2</span>
+            <strong>{{ item!.terminalBlockSealTwo ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Última calibración</span>
+            <strong>{{ item!.lastCalibrationDate ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Próxima calibración</span>
+            <strong>{{ item!.nextCalibrationDate ?? '—' }}</strong>
+          </div>
+
+          <div>
+            <span>Certificado vigente</span>
+            <strong>{{ item!.currentCertificateUrl ? 'Disponible' : '—' }}</strong>
+          </div>
+        </div>
+      </section>
+    </section>
+  }
+</section>

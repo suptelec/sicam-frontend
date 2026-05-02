@@ -1,0 +1,23 @@
+<section class="section" [formGroup]="form()">
+  <div class="section__header">
+    <h3>Sellos</h3>
+    <p>Registro de sellos actuales del medidor y borneras.</p>
+  </div>
+
+  <div class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Sello medidor principal</mat-label>
+      <input matInput formControlName="mainMeterSeal" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sello bornera 1</mat-label>
+      <input matInput formControlName="terminalBlockSealOne" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sello bornera 2</mat-label>
+      <input matInput formControlName="terminalBlockSealTwo" autocomplete="off" />
+    </mat-form-field>
+  </div>
+</section>

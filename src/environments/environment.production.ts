@@ -5,8 +5,9 @@ export const environment = {
   oidc: {
     issuer: 'https://identity.sicam.com',
     redirectUri: 'https://sicam.com/auth/callback',
+    postLogoutRedirectUri: 'https://sicam.com/auth/logout',
     clientId: 'scm-spa',
-    scope: 'openid profile scm-api',
+    scope: 'openid profile offline_access scm-api',
     requireHttps: true
   }
 };

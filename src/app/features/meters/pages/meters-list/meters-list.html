@@ -1,0 +1,216 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Catálogos técnicos"
+    title="Medidores"
+    description="Gestiona los medidores de energía usados para el Plan Anual de Calibración."
+    actionText="Nuevo medidor"
+    actionIcon="add"
+    (actionClicked)="onCreateClicked()"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por código, serial, empresa, punto de medida o instalación..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando medidores..."
+    emptyIcon="electric_meter"
+    emptyTitle="No hay medidores registrados"
+    emptyDescription="Registra medidores para generar el plan anual de calibración y asociar certificados históricos."
+    emptyActionText="Crear medidor"
+    emptyActionIcon="add"
+    (emptyActionClicked)="onCreateClicked()"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="meters-table"
+    >
+      <ng-container matColumnDef="code">
+        <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="meter-name">
+            <div class="meter-name__avatar">
+              <mat-icon>electric_meter</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.code }}</strong>
+              <span>
+                TPL: {{ row.tplCode ?? '—' }} · CENACE: {{ row.cenaceCode ?? '—' }}
+              </span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="company">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.pmseCompanyName ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="serial">
+        <th mat-header-cell *matHeaderCellDef>Serial</th>
+
+        <td mat-cell *matCellDef="let row">
+          <code class="code-pill">{{ row.serial }}</code>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="installation">
+        <th mat-header-cell *matHeaderCellDef>Instalación</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.installationName ?? '—' }}</strong>
+            <span>{{ getInstallationTypeLabel(row.installationType) }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="measurementPoint">
+        <th mat-header-cell *matHeaderCellDef>Punto medida</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.measurementPointCode ?? '—' }}</strong>
+            <span>Frontera: {{ row.borderPointCode ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="role">
+        <th mat-header-cell *matHeaderCellDef>Rol</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span
+            class="role-pill"
+            [class.role-pill--principal]="row.isPrincipal"
+            [class.role-pill--backup]="!row.isPrincipal"
+          >
+            {{ getRoleLabel(row) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nextCalibrationDate">
+        <th mat-header-cell *matHeaderCellDef>Próx. calibración</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">
+            {{ row.nextCalibrationDate ?? '—' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          @let chip = getEntityStatusChip(row.status);
+
+          <app-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon ?? null"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <div class="row-actions">
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn"
+              matTooltip="Ver detalle"
+              (click)="onViewClicked(row)"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn"
+              matTooltip="Editar medidor"
+              (click)="onEditClicked(row)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn"
+              [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar medidor' : 'Activar medidor'"
+              (click)="onToggleStatus(row)"
+            >
+              <mat-icon
+                [class.action-danger]="row.status === EntityStatus.Active"
+                [class.action-success]="row.status !== EntityStatus.Active"
+              >
+                {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
+              </mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>
+
+@if (drawerOpen()) {
+  <app-drawer-shell
+    [open]="drawerOpen()"
+    width="820px"
+    (closed)="onDrawerClosed()"
+  >
+    <app-meter-drawer
+      [meterId]="selectedMeterId()"
+      (created)="onMeterCreated()"
+      (updated)="onMeterUpdated()"
+      (closed)="onDrawerClosed()"
+    />
+  </app-drawer-shell>
+}
+
+@if (detailDrawerOpen()) {
+  <app-drawer-shell
+    [open]="detailDrawerOpen()"
+    width="760px"
+    (closed)="onDetailDrawerClosed()"
+  >
+    <app-meter-detail-drawer
+      [meterId]="selectedDetailMeterId()"
+      (closed)="onDetailDrawerClosed()"
+    />
+  </app-drawer-shell>
+}

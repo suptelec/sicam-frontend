@@ -25,11 +25,7 @@
     <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
       <mat-form-field appearance="outline" class="drawer__field">
         <mat-label>Nombre del sistema externo</mat-label>
-        <input
-          matInput
-          formControlName="displayName"
-          autocomplete="off"
-        />
+        <input matInput formControlName="displayName" autocomplete="off" />
 
         @if (form.controls.displayName.hasError('required')) {
           <mat-error>El nombre es obligatorio.</mat-error>
@@ -38,11 +34,7 @@
 
       <mat-form-field appearance="outline" class="drawer__field">
         <mat-label>Email de contacto</mat-label>
-        <input
-          matInput
-          formControlName="contactEmail"
-          autocomplete="off"
-        />
+        <input matInput formControlName="contactEmail" autocomplete="off" />
 
         @if (form.controls.contactEmail.hasError('required')) {
           <mat-error>El email es obligatorio.</mat-error>
@@ -75,32 +67,14 @@
         </p>
       </div>
 
-      <footer class="drawer__actions">
-        <button
-          mat-stroked-button
-          type="button"
-          class="drawer__btn drawer__btn--secondary"
-          (click)="close()"
-          [disabled]="loading"
-        >
-          <mat-icon>close</mat-icon>
-          Cancelar
-        </button>
-
-        <button
-          mat-flat-button
-          type="submit"
-          class="drawer__btn drawer__btn--primary"
-          [disabled]="loading"
-        >
-          @if (loading) {
-            <mat-spinner diameter="18" />
-          } @else {
-            <mat-icon>add</mat-icon>
-          }
-          Crear cliente
-        </button>
-      </footer>
+      <app-drawer-actions
+        cancelText="Cancelar"
+        cancelIcon="close"
+        submitText="Crear cliente"
+        [loading]="loading"
+        [disabled]="saveDisabled"
+        (cancelled)="close()"
+      />
     </form>
   } @else {
     <section class="credentials">
@@ -116,8 +90,10 @@
 
       <div class="credential-field">
         <label>CLIENT ID</label>
+
         <div>
           <code>{{ createdClient?.clientId }}</code>
+
           <button
             mat-icon-button
             type="button"
@@ -131,8 +107,10 @@
 
       <div class="credential-field credential-field--secret">
         <label>CLIENT SECRET</label>
+
         <div>
           <code>{{ createdClient?.clientSecret }}</code>
+
           <button
             mat-icon-button
             type="button"
@@ -144,17 +122,17 @@
         </div>
       </div>
 
-      <footer class="drawer__actions">
-        <button
-          mat-flat-button
-          type="button"
-          class="drawer__btn drawer__btn--primary"
-          (click)="close()"
-        >
-          <mat-icon>check</mat-icon>
-          Entendido
-        </button>
-      </footer>
+      <app-drawer-actions
+        cancelText="Cerrar"
+        cancelIcon="check"
+        submitText="Entendido"
+        submitIcon="check"
+        submitType="button"
+        [loading]="false"
+        [disabled]="false"
+        (cancelled)="close()"
+        (submitted)="close()"
+      />
     </section>
   }
 </section>

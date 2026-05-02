@@ -122,36 +122,3 @@
   color: #ffb4b4 !important;
   font-size: 0.82rem;
 }
-
-.drawer__actions {
-  margin-top: 6px;
-  padding-top: 8px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.drawer__btn {
-  height: 44px !important;
-  border-radius: 12px !important;
-  font-weight: 600 !important;
-
-  mat-icon {
-    margin-right: 6px;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
-}
-
-.drawer__btn--secondary {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #ffffff !important;
-}
-
-.drawer__btn--primary {
-  background: #2b77bb !important;
-  color: #ffffff !important;
-  box-shadow: 0 8px 22px rgba(43, 119, 187, 0.25);
-}

@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AccreditedLaboratoriesService } from '../../data-access/accredited-laboratories.service';
 import {
@@ -33,7 +34,8 @@ import {
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    DrawerActionsComponent
   ],
   templateUrl: './accredited-laboratory-drawer.html',
   styleUrl: './accredited-laboratory-drawer.scss'
@@ -96,6 +98,10 @@ export class AccreditedLaboratoryDrawerComponent {
     });
   }
 
+  get saveDisabled(): boolean {
+    return this.loading || this.form.invalid;
+  }
+  
   close(): void {
     this.reset();
     this.closed.emit();

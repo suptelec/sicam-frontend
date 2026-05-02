@@ -1,342 +1,327 @@
-<div class="drawer-overlay" (click)="closed.emit()">
-  <section class="drawer" (click)="$event.stopPropagation()">
-    <header class="drawer__header">
-      <div>
-        <p class="drawer__eyebrow">USUARIOS</p>
-        <h2>Nuevo usuario</h2>
-        <p class="drawer__description">
-          Registra usuarios CENACE, administradores PMSE u operadores PMSE.
-        </p>
-      </div>
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">USUARIOS</p>
+      <h2>Nuevo usuario</h2>
+      <p class="drawer__description">
+        Registra usuarios CENACE, administradores PMSE u operadores PMSE.
+      </p>
+    </div>
 
-      <button
-        mat-icon-button
-        class="drawer__close-btn"
-        type="button"
-        matTooltip="Cerrar"
-        (click)="closed.emit()">
-        <mat-icon>close</mat-icon>
-      </button>
-    </header>
+    <button
+      mat-icon-button
+      class="drawer__close-btn"
+      type="button"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
 
-    <form class="drawer__form" [formGroup]="baseForm" (ngSubmit)="onSubmit()">
-      <div class="drawer__body">
+  <form class="drawer__form" [formGroup]="baseForm" (ngSubmit)="onSubmit()">
+    <div class="drawer__body">
+      <section class="form-section">
+        <div class="section-title">Tipo de usuario</div>
+
+        <div class="type-options">
+          <button
+            class="type-btn"
+            type="button"
+            [class.active]="selectedType() === UserType.CenaceStaff"
+            (click)="onTypeChange(UserType.CenaceStaff)"
+          >
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>CENACE</span>
+          </button>
+
+          <button
+            class="type-btn"
+            type="button"
+            [class.active]="selectedType() === UserType.PmseAdmin"
+            (click)="onTypeChange(UserType.PmseAdmin)"
+          >
+            <mat-icon>business_center</mat-icon>
+            <span>Admin PMSE</span>
+          </button>
+
+          <button
+            class="type-btn"
+            type="button"
+            [class.active]="selectedType() === UserType.PmseOperator"
+            (click)="onTypeChange(UserType.PmseOperator)"
+          >
+            <mat-icon>engineering</mat-icon>
+            <span>Operador PMSE</span>
+          </button>
+        </div>
+      </section>
+
+      @if (selectedType()) {
         <section class="form-section">
-          <div class="section-title">Tipo de usuario</div>
+          <div class="section-title">Datos personales</div>
 
-          <div class="type-options">
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="name" />
+
+              @if (baseForm.controls.name.hasError('required') && baseForm.controls.name.touched) {
+                <mat-error>El nombre es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Apellido</mat-label>
+              <input matInput formControlName="lastName" />
+
+              @if (baseForm.controls.lastName.hasError('required') && baseForm.controls.lastName.touched) {
+                <mat-error>El apellido es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Usuario</mat-label>
+            <input matInput formControlName="username" autocomplete="off" />
+
+            @if (baseForm.controls.username.hasError('required') && baseForm.controls.username.touched) {
+              <mat-error>El usuario es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" type="email" autocomplete="off" />
+
+            @if (baseForm.controls.email.hasError('required') && baseForm.controls.email.touched) {
+              <mat-error>El email es obligatorio.</mat-error>
+            }
+
+            @if (baseForm.controls.email.hasError('email') && baseForm.controls.email.touched) {
+              <mat-error>Ingrese un email válido.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field full-field password-field">
+            <mat-label>Contraseña</mat-label>
+
+            <input
+              matInput
+              formControlName="password"
+              [type]="hidePassword() ? 'password' : 'text'"
+              autocomplete="new-password"
+            />
+
             <button
-              class="type-btn"
+              mat-icon-button
+              matSuffix
               type="button"
-              [class.active]="selectedType() === UserType.CenaceStaff"
-              (click)="onTypeChange(UserType.CenaceStaff)">
-              <mat-icon>admin_panel_settings</mat-icon>
-              <span>CENACE</span>
+              class="password-toggle"
+              [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+              (click)="hidePassword.set(!hidePassword())"
+            >
+              <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
             </button>
 
-            <button
-              class="type-btn"
-              type="button"
-              [class.active]="selectedType() === UserType.PmseAdmin"
-              (click)="onTypeChange(UserType.PmseAdmin)">
-              <mat-icon>business_center</mat-icon>
-              <span>Admin PMSE</span>
-            </button>
+            @if (baseForm.controls.password.hasError('required') && baseForm.controls.password.touched) {
+              <mat-error>La contraseña es obligatoria.</mat-error>
+            }
 
-            <button
-              class="type-btn"
-              type="button"
-              [class.active]="selectedType() === UserType.PmseOperator"
-              (click)="onTypeChange(UserType.PmseOperator)">
-              <mat-icon>engineering</mat-icon>
-              <span>Operador PMSE</span>
-            </button>
+            @if (baseForm.controls.password.hasError('minlength') && baseForm.controls.password.touched) {
+              <mat-error>Mínimo 8 caracteres.</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Teléfono</mat-label>
+              <input matInput formControlName="phone" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Cargo</mat-label>
+              <input matInput formControlName="position" />
+            </mat-form-field>
           </div>
         </section>
 
-        @if (selectedType()) {
+        @if (selectedType() === UserType.PmseAdmin) {
           <section class="form-section">
-            <div class="section-title">Datos personales</div>
+            <div class="section-title">Empresa</div>
+
+            <mat-form-field appearance="outline" class="drawer__field full-field">
+              <mat-label>Empresa PMSE</mat-label>
+
+              <mat-select [formControl]="pmseCompanyForm.controls.pmseCompanyId">
+                @for (company of companies(); track company.id) {
+                  <mat-option [value]="company.id">
+                    {{ company.name }}
+                  </mat-option>
+                }
+              </mat-select>
+
+              @if (pmseCompanyForm.controls.pmseCompanyId.hasError('required') && pmseCompanyForm.controls.pmseCompanyId.touched) {
+                <mat-error>La empresa es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+          </section>
+        }
+
+        @if (selectedType() === UserType.CenaceStaff) {
+          <section class="form-section">
+            <div class="section-title">Permisos CENACE</div>
 
             <div class="field-row">
               <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Nombre</mat-label>
-                <input matInput formControlName="name" />
-
-                @if (baseForm.controls.name.hasError('required') && baseForm.controls.name.touched) {
-                  <mat-error>El nombre es obligatorio.</mat-error>
-                }
+                <mat-label>Plan de calibración</mat-label>
+                <mat-select [formControl]="cenacePermissions.controls.calibrationPlanPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Apellido</mat-label>
-                <input matInput formControlName="lastName" />
+                <mat-label>Proceso de calibración</mat-label>
+                <mat-select [formControl]="cenacePermissions.controls.calibrationProcessPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
 
-                @if (baseForm.controls.lastName.hasError('required') && baseForm.controls.lastName.touched) {
-                  <mat-error>El apellido es obligatorio.</mat-error>
-                }
+            <div class="field-row">
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Telemedición</mat-label>
+                <mat-select [formControl]="cenacePermissions.controls.telemeteringPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Auditorías</mat-label>
+                <mat-select [formControl]="cenacePermissions.controls.auditPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Empresas PMSE</mat-label>
+                <mat-select [formControl]="cenacePermissions.controls.companyPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Usuarios del sistema</mat-label>
+                <mat-select [formControl]="cenacePermissions.controls.systemUserPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
               </mat-form-field>
             </div>
 
             <mat-form-field appearance="outline" class="drawer__field full-field">
-              <mat-label>Usuario</mat-label>
-              <input matInput formControlName="username" autocomplete="off" />
-
-              @if (baseForm.controls.username.hasError('required') && baseForm.controls.username.touched) {
-                <mat-error>El usuario es obligatorio.</mat-error>
-              }
+              <mat-label>Reportes</mat-label>
+              <mat-select [formControl]="cenacePermissions.controls.reportPermission">
+                @for (value of permissionValues; track value) {
+                  <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                }
+              </mat-select>
             </mat-form-field>
+          </section>
+        }
+
+        @if (selectedType() === UserType.PmseAdmin) {
+          <section class="form-section">
+            <div class="section-title">Permisos PMSE administrador</div>
 
             <mat-form-field appearance="outline" class="drawer__field full-field">
-              <mat-label>Email</mat-label>
-              <input matInput formControlName="email" type="email" autocomplete="off" />
-
-              @if (baseForm.controls.email.hasError('required') && baseForm.controls.email.touched) {
-                <mat-error>El email es obligatorio.</mat-error>
-              }
-
-              @if (baseForm.controls.email.hasError('email') && baseForm.controls.email.touched) {
-                <mat-error>Ingrese un email válido.</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="drawer__field full-field password-field">
-              <mat-label>Contraseña</mat-label>
-
-              <input
-                matInput
-                formControlName="password"
-                [type]="hidePassword() ? 'password' : 'text'"
-                autocomplete="new-password" />
-
-              <button
-                mat-icon-button
-                matSuffix
-                type="button"
-                class="password-toggle"
-                [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
-                (click)="hidePassword.set(!hidePassword())">
-                <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
-              </button>
-
-              @if (baseForm.controls.password.hasError('required') && baseForm.controls.password.touched) {
-                <mat-error>La contraseña es obligatoria.</mat-error>
-              }
-
-              @if (baseForm.controls.password.hasError('minlength') && baseForm.controls.password.touched) {
-                <mat-error>Mínimo 8 caracteres.</mat-error>
-              }
+              <mat-label>Proceso de calibración</mat-label>
+              <mat-select [formControl]="pmsePermissions.controls.calibrationProcessPermission">
+                @for (value of permissionValues; track value) {
+                  <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                }
+              </mat-select>
             </mat-form-field>
 
             <div class="field-row">
               <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Teléfono</mat-label>
-                <input matInput formControlName="phone" />
+                <mat-label>Usuarios del sistema</mat-label>
+                <mat-select [formControl]="pmsePermissions.controls.systemUserPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Cargo</mat-label>
-                <input matInput formControlName="position" />
+                <mat-label>Reportes</mat-label>
+                <mat-select [formControl]="pmsePermissions.controls.reportPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
               </mat-form-field>
             </div>
           </section>
-
-          @if (selectedType() === UserType.PmseAdmin) {
-            <section class="form-section">
-              <div class="section-title">Empresa</div>
-
-              <mat-form-field appearance="outline" class="drawer__field full-field">
-                <mat-label>Empresa PMSE</mat-label>
-                <mat-select [formControl]="pmseCompanyForm.controls.pmseCompanyId">
-                  @for (company of companies(); track company.id) {
-                    <mat-option [value]="company.id">
-                      {{ company.name }}
-                    </mat-option>
-                  }
-                </mat-select>
-
-                @if (pmseCompanyForm.controls.pmseCompanyId.hasError('required') && pmseCompanyForm.controls.pmseCompanyId.touched) {
-                  <mat-error>La empresa es obligatoria.</mat-error>
-                }
-              </mat-form-field>
-            </section>
-          }
-
-          @if (selectedType() === UserType.CenaceStaff) {
-            <section class="form-section">
-              <div class="section-title">Permisos CENACE</div>
-
-              <div class="field-row">
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Plan de calibración</mat-label>
-                  <mat-select [formControl]="cenacePermissions.controls.calibrationPlanPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Proceso de calibración</mat-label>
-                  <mat-select [formControl]="cenacePermissions.controls.calibrationProcessPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </div>
-
-              <div class="field-row">
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Telemedición</mat-label>
-                  <mat-select [formControl]="cenacePermissions.controls.telemeteringPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Auditorías</mat-label>
-                  <mat-select [formControl]="cenacePermissions.controls.auditPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </div>
-
-              <div class="field-row">
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Empresas PMSE</mat-label>
-                  <mat-select [formControl]="cenacePermissions.controls.companyPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Usuarios del sistema</mat-label>
-                  <mat-select [formControl]="cenacePermissions.controls.systemUserPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </div>
-
-              <mat-form-field appearance="outline" class="drawer__field full-field">
-                <mat-label>Reportes</mat-label>
-                <mat-select [formControl]="cenacePermissions.controls.reportPermission">
-                  @for (v of permissionValues; track v) {
-                    <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </section>
-          }
-
-          @if (selectedType() === UserType.PmseAdmin) {
-            <section class="form-section">
-              <div class="section-title">Permisos PMSE administrador</div>
-
-              <mat-form-field appearance="outline" class="drawer__field full-field">
-                <mat-label>Proceso de calibración</mat-label>
-                <mat-select [formControl]="pmsePermissions.controls.calibrationProcessPermission">
-                  @for (v of permissionValues; track v) {
-                    <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <div class="field-row">
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Usuarios del sistema</mat-label>
-                  <mat-select [formControl]="pmsePermissions.controls.systemUserPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Reportes</mat-label>
-                  <mat-select [formControl]="pmsePermissions.controls.reportPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </div>
-            </section>
-          }
-
-          @if (selectedType() === UserType.PmseOperator) {
-            <section class="form-section">
-              <div class="section-title">Permisos PMSE operador</div>
-
-              <mat-form-field appearance="outline" class="drawer__field full-field">
-                <mat-label>Proceso de calibración</mat-label>
-                <mat-select [formControl]="pmseOperatorPermissions.controls.calibrationProcessPermission">
-                  @for (v of permissionValues; track v) {
-                    <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <div class="field-row">
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Telemedición</mat-label>
-                  <mat-select [formControl]="pmseOperatorPermissions.controls.telemeteringPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="drawer__field">
-                  <mat-label>Reportes</mat-label>
-                  <mat-select [formControl]="pmseOperatorPermissions.controls.reportPermission">
-                    @for (v of permissionValues; track v) {
-                      <mat-option [value]="v">{{ PermissionLabels[v] }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-              </div>
-            </section>
-          }
         }
-      </div>
 
-      <footer class="drawer__actions">
-        <button
-          mat-stroked-button
-          class="drawer__btn drawer__btn--secondary"
-          type="button"
-          (click)="closed.emit()"
-          [disabled]="isLoading()">
-          <mat-icon>close</mat-icon>
-          Cancelar
-        </button>
+        @if (selectedType() === UserType.PmseOperator) {
+          <section class="form-section">
+            <div class="section-title">Permisos PMSE operador</div>
 
-       <button
-          mat-flat-button
-          class="drawer__btn drawer__btn--primary"
-          type="submit"
-          [disabled]="isLoading()">
+            <mat-form-field appearance="outline" class="drawer__field full-field">
+              <mat-label>Proceso de calibración</mat-label>
+              <mat-select [formControl]="pmseOperatorPermissions.controls.calibrationProcessPermission">
+                @for (value of permissionValues; track value) {
+                  <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
 
-          @if (isLoading()) {
-            <mat-spinner diameter="18" />
-          } @else {
-            <mat-icon>add</mat-icon>
-          }
+            <div class="field-row">
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Telemedición</mat-label>
+                <mat-select [formControl]="pmseOperatorPermissions.controls.telemeteringPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
 
-          <span>
-            {{ isLoading() ? 'Creando...' : 'Crear usuario' }}
-          </span>
-        </button>
-      </footer>
-    </form>
-  </section>
-</div>
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Reportes</mat-label>
+                <mat-select [formControl]="pmseOperatorPermissions.controls.reportPermission">
+                  @for (value of permissionValues; track value) {
+                    <mat-option [value]="value">{{ PermissionLabels[value] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </section>
+        }
+      }
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear usuario"
+      [loading]="isLoading()"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

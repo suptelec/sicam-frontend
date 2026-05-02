@@ -7,7 +7,7 @@ export const environment = {
     redirectUri: 'http://localhost:4200/auth/callback',
     postLogoutRedirectUri: 'http://localhost:4200/auth/logout',
     clientId: 'scm-spa',
-    scope: 'openid profile scm-api',
+    scope: 'openid profile offline_access scm-api',
     requireHttps: false
   }
 };

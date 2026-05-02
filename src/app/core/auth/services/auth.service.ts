@@ -13,6 +13,7 @@ import {
 export class AuthService {
 
   private _currentUser = signal<CurrentUser | null>(null);
+  private refreshTokenPromise: Promise<string | null> | null = null;
   currentUser = this._currentUser.asReadonly();
 
   constructor(
@@ -21,26 +22,34 @@ export class AuthService {
   ) {}
 
   async initialize(): Promise<void> {
-    const config: AuthConfig = {
-      issuer: environment.oidc.issuer,
-      redirectUri: environment.oidc.redirectUri,
-      postLogoutRedirectUri: environment.oidc.postLogoutRedirectUri,
-      clientId: environment.oidc.clientId,
-      responseType: 'code',
-      scope: environment.oidc.scope,
-      requireHttps: environment.oidc.requireHttps,
-      showDebugInformation: !environment.production,
-      useSilentRefresh: false,
-      clearHashAfterLogin: true,
-    };
+  const config: AuthConfig = {
+    issuer: environment.oidc.issuer,
+    redirectUri: environment.oidc.redirectUri,
+    postLogoutRedirectUri: environment.oidc.postLogoutRedirectUri,
+    clientId: environment.oidc.clientId,
+    responseType: 'code',
+    scope: environment.oidc.scope,
+    requireHttps: environment.oidc.requireHttps,
+    showDebugInformation: !environment.production,
+    useSilentRefresh: false,
+    clearHashAfterLogin: true,
+    timeoutFactor: 0.75
+  };
 
-    this.oauthService.configure(config);
-    await this.oauthService.loadDiscoveryDocumentAndTryLogin();
+  this.oauthService.configure(config);
+  this.oauthService.setupAutomaticSilentRefresh();
 
-    if (this.isAuthenticated()) {
-      this.loadCurrentUser();
-    }
+  await this.oauthService.loadDiscoveryDocumentAndTryLogin();
+
+  if (this.isAuthenticated()) {
+    this.loadCurrentUser();
+    return;
   }
+
+  if (this.hasRefreshToken()) {
+    await this.refreshAccessToken();
+  }
+}
 
   login(): void {
     this.oauthService.initCodeFlow();
@@ -143,4 +152,50 @@ export class AuthService {
 
     return [value];
   }
+
+  hasRefreshToken(): boolean {
+  return !!this.oauthService.getRefreshToken();
+}
+
+async ensureValidAccessToken(): Promise<string | null> {
+  if (this.oauthService.hasValidAccessToken()) {
+    return this.oauthService.getAccessToken();
+  }
+
+  if (!this.hasRefreshToken()) {
+    return null;
+  }
+
+  return await this.refreshAccessToken();
+}
+
+async refreshAccessToken(): Promise<string | null> {
+  if (this.refreshTokenPromise) {
+    return this.refreshTokenPromise;
+  }
+
+  this.refreshTokenPromise = this.refreshAccessTokenInternal()
+    .finally(() => {
+      this.refreshTokenPromise = null;
+    });
+
+  return this.refreshTokenPromise;
+}
+
+private async refreshAccessTokenInternal(): Promise<string | null> {
+  try {
+    await this.oauthService.refreshToken();
+
+    if (!this.oauthService.hasValidAccessToken()) {
+      this._currentUser.set(null);
+      return null;
+    }
+
+    this.loadCurrentUser();
+    return this.oauthService.getAccessToken();
+  } catch {
+    this._currentUser.set(null);
+    return null;
+  }
+}
 }

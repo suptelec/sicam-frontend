@@ -11,17 +11,16 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+
+import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
+import { ToastService } from '../../../../core/services/toast.service';
 
 import { ExternalClientsService } from '../../data-access/external-clients.service';
 import {
   CreateExternalClientRequest,
   ExternalClient
-} from '../../domain/external-client.model'
-
-
+} from '../../domain/external-client.model';
 
 @Component({
   selector: 'app-create-client-drawer',
@@ -34,9 +33,8 @@ import {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    DrawerActionsComponent
   ],
   templateUrl: './create-client-drawer.html',
   styleUrl: './create-client-drawer.scss'
@@ -44,7 +42,7 @@ import {
 export class CreateClientDrawerComponent {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ExternalClientsService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(ToastService);
 
   @Output() closed = new EventEmitter<void>();
   @Output() created = new EventEmitter<ExternalClient>();
@@ -60,6 +58,10 @@ export class CreateClientDrawerComponent {
 
   get hasCredentials(): boolean {
     return !!this.createdClient?.clientId && !!this.createdClient?.clientSecret;
+  }
+
+  get saveDisabled(): boolean {
+    return this.loading || this.form.invalid;
   }
 
   submit(): void {
@@ -81,30 +83,18 @@ export class CreateClientDrawerComponent {
         this.loading = false;
 
         if (!response.succeed || !response.result) {
-          this.snackBar.open(
-            response.message ?? 'No se pudo crear el cliente externo.',
-            'Cerrar',
-            { duration: 4500 }
-          );
+          this.toast.error(response.message ?? 'No se pudo crear el cliente externo.');
           return;
         }
 
         this.createdClient = response.result;
         this.created.emit(response.result);
 
-        this.snackBar.open(
-          'Cliente externo creado correctamente.',
-          'Cerrar',
-          { duration: 3500 }
-        );
+        this.toast.success('Cliente externo creado correctamente.');
       },
       error: () => {
         this.loading = false;
-        this.snackBar.open(
-          'Ocurrió un error al crear el cliente externo.',
-          'Cerrar',
-          { duration: 4500 }
-        );
+        this.toast.error('Ocurrió un error al crear el cliente externo.');
       }
     });
   }
@@ -113,9 +103,7 @@ export class CreateClientDrawerComponent {
     if (!value) return;
 
     navigator.clipboard.writeText(value).then(() => {
-      this.snackBar.open(`${label} copiado al portapapeles.`, 'Cerrar', {
-        duration: 2500
-      });
+      this.toast.success(`${label} copiado al portapapeles.`, 2500);
     });
   }
 

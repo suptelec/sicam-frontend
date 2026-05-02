@@ -21,13 +21,7 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/pmse-companies/pmse-companies.routes')
             .then(m => m.PMSE_COMPANIES_ROUTES)
-      },
-      {
-        path: 'system-users',
-        loadChildren: () =>
-          import('./features/system-users/system-users.routes')
-            .then(m => m.SYSTEM_USERS_ROUTES)
-      },
+      },     
       {
         path: 'external-clients',
         loadChildren: () =>
@@ -39,7 +33,19 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/accredited-laboratories/accredited-laboratories.routes')
             .then(m => m.ACCREDITED_LABORATORIES_ROUTES)
-      }
+      },
+      {
+        path: 'meters',
+        loadChildren: () =>
+          import('./features/meters/meters.routes')
+            .then(m => m.METERS_ROUTES)
+      },
+       {
+        path: 'system-users',
+        loadChildren: () =>
+          import('./features/system-users/system-users.routes')
+            .then(m => m.SYSTEM_USERS_ROUTES)
+      },
     ]
   },
   {
