@@ -1,0 +1,150 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">AUTORIZACIÓN DE INICIO</p>
+      <h2>Solicitar autorización</h2>
+      <p class="drawer__description">
+        Solicita a CENACE la autorización para iniciar los trabajos de calibración en la fecha aprobada.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentItem; as item) {
+        <section class="item-summary">
+          <div class="item-summary__icon">
+            <mat-icon>electric_meter</mat-icon>
+          </div>
+
+          <div>
+            <span>Medidor</span>
+            <strong>{{ item.meterCode ?? '—' }}</strong>
+            <small>Serial: {{ item.meterSerial ?? '—' }}</small>
+          </div>
+        </section>
+
+        <section class="approved-date-card">
+          <mat-icon>event_available</mat-icon>
+
+          <div>
+            <span>Fecha aprobada por CENACE</span>
+            <strong>{{ item.scheduledDate ?? '—' }}</strong>
+            <small>Esta fecha no se puede cambiar en la solicitud.</small>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="section-title">Datos de la autorización</div>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Fecha de trabajo</mat-label>
+
+            <input
+              matInput
+              type="date"
+              formControlName="requestedWorkDate"
+              readonly
+            />
+
+            @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
+              <mat-error>La fecha de trabajo es obligatoria.</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Hora inicio</mat-label>
+
+              <input
+                matInput
+                type="time"
+                formControlName="requestedStartTime"
+              />
+
+              @if (form.controls.requestedStartTime.hasError('required') && form.controls.requestedStartTime.touched) {
+                <mat-error>La hora inicio es obligatoria.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Hora fin</mat-label>
+
+              <input
+                matInput
+                type="time"
+                formControlName="requestedEndTime"
+              />
+
+              @if (form.controls.requestedEndTime.hasError('required') && form.controls.requestedEndTime.touched) {
+                <mat-error>La hora fin es obligatoria.</mat-error>
+              }
+
+              @if (form.hasError('endTimeBeforeOrEqualStartTime') && form.controls.requestedEndTime.touched) {
+                <mat-error>La hora fin debe ser mayor a la hora inicio.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>URL del documento de solicitud</mat-label>
+
+            <input
+              matInput
+              formControlName="requestDocumentUrl"
+              autocomplete="off"
+              placeholder="https://..."
+            />
+
+            @if (form.controls.requestDocumentUrl.hasError('required') && form.controls.requestDocumentUrl.touched) {
+              <mat-error>El documento de solicitud es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+            <mat-label>Motivo</mat-label>
+
+            <textarea
+              matInput
+              rows="5"
+              formControlName="requestReason"
+              placeholder="Ejemplo: Solicitud de autorización para iniciar trabajos de calibración."
+            ></textarea>
+
+            @if (form.controls.requestReason.hasError('required') && form.controls.requestReason.touched) {
+              <mat-error>El motivo es obligatorio.</mat-error>
+            }
+          </mat-form-field>
+        </section>
+      } @else {
+        <section class="empty-state">
+          <mat-icon>warning</mat-icon>
+          <h3>No se recibió el ítem del plan</h3>
+          <p>Cierra este panel y vuelve a seleccionar el ítem desde la tabla.</p>
+        </section>
+      }
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Enviar solicitud"
+      submitIcon="send"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

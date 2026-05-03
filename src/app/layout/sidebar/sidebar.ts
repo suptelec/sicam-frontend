@@ -108,6 +108,22 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
+        label: 'Cronogramas recibidos',
+        route: '/schedule-submission-reviews',
+        icon: 'schedule',
+        section: 'Revisión CENACE',
+        permission: 'calibrationPlan',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Autorizaciones recibidas',
+        route: '/work-authorization-reviews',
+        icon: 'approval',
+        section: 'Revisión CENACE',
+        permission: 'calibrationPlan',
+        action: PermissionAction.Read
+      },
+      {
         label: 'Telemedición',
         route: '/telemedicion',
         icon: 'signal',

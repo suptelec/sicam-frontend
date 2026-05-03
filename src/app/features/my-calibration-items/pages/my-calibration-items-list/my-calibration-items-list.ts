@@ -25,6 +25,7 @@ import {
 
 import { ScheduleProposalDrawerComponent } from '../../ui/schedule-proposal-drawer/schedule-proposal-drawer';
 import { DateChangeRequestDrawerComponent } from '../../ui/date-change-request-drawer/date-change-request-drawer';
+import { WorkAuthorizationDrawerComponent } from '../../ui/work-authorization-drawer/work-authorization-drawer';
 
 @Component({
   selector: 'app-my-calibration-items-list',
@@ -41,7 +42,8 @@ import { DateChangeRequestDrawerComponent } from '../../ui/date-change-request-d
     StatusChipComponent,
     DrawerShellComponent,
     ScheduleProposalDrawerComponent,
-    DateChangeRequestDrawerComponent
+    DateChangeRequestDrawerComponent,
+    WorkAuthorizationDrawerComponent
   ],
   templateUrl: './my-calibration-items-list.html',
   styleUrl: './my-calibration-items-list.scss'
@@ -54,6 +56,8 @@ export class MyCalibrationItemsListComponent implements OnInit {
 
   readonly CalibrationPlanItemStatus = CalibrationPlanItemStatus;
 
+  workAuthorizationDrawerOpen = signal(false);
+  selectedWorkAuthorizationItem = signal<CalibrationPlanItem | null>(null);
   dataSource = new MatTableDataSource<CalibrationPlanItem>([]);
 
   displayedColumns = [
@@ -190,6 +194,32 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.selectedItem.set(null);
     this.load();
   }
+
+canRequestWorkAuthorization(item: CalibrationPlanItem): boolean {
+  return Number(item.itemStatus) === CalibrationPlanItemStatus.ScheduleApproved &&
+    !!item.scheduledDate;
+}
+
+onWorkAuthorizationClicked(item: CalibrationPlanItem): void {
+  if (!this.canRequestWorkAuthorization(item)) {
+    this.toast.warning('Solo puedes solicitar autorización cuando el cronograma está aprobado y existe fecha programada.');
+    return;
+  }
+
+  this.selectedWorkAuthorizationItem.set(item);
+  this.workAuthorizationDrawerOpen.set(true);
+}
+
+onWorkAuthorizationDrawerClosed(): void {
+  this.workAuthorizationDrawerOpen.set(false);
+  this.selectedWorkAuthorizationItem.set(null);
+}
+
+onWorkAuthorizationCreated(): void {
+  this.workAuthorizationDrawerOpen.set(false);
+  this.selectedWorkAuthorizationItem.set(null);
+  this.load();
+}
 
   getItemStatusLabel(status: CalibrationPlanItemStatus): string {
     return CalibrationPlanItemStatusLabels[status] ?? '—';

@@ -48,6 +48,26 @@ export class CalibrationScheduleSubmissionsService extends BaseApiService<
     );
   }
 
+approve(
+  submissionId: number,
+  comments: string | null = 'Cronograma aprobado.'
+): Observable<ApiResult<CalibrationScheduleSubmission>> {
+  return this.http.patch<ApiResult<CalibrationScheduleSubmission>>(
+    `${this.baseUrl}/${submissionId}/approve`,
+    { comments }
+  );
+}
+
+reject(
+  submissionId: number,
+  rejectionReason: string
+): Observable<ApiResult<CalibrationScheduleSubmission>> {
+  return this.http.patch<ApiResult<CalibrationScheduleSubmission>>(
+    `${this.baseUrl}/${submissionId}/reject`,
+    { rejectionReason }
+  );
+}
+
   submit(submissionId: number): Observable<ApiResult<CalibrationScheduleSubmission>> {
     return this.http.patch<ApiResult<CalibrationScheduleSubmission>>(
       `${this.baseUrl}/${submissionId}/submit`,

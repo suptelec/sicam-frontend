@@ -75,6 +75,18 @@ export const routes: Routes = [
           import('./features/my-schedule-submissions/my-schedule-submissions.routes')
             .then(m => m.MY_SCHEDULE_SUBMISSIONS_ROUTES)
       },
+      {
+        path: 'schedule-submission-reviews',
+        loadChildren: () =>
+          import('./features/schedule-submission-reviews/schedule-submission-reviews.routes')
+            .then(m => m.SCHEDULE_SUBMISSION_REVIEWS_ROUTES)
+      },
+      {
+        path: 'work-authorization-reviews',
+        loadChildren: () =>
+          import('./features/work-authorization-reviews/work-authorization-reviews.routes')
+            .then(m => m.WORK_AUTHORIZATION_REVIEWS_ROUTES)
+      },
     ]
   },
   {

@@ -1,0 +1,140 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Revisión CENACE"
+    title="Autorizaciones de inicio"
+    description="Revisa las solicitudes de autorización enviadas por los PMSE para iniciar trabajos de calibración."
+    [showAction]="false"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por PMSE, medidor o motivo..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando autorizaciones..."
+    emptyIcon="approval"
+    emptyTitle="No hay autorizaciones pendientes"
+    emptyDescription="Cuando un PMSE solicite autorización de inicio, aparecerá aquí."
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="authorizations-table"
+    >
+      <ng-container matColumnDef="item">
+        <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="authorization-name">
+            <div class="authorization-name__avatar">
+              <mat-icon>electric_meter</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.meterCode ?? 'Ítem #' + row.calibrationPlanItemId }}</strong>
+              <span>{{ row.meterSerial ?? 'Sin serial' }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="pmse">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <strong>{{ row.pmseCompanyName ?? '—' }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="workWindow">
+        <th mat-header-cell *matHeaderCellDef>Jornada solicitada</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.requestedWorkDate ?? '—' }}</strong>
+            <span>{{ row.requestedStartTime }} - {{ row.requestedEndTime }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="document">
+        <th mat-header-cell *matHeaderCellDef>Documento</th>
+
+        <td mat-cell *matCellDef="let row">
+          @if (row.requestDocumentUrl) {
+            <a
+              class="document-link"
+              [href]="row.requestDocumentUrl"
+              target="_blank"
+              rel="noopener"
+            >
+              Ver solicitud
+            </a>
+          } @else {
+            <span class="muted">Sin documento</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="authorizationStatus">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <app-status-chip
+            [label]="getStatusLabel(row.authorizationStatus)"
+            [tone]="getStatusTone(row.authorizationStatus)"
+            [icon]="getStatusIcon(row.authorizationStatus)"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <div class="row-actions">
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn row-actions__btn--success"
+              matTooltip="Autorizar"
+              (click)="onAuthorize(row)"
+            >
+              <mat-icon>check_circle</mat-icon>
+            </button>
+
+            <button
+              mat-icon-button
+              type="button"
+              class="row-actions__btn row-actions__btn--danger"
+              matTooltip="Rechazar"
+              (click)="onReject(row)"
+            >
+              <mat-icon>block</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>

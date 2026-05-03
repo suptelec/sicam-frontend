@@ -1,0 +1,66 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">RECHAZO CENACE</p>
+      <h2>Rechazar cronograma</h2>
+      <p class="drawer__description">
+        Indica el motivo por el cual el cronograma enviado por el PMSE será rechazado.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentSubmission; as current) {
+        <section class="summary-card">
+          <mat-icon>event_busy</mat-icon>
+
+          <div>
+            <span>Cronograma</span>
+            <strong>{{ current.planName }}</strong>
+            <small>{{ current.pmseCompanyName ?? 'PMSE' }} · Año {{ current.planYear }}</small>
+          </div>
+        </section>
+      }
+
+      <section class="form-section">
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Motivo de rechazo</mat-label>
+
+          <textarea
+            matInput
+            rows="6"
+            formControlName="rejectionReason"
+            placeholder="Ejemplo: Se rechaza porque las fechas propuestas no cumplen la coordinación operativa."
+          ></textarea>
+
+          @if (form.controls.rejectionReason.hasError('required') && form.controls.rejectionReason.touched) {
+            <mat-error>El motivo de rechazo es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Rechazar cronograma"
+      submitIcon="block"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

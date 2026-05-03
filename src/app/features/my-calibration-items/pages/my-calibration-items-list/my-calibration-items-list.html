@@ -146,7 +146,8 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Solicitar autorización de inicio"
-                disabled
+                [disabled]="!canRequestWorkAuthorization(row)"
+                (click)="onWorkAuthorizationClicked(row)"
               >
                 <mat-icon>approval</mat-icon>
               </button>
@@ -283,6 +284,22 @@
         (closed)="onDateChangeDrawerClosed()"
         (created)="onDateChangeCreated()"
       ></app-date-change-request-drawer>
+    </app-drawer-shell>
+  }
+}
+
+@if (workAuthorizationDrawerOpen()) {
+  @if (selectedWorkAuthorizationItem(); as item) {
+    <app-drawer-shell
+      [open]="workAuthorizationDrawerOpen()"
+      width="620px"
+      (closed)="onWorkAuthorizationDrawerClosed()"
+    >
+      <app-work-authorization-drawer
+        [item]="item"
+        (closed)="onWorkAuthorizationDrawerClosed()"
+        (created)="onWorkAuthorizationCreated()"
+      ></app-work-authorization-drawer>
     </app-drawer-shell>
   }
 }
