@@ -293,12 +293,6 @@ export const routes: Routes = [
             .then(m => m.EXTERNAL_CLIENTS_ROUTES)
       },
       {
-        path: 'accredited-laboratories',
-        loadChildren: () =>
-          import('./features/accredited-laboratories/accredited-laboratories.routes')
-            .then(m => m.ACCREDITED_LABORATORIES_ROUTES)
-      },
-      {
         path: 'meters',
         loadChildren: () =>
           import('./features/meters/meters.routes')
@@ -363,6 +357,13 @@ export const routes: Routes = [
           import('./features/calibration-process-reviews/calibration-process-reviews.routes')
             .then(m => m.CALIBRATION_PROCESS_REVIEWS_ROUTES)
       },
+      {
+        path: 'pmse-laboratories',
+        loadChildren: () =>
+          import('./features/pmse-laboratories/pmse-laboratories.routes')
+            .then(m => m.PMSE_LABORATORIES_ROUTES)
+      },
+      
     ]
   },
   {
@@ -1034,6 +1035,12 @@ export abstract class BaseApiService<
   protected get baseUrl(): string {
     return `${environment.apiUrl}/v1/${this.endpoint}`;
   }
+
+  protected get apiBaseUrl(): string {
+    return `${environment.apiUrl}/v1`;
+  }
+
+
 
   getAll(query?: PaginatedODataQuery): Observable<PaginatedResult<TEntity>> {
     const params = this.odata.toHttpParams(query);
@@ -2374,9 +2381,13 @@ export interface CalibrationPlanItem {
 
   plannedStartDate?: string | null;
   plannedEndDate?: string | null;
-  scheduledDate?: string | null;
+scheduledDate?: string | null;
 
-  itemStatus: CalibrationPlanItemStatus;
+suggestedLaboratoryId?: number | null;
+suggestedLaboratoryName?: string | null;
+suggestedLaboratoryAccreditationCode?: string | null;
+
+itemStatus: CalibrationPlanItemStatus;
 
   status: EntityStatus;
   createdAt: string;
@@ -2385,15 +2396,15 @@ export interface CalibrationPlanItem {
 export const CalibrationPlanItemStatusLabels: Record<CalibrationPlanItemStatus, string> = {
   [CalibrationPlanItemStatus.Pending]: 'Pendiente',
   [CalibrationPlanItemStatus.DateChangeRequested]: 'Cambio de rango solicitado',
-  [CalibrationPlanItemStatus.ScheduledByPmse]: 'Cronograma enviado',
+  [CalibrationPlanItemStatus.ScheduledByPmse]: 'Agregado al cronograma',
   [CalibrationPlanItemStatus.ScheduleApproved]: 'Cronograma aprobado',
   [CalibrationPlanItemStatus.AuthorizationRequested]: 'Autorización solicitada',
-  [CalibrationPlanItemStatus.Authorized]: 'Autorizado',
-  [CalibrationPlanItemStatus.InProcess]: 'En proceso',
-  [CalibrationPlanItemStatus.InReview]: 'En revisión',
-  [CalibrationPlanItemStatus.Approved]: 'Aprobado',
-  [CalibrationPlanItemStatus.Rejected]: 'Rechazado',
-  [CalibrationPlanItemStatus.Expired]: 'Expirado'
+  [CalibrationPlanItemStatus.Authorized]: 'Autorizado para calibración',
+  [CalibrationPlanItemStatus.InProcess]: 'Calibración en proceso',
+  [CalibrationPlanItemStatus.InReview]: 'Proceso en revisión',
+  [CalibrationPlanItemStatus.Approved]: 'Calibración aprobada',
+  [CalibrationPlanItemStatus.Rejected]: 'Calibración rechazada',
+  [CalibrationPlanItemStatus.Expired]: 'Vencido'
 };=== ./src/app/features/calibration-plans/pages/calibration-plan-detail/calibration-plan-detail.html ===
 <section class="page">
   <button
@@ -3165,7 +3176,7 @@ export class CalibrationPlanDetailComponent implements OnInit {
         return 'primary';
 
       case CalibrationPlanItemStatus.Approved:
-      
+        return 'success';
 
       case CalibrationPlanItemStatus.Rejected:
         return 'danger';
@@ -3852,29 +3863,23 @@ onExportValidationResult(): void {
           }
         </mat-form-field>
 
-        <div class="field-row">
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha inicio</mat-label>
-            <input matInput type="date" formControlName="startDate" />
+       <div class="field-row">
+  <app-date-field
+    formControlName="startDate"
+    label="Fecha inicio"
+  />
 
-            @if (form.controls.startDate.hasError('required') && form.controls.startDate.touched) {
-              <mat-error>La fecha inicio es obligatoria.</mat-error>
-            }
-          </mat-form-field>
+  <app-date-field
+    formControlName="endDate"
+    label="Fecha fin"
+  />
+</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha fin</mat-label>
-            <input matInput type="date" formControlName="endDate" />
-
-            @if (form.controls.endDate.hasError('required') && form.controls.endDate.touched) {
-              <mat-error>La fecha fin es obligatoria.</mat-error>
-            }
-
-            @if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
-              <mat-error>La fecha fin no puede ser anterior a la fecha inicio.</mat-error>
-            }
-          </mat-form-field>
-        </div>
+@if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
+  <div class="form-error">
+    La fecha fin no puede ser anterior a la fecha inicio.
+  </div>
+}
 
         <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
           <mat-label>Descripción</mat-label>
@@ -3915,6 +3920,12 @@ onExportValidationResult(): void {
     font-weight: 750;
     line-height: 1.15;
   }
+}
+
+.form-error {
+  margin-top: 8px;
+  color: #ffb4b4;
+  font-size: 0.82rem;
 }
 
 .drawer__eyebrow {
@@ -4070,6 +4081,7 @@ import {
   CalibrationPlan,
   CreateCalibrationPlanRequest
 } from '../../domain/calibration-plan.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-calibration-plan-drawer',
@@ -4081,7 +4093,8 @@ import {
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './calibration-plan-drawer.html',
   styleUrl: './calibration-plan-drawer.scss'
@@ -8689,21 +8702,22 @@ const filter = [searchFilter, pmseFilter]
             </section>
           }
 
-          <mat-form-field appearance="outline" class="drawer__field full-field">
-            <mat-label>Laboratorio acreditado</mat-label>
+<mat-form-field appearance="outline" class="drawer__field full-field">
+  <mat-label>Laboratorio contratado</mat-label>
 
-            <mat-select formControlName="accreditedLaboratoryId">
-              <mat-option [value]="null">
-                Sin laboratorio asociado
-              </mat-option>
+  <mat-select formControlName="accreditedLaboratoryId">
+    @for (laboratory of laboratories(); track laboratory.id) {
+      <mat-option [value]="laboratory.accreditedLaboratoryId">
+        {{ getLaboratoryLabel(laboratory) }}
+      </mat-option>
+    }
+  </mat-select>
 
-              @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.id">
-                  {{ getLaboratoryLabel(laboratory) }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+  @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
+    <mat-error>El laboratorio contratado es obligatorio.</mat-error>
+  }
+</mat-form-field>
+
         </section>
 
         <section class="form-section">
@@ -9115,8 +9129,8 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { MetersService } from '../../../meters/data-access/meters.service';
 import { Meter } from '../../../meters/domain/meter.model';
 
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
+import { PmseLaboratoriesService } from '../../../pmse-laboratories/data-access/pmse-laboratories.service';
+import { PmseLaboratory } from '../../../pmse-laboratories/domain/pmse-laboratory.model';
 
 import { MeterCalibrationCertificatesService } from '../../data-access/meter-calibration-certificates.service';
 import {
@@ -9125,6 +9139,7 @@ import {
   CreateMeterCalibrationCertificateRequest,
   MeterCalibrationCertificate
 } from '../../domain/meter-calibration-certificate.model';
+
 import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 @Component({
@@ -9150,7 +9165,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(MeterCalibrationCertificatesService);
   private readonly metersService = inject(MetersService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
+  private readonly laboratoriesService = inject(PmseLaboratoriesService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
@@ -9161,7 +9176,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   loadingCatalogs = signal(false);
 
   meters = signal<Meter[]>([]);
-  laboratories = signal<AccreditedLaboratory[]>([]);
+  laboratories = signal<PmseLaboratory[]>([]);
 
   readonly CalibrationResult = CalibrationResult;
   readonly CalibrationResultLabels = CalibrationResultLabels;
@@ -9172,7 +9187,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   readonly form = this.fb.group(
     {
       meterId: [null as number | null, Validators.required],
-      accreditedLaboratoryId: [null as number | null],
+      accreditedLaboratoryId: [null as number | null, Validators.required],
 
       certificateNumber: ['', [Validators.required, Validators.maxLength(120)]],
       secondaryCertificateNumber: ['', [Validators.maxLength(120)]],
@@ -9195,12 +9210,12 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   }
 
   get isPmseUser(): boolean {
-  return this.userScope.isPmseUser();
-}
+    return this.userScope.isPmseUser();
+  }
 
-get currentPmseCompanyName(): string | null {
-  return this.userScope.pmseCompanyName();
-}
+  get currentPmseCompanyName(): string | null {
+    return this.userScope.pmseCompanyName();
+  }
 
   get saveDisabled(): boolean {
     return this.loading || this.loadingCatalogs() || this.form.invalid;
@@ -9229,12 +9244,13 @@ get currentPmseCompanyName(): string | null {
     return `${meter.code}${serial}${company}`;
   }
 
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
+  getLaboratoryLabel(laboratory: PmseLaboratory): string {
+    const name = laboratory.accreditedLaboratoryName ?? 'Laboratorio';
     const code = laboratory.accreditationCode
       ? ` · ${laboratory.accreditationCode}`
       : '';
 
-    return `${laboratory.name}${code}`;
+    return `${name}${code}`;
   }
 
   getResultLabel(result: CalibrationResult): string {
@@ -9263,9 +9279,7 @@ get currentPmseCompanyName(): string | null {
 
     const dto: CreateMeterCalibrationCertificateRequest = {
       meterId: Number(raw.meterId),
-      accreditedLaboratoryId: raw.accreditedLaboratoryId
-        ? Number(raw.accreditedLaboratoryId)
-        : null,
+      accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
 
       certificateNumber: this.normalizeRequired(raw.certificateNumber),
       secondaryCertificateNumber: this.normalize(raw.secondaryCertificateNumber),
@@ -9310,7 +9324,9 @@ get currentPmseCompanyName(): string | null {
 
   private loadCatalogs(): void {
     this.loadingCatalogs.set(true);
+
     const meterFilter = this.userScope.getPmseFilter('PmseCompanyId');
+    const laboratoryPmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
     let completed = 0;
 
@@ -9323,45 +9339,61 @@ get currentPmseCompanyName(): string | null {
     };
 
     this.metersService.getAll({
-  page: 1,
-  take: 500,
-  filter: meterFilter || undefined,
-  orderBy: 'Code asc'
-}).subscribe({
-  next: response => {
-    if (response.succeed) {
-      this.meters.set(response.result ?? []);
-    } else {
-      this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
-    }
-
-    finish();
-  },
-  error: () => {
-    this.toast.warning('No se pudieron cargar los medidores.');
-    finish();
-  }
-});
-
-    this.laboratoriesService.getAll({
       page: 1,
-      take: 300,
-      orderBy: 'Name asc'
+      take: 500,
+      filter: meterFilter || undefined,
+      orderBy: 'Code asc'
     }).subscribe({
       next: response => {
         if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
+          this.meters.set(response.result ?? []);
         } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
+          this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
         }
 
         finish();
       },
       error: () => {
-        this.toast.warning('No se pudieron cargar los laboratorios.');
+        this.toast.warning('No se pudieron cargar los medidores.');
         finish();
       }
     });
+
+    this.laboratoriesService.getAll({
+      page: 1,
+      take: 300,
+      filter: this.buildLaboratoryFilter(laboratoryPmseFilter),
+      orderBy: 'AccreditedLaboratoryName asc'
+    }).subscribe({
+      next: response => {
+        if (response.succeed) {
+          this.laboratories.set(response.result ?? []);
+        } else {
+          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+        }
+
+        finish();
+      },
+      error: () => {
+        this.toast.warning('No se pudieron cargar los laboratorios contratados.');
+        finish();
+      }
+    });
+  }
+
+  private buildLaboratoryFilter(pmseFilter: string | null): string {
+    return this.userScope.isPmseUser()
+      ? this.userScope.currentUser()
+        ? this.joinFilters('Status eq 1', pmseFilter)
+        : 'Status eq 1'
+      : 'Status eq 1';
+  }
+
+  private joinFilters(...filters: Array<string | null | undefined>): string {
+    return filters
+      .filter(Boolean)
+      .map(filter => `(${filter})`)
+      .join(' and ');
   }
 
   private reset(): void {
@@ -11775,13 +11807,13 @@ get currentPmseCompanyName(): string | null {
   private reset(): void {
     this.form.reset({
       identification: {
-        pmseCompanyId: null,
-        code: '',
-        serial: '',
-        tplCode: '',
-        cenaceCode: '',
-        brand: '',
-        model: ''
+      pmseCompanyId: this.isPmseUser ? this.currentPmseCompanyId : null,
+      code: '',
+      serial: '',
+       tplCode: '',
+       cenaceCode: '',
+       brand: '',
+       model: ''
       },
       cenace: {
         installationType: null,
@@ -12911,6 +12943,15 @@ reject(
   );
 }
 
+generateOfficialDocument(
+  submissionId: number
+): Observable<ApiResult<CalibrationScheduleSubmission>> {
+  return this.http.post<ApiResult<CalibrationScheduleSubmission>>(
+    `${this.baseUrl}/${submissionId}/generate-official-document`,
+    {}
+  );
+}
+
   submit(submissionId: number): Observable<ApiResult<CalibrationScheduleSubmission>> {
     return this.http.patch<ApiResult<CalibrationScheduleSubmission>>(
       `${this.baseUrl}/${submissionId}/submit`,
@@ -12941,7 +12982,7 @@ export class DateChangeRequestsService extends BaseApiService<
     dto: CreateCalibrationDateChangeRequest
   ): Observable<ApiResult<CalibrationDateChangeRequest>> {
     return this.http.post<ApiResult<CalibrationDateChangeRequest>>(
-      `${this.baseUrl}/v1/CalibrationPlanItems/${calibrationPlanItemId}/date-change-requests`,
+      `${this.apiBaseUrl}/CalibrationPlanItems/${calibrationPlanItemId}/date-change-requests`,
       dto
     );
   }
@@ -12967,11 +13008,11 @@ export class WorkAuthorizationsService extends BaseApiService<
   protected override readonly endpoint = 'CalibrationWorkAuthorizations';
 
   createForPlanItem(
-    calibrationPlanItemId: number,
-    dto: CreateCalibrationWorkAuthorizationRequest
+  calibrationPlanItemId: number,
+  dto: CreateCalibrationWorkAuthorizationRequest
   ): Observable<ApiResult<CalibrationWorkAuthorization>> {
     return this.http.post<ApiResult<CalibrationWorkAuthorization>>(
-      `${this.baseUrl}/v1/CalibrationPlanItems/${calibrationPlanItemId}/work-authorizations`,
+      `${this.apiBaseUrl}/CalibrationPlanItems/${calibrationPlanItemId}/work-authorizations`,
       dto
     );
   }
@@ -13011,9 +13052,7 @@ export enum CalibrationResult {
 }
 
 export interface CreateCalibrationProcessRequest {
-  accreditedLaboratoryId: number;
   executionDate: string;
-  laboratoryName?: string | null;
   certificateNumber: string;
   certificateIssueDate: string;
   certificateValidUntil: string;
@@ -13139,21 +13178,19 @@ export enum CalibrationScheduleSubmissionStatus {
   Draft = 1,
   Submitted = 2,
   Approved = 3,
-  Rejected = 4
+  Rejected = 4,
+  Cancelled = 5
 }
 
 export interface CreateCalibrationScheduleSubmissionRequest {
   calibrationPlanId: number;
-  pmseCompanyId: number;
-  documentUrl?: string | null;
   notes?: string | null;
 }
 
 export interface AddCalibrationScheduleSubmissionItemRequest {
   calibrationPlanItemId: number;
-  accreditedLaboratoryId?: number | null;
+  accreditedLaboratoryId: number;
   proposedCalibrationDate: string;
-  laboratoryName?: string | null;
   notes?: string | null;
 }
 
@@ -13243,7 +13280,8 @@ export interface CalibrationDateChangeRequest {
 export enum CalibrationWorkAuthorizationStatus {
   Requested = 1,
   Authorized = 2,
-  Rejected = 3
+  Rejected = 3,
+  Cancelled = 4
 }
 
 export interface CreateCalibrationWorkAuthorizationRequest {
@@ -14705,32 +14743,29 @@ export class DateChangeRequestDrawerComponent {
         <section class="form-section">
           <div class="section-title">Propuesta de calibración</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha propuesta</mat-label>
+<div class="drawer__field">
+  <app-date-field
+    formControlName="scheduledDate"
+    label="Fecha propuesta"
+    [min]="minDate"
+    [max]="maxDate"
+  />
 
-            <input
-              matInput
-              type="date"
-              formControlName="scheduledDate"
-              [attr.min]="minDate"
-              [attr.max]="maxDate"
-            />
+  @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La fecha propuesta es obligatoria.</div>
+  }
 
-            @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
-              <mat-error>La fecha propuesta es obligatoria.</mat-error>
-            }
-
-            @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
-              <mat-error>La fecha debe estar dentro del rango planificado.</mat-error>
-            }
-          </mat-form-field>
+  @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La fecha debe estar dentro del rango planificado.</div>
+  }
+</div>
 
           <mat-form-field appearance="outline" class="drawer__field">
             <mat-label>Laboratorio acreditado</mat-label>
 
             <mat-select formControlName="accreditedLaboratoryId">
               @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.id">
+                <mat-option [value]="laboratory.accreditedLaboratoryId">
                   {{ getLaboratoryLabel(laboratory) }}
                 </mat-option>
               }
@@ -14841,6 +14876,12 @@ export class DateChangeRequestDrawerComponent {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.form-error {
+  margin-top: 6px;
+  color: #ffb4b4;
+  font-size: 0.82rem;
 }
 
 .item-summary {
@@ -15051,8 +15092,8 @@ import { DrawerActionsComponent } from '../../../../shared/components/drawer-act
 import { ToastService } from '../../../../core/services/toast.service';
 import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
+import { PmseLaboratoriesService } from '../../../pmse-laboratories/data-access/pmse-laboratories.service';
+import { PmseLaboratory } from '../../../pmse-laboratories/domain/pmse-laboratory.model';
 
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 
@@ -15063,6 +15104,7 @@ import {
   CalibrationScheduleSubmissionStatus,
   CreateCalibrationScheduleSubmissionRequest
 } from '../../domain/calibration-schedule-submission.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-schedule-proposal-drawer',
@@ -15076,7 +15118,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent,
   ],
   templateUrl: './schedule-proposal-drawer.html',
   styleUrl: './schedule-proposal-drawer.scss'
@@ -15089,13 +15132,13 @@ export class ScheduleProposalDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationScheduleSubmissionsService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
+  private readonly laboratoriesService = inject(PmseLaboratoriesService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
   loading = false;
   loadingCatalogs = signal(false);
-  laboratories = signal<AccreditedLaboratory[]>([]);
+  laboratories = signal<PmseLaboratory[]>([]);
 
   readonly form = this.fb.group(
     {
@@ -15128,12 +15171,14 @@ export class ScheduleProposalDrawerComponent {
     return this.currentItem?.plannedEndDate ?? null;
   }
 
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
+  getLaboratoryLabel(laboratory: PmseLaboratory): string {
+    const name = laboratory.accreditedLaboratoryName ?? 'Laboratorio';
+
     const code = laboratory.accreditationCode
       ? ` · ${laboratory.accreditationCode}`
       : '';
 
-    return `${laboratory.name}${code}`;
+    return `${name}${code}`;
   }
 
 submit(): void {
@@ -15160,13 +15205,12 @@ submit(): void {
   const raw = this.form.getRawValue();
   const notes = this.normalize(raw.notes);
 
-  const addItemDto = {
-    calibrationPlanItemId: currentItem.id,
-    accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
-    proposedCalibrationDate: this.normalizeRequired(raw.scheduledDate),
-    laboratoryName: null,
-    notes
-  };
+const addItemDto: AddCalibrationScheduleSubmissionItemRequest = {
+  calibrationPlanItemId: currentItem.id,
+  accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
+  proposedCalibrationDate: this.normalizeRequired(raw.scheduledDate),
+  notes
+};
 
   this.loading = true;
 
@@ -15205,29 +15249,41 @@ submit(): void {
     this.closed.emit();
   }
 
-  private loadLaboratories(): void {
-    this.loadingCatalogs.set(true);
+private loadLaboratories(): void {
+  this.loadingCatalogs.set(true);
 
-    this.laboratoriesService.getAll({
-      page: 1,
-      take: 300,
-      orderBy: 'Name asc'
-    }).subscribe({
-      next: response => {
-        this.loadingCatalogs.set(false);
+  const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
-        if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
-        } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
-        }
-      },
-      error: () => {
-        this.loadingCatalogs.set(false);
-        this.toast.warning('No se pudieron cargar los laboratorios.');
+  const filter = [
+    'Status eq 1',
+    pmseFilter
+  ]
+    .filter(Boolean)
+    .map(value => `(${value})`)
+    .join(' and ');
+
+  this.laboratoriesService.getAll({
+    page: 1,
+    take: 300,
+    filter,
+    orderBy: 'AccreditedLaboratoryName asc'
+  }).subscribe({
+    next: response => {
+      this.loadingCatalogs.set(false);
+
+      if (response.succeed) {
+        this.laboratories.set(response.result ?? []);
+        return;
       }
-    });
-  }
+
+      this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+    },
+    error: () => {
+      this.loadingCatalogs.set(false);
+      this.toast.warning('No se pudieron cargar los laboratorios contratados.');
+    }
+  });
+}
 
   private reset(): void {
     this.form.reset({
@@ -15361,46 +15417,25 @@ private getOrCreateDraftSubmission(
           </div>
         </section>
 
-        <section class="form-section">
-          <div class="section-title">Laboratorio y ejecución</div>
+<section class="approved-laboratory-card">
+  <div class="approved-laboratory-card__icon">
+    <mat-icon>science</mat-icon>
+  </div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Laboratorio acreditado</mat-label>
+  <div>
+    <span>Laboratorio aprobado</span>
 
-            <mat-select formControlName="accreditedLaboratoryId">
-              @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.id">
-                  {{ getLaboratoryLabel(laboratory) }}
-                </mat-option>
-              }
-            </mat-select>
-            @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
-                <mat-error>El laboratorio acreditado es obligatorio.</mat-error>
-            }
-          </mat-form-field>
+    <strong>
+      {{ item.suggestedLaboratoryName ?? 'Laboratorio definido por cronograma aprobado' }}
+    </strong>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Nombre de laboratorio externo</mat-label>
-
-            <input
-              matInput
-              formControlName="laboratoryName"
-              autocomplete="off"
-              placeholder="Opcional si seleccionaste laboratorio acreditado"
-            />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha de ejecución</mat-label>
-
-            <input
-              matInput
-              type="date"
-              formControlName="executionDate"
-              readonly
-            />
-          </mat-form-field>
-        </section>
+    @if (item.suggestedLaboratoryAccreditationCode) {
+      <small>Código: {{ item.suggestedLaboratoryAccreditationCode }}</small>
+    } @else {
+      <small>No puede modificarse al iniciar la calibración.</small>
+    }
+  </div>
+</section>
 
         <section class="form-section">
           <div class="section-title">Certificado</div>
@@ -15419,35 +15454,29 @@ private getOrCreateDraftSubmission(
             }
           </mat-form-field>
 
-          <div class="field-row">
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Fecha emisión</mat-label>
+<div class="field-row">
+  <div class="drawer__field">
+    <app-date-field
+      formControlName="certificateIssueDate"
+      label="Fecha emisión"
+    />
 
-              <input
-                matInput
-                type="date"
-                formControlName="certificateIssueDate"
-              />
+    @if (form.controls.certificateIssueDate.hasError('required') && form.controls.certificateIssueDate.touched) {
+      <div class="form-error">La fecha de emisión es obligatoria.</div>
+    }
+  </div>
 
-              @if (form.controls.certificateIssueDate.hasError('required') && form.controls.certificateIssueDate.touched) {
-                <mat-error>La fecha de emisión es obligatoria.</mat-error>
-              }
-            </mat-form-field>
+  <div class="drawer__field">
+    <app-date-field
+      formControlName="certificateValidUntil"
+      label="Válido hasta"
+    />
 
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Válido hasta</mat-label>
-
-              <input
-                matInput
-                type="date"
-                formControlName="certificateValidUntil"
-              />
-
-              @if (form.hasError('certificateValidUntilBeforeOrEqualIssueDate') && form.controls.certificateValidUntil.touched) {
-                <mat-error>La fecha de vigencia debe ser mayor que la fecha de emisión.</mat-error>
-                }
-            </mat-form-field>
-          </div>
+    @if (form.hasError('certificateValidUntilBeforeOrEqualIssueDate') && form.controls.certificateValidUntil.touched) {
+      <div class="form-error">La fecha de vigencia debe ser mayor que la fecha de emisión.</div>
+    }
+  </div>
+</div>
 
           <mat-form-field appearance="outline" class="drawer__field">
             <mat-label>Resultado de calibración</mat-label>
@@ -15458,10 +15487,7 @@ private getOrCreateDraftSubmission(
               </mat-option>
               <mat-option [value]="CalibrationResult.Rejected">
                 Rechazado
-              </mat-option>
-              <mat-option [value]="CalibrationResult.Conditional">
-                Condicional
-              </mat-option>
+              </mat-option>              
             </mat-select>
           </mat-form-field>
         </section>
@@ -15777,12 +15803,58 @@ private getOrCreateDraftSubmission(
   font-size: 0.82rem;
 }
 
+.approved-laboratory-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: rgba(43, 138, 226, 0.08);
+  border: 1px solid rgba(43, 138, 226, 0.22);
+
+  span {
+    display: block;
+    margin-bottom: 4px;
+    color: #8fb8e8;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 750;
+  }
+
+  small {
+    display: block;
+    margin-top: 3px;
+    color: #a8b3c7;
+    font-size: 0.82rem;
+  }
+}
+
+.approved-laboratory-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
 @media (max-width: 760px) {
   .field-row {
     grid-template-columns: 1fr;
   }
 }=== ./src/app/features/my-calibration-items/ui/start-calibration-process-drawer/start-calibration-process-drawer.ts ===
-import { Component, EventEmitter, Output, effect, inject, input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, effect, inject, input } from '@angular/core';
 
 import {
   AbstractControl,
@@ -15804,9 +15876,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
 import { ToastService } from '../../../../core/services/toast.service';
 
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
-
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 
 import { CalibrationProcessesService } from '../../data-access/calibration-processes.service';
@@ -15814,6 +15883,7 @@ import {
   CalibrationResult,
   CreateCalibrationProcessRequest
 } from '../../domain/calibration-process.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-start-calibration-process-drawer',
@@ -15827,7 +15897,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './start-calibration-process-drawer.html',
   styleUrl: './start-calibration-process-drawer.scss'
@@ -15840,40 +15911,33 @@ export class StartCalibrationProcessDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationProcessesService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
   private readonly toast = inject(ToastService);
 
   readonly CalibrationResult = CalibrationResult;
 
   loading = false;
-  loadingCatalogs = signal(false);
-  laboratories = signal<AccreditedLaboratory[]>([]);
 
   readonly form = this.fb.group(
-  {
-    accreditedLaboratoryId: [null as number | null, Validators.required],
-    executionDate: ['', Validators.required],
-    laboratoryName: ['', [Validators.maxLength(250)]],
+    {
+      executionDate: ['', Validators.required],
 
-    certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
-    certificateIssueDate: ['', Validators.required],
-    certificateValidUntil: ['', Validators.required],
-    calibrationResult: [CalibrationResult.Approved, Validators.required],
+      certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
+      certificateIssueDate: ['', Validators.required],
+      certificateValidUntil: ['', Validators.required],
+      calibrationResult: [CalibrationResult.Approved, Validators.required],
 
-    mainMeterSealAfterCalibration: ['', [Validators.maxLength(100)]],
-    terminalBlockSealOneAfterCalibration: ['', [Validators.maxLength(100)]],
-    terminalBlockSealTwoAfterCalibration: ['', [Validators.maxLength(100)]],
+      mainMeterSealAfterCalibration: ['', [Validators.maxLength(100)]],
+      terminalBlockSealOneAfterCalibration: ['', [Validators.maxLength(100)]],
+      terminalBlockSealTwoAfterCalibration: ['', [Validators.maxLength(100)]],
 
-    notes: ['', [Validators.maxLength(1000)]]
-  },
-  {
-    validators: [this.validUntilAfterIssueDateValidator()]
-  }
-);
+      notes: ['', [Validators.maxLength(1000)]]
+    },
+    {
+      validators: [this.validUntilAfterIssueDateValidator()]
+    }
+  );
 
   constructor() {
-    this.loadLaboratories();
-
     effect(() => {
       const currentItem = this.item();
 
@@ -15899,18 +15963,9 @@ export class StartCalibrationProcessDrawerComponent {
 
   get saveDisabled(): boolean {
     return this.loading ||
-      this.loadingCatalogs() ||
       this.form.invalid ||
       !this.currentItem ||
       !this.scheduledDate;
-  }
-
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
-    const code = laboratory.accreditationCode
-      ? ` · ${laboratory.accreditationCode}`
-      : '';
-
-    return `${laboratory.name}${code}`;
   }
 
   submit(): void {
@@ -15935,9 +15990,7 @@ export class StartCalibrationProcessDrawerComponent {
     const raw = this.form.getRawValue();
 
     const dto: CreateCalibrationProcessRequest = {
-      accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
       executionDate: currentItem.scheduledDate,
-      laboratoryName: this.normalize(raw.laboratoryName),
       certificateNumber: this.normalizeRequired(raw.certificateNumber),
       certificateIssueDate: this.normalizeRequired(raw.certificateIssueDate),
       certificateValidUntil: this.normalizeRequired(raw.certificateValidUntil),
@@ -15977,35 +16030,9 @@ export class StartCalibrationProcessDrawerComponent {
     this.closed.emit();
   }
 
-  private loadLaboratories(): void {
-    this.loadingCatalogs.set(true);
-
-    this.laboratoriesService.getAll({
-      page: 1,
-      take: 300,
-      orderBy: 'Name asc'
-    }).subscribe({
-      next: response => {
-        this.loadingCatalogs.set(false);
-
-        if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
-        } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
-        }
-      },
-      error: () => {
-        this.loadingCatalogs.set(false);
-        this.toast.warning('No se pudieron cargar los laboratorios.');
-      }
-    });
-  }
-
   private reset(): void {
     this.form.reset({
-      accreditedLaboratoryId: null,
       executionDate: this.currentItem?.scheduledDate ?? '',
-      laboratoryName: '',
       certificateNumber: '',
       certificateIssueDate: this.currentItem?.scheduledDate ?? '',
       certificateValidUntil: '',
@@ -16033,27 +16060,27 @@ export class StartCalibrationProcessDrawerComponent {
       : '';
   }
 
-private validUntilAfterIssueDateValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const issueDate = control.get('certificateIssueDate')?.value;
-    const validUntil = control.get('certificateValidUntil')?.value;
+  private validUntilAfterIssueDateValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const issueDate = control.get('certificateIssueDate')?.value;
+      const validUntil = control.get('certificateValidUntil')?.value;
 
-    if (!issueDate || !validUntil) {
-      return null;
-    }
+      if (!issueDate || !validUntil) {
+        return null;
+      }
 
-    const issue = new Date(issueDate);
-    const until = new Date(validUntil);
+      const issue = new Date(issueDate);
+      const until = new Date(validUntil);
 
-    if (Number.isNaN(issue.getTime()) || Number.isNaN(until.getTime())) {
-      return null;
-    }
+      if (Number.isNaN(issue.getTime()) || Number.isNaN(until.getTime())) {
+        return null;
+      }
 
-    return until <= issue
-      ? { certificateValidUntilBeforeOrEqualIssueDate: true }
-      : null;
-  };
-}
+      return until <= issue
+        ? { certificateValidUntilBeforeOrEqualIssueDate: true }
+        : null;
+    };
+  }
 }=== ./src/app/features/my-calibration-items/ui/work-authorization-drawer/work-authorization-drawer.html ===
 <section class="drawer">
   <header class="drawer__header">
@@ -16106,20 +16133,19 @@ private validUntilAfterIssueDateValidator(): ValidatorFn {
         <section class="form-section">
           <div class="section-title">Datos de la autorización</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha de trabajo</mat-label>
+<div class="drawer__field">
+  <app-date-field
+    formControlName="requestedWorkDate"
+    label="Fecha de trabajo"
+    [readonly]="true"
+    [min]="scheduledDate"
+    [max]="scheduledDate"
+  />
 
-            <input
-              matInput
-              type="date"
-              formControlName="requestedWorkDate"
-              readonly
-            />
-
-            @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
-              <mat-error>La fecha de trabajo es obligatoria.</mat-error>
-            }
-          </mat-form-field>
+  @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
+    <div class="form-error">La fecha de trabajo es obligatoria.</div>
+  }
+</div>
 
           <div class="field-row">
             <mat-form-field appearance="outline" class="drawer__field">
@@ -16465,6 +16491,12 @@ private validUntilAfterIssueDateValidator(): ValidatorFn {
   font-size: 0.82rem;
 }
 
+.form-error {
+  margin-top: 6px;
+  color: #ffb4b4;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 760px) {
   .field-row {
     grid-template-columns: 1fr;
@@ -16493,6 +16525,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 import { WorkAuthorizationsService } from '../../data-access/work-authorizations.service';
 import { CreateCalibrationWorkAuthorizationRequest } from '../../domain/work-authorization.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-work-authorization-drawer',
@@ -16505,7 +16538,8 @@ import { CreateCalibrationWorkAuthorizationRequest } from '../../domain/work-aut
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './work-authorization-drawer.html',
   styleUrl: './work-authorization-drawer.scss'
@@ -20335,29 +20369,54 @@ export const MY_SCHEDULE_SUBMISSIONS_ROUTES: Routes = [
       </section>
     }
 
-    <section class="actions-bar">
-      <button
-        mat-flat-button
-        type="button"
-        class="actions-bar__btn actions-bar__btn--primary"
-        [disabled]="!canSubmit || isSubmitting()"
-        [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe estar en borrador, tener ítems y documento oficial'"
-        (click)="onSubmit()"
-      >
-        <mat-icon>send</mat-icon>
-        Enviar a CENACE
-      </button>
+<section class="actions-bar">
+  <button
+    mat-flat-button
+    type="button"
+    class="actions-bar__btn actions-bar__btn--secondary"
+    [disabled]="!canGenerateExcel || isGeneratingDocument() || current.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft"
+    [matTooltip]="canGenerateExcel ? 'Generar Excel oficial' : 'Debe estar en borrador y tener ítems'"
+    (click)="onGenerateOfficialDocument()"
+  >
+    <mat-icon>description</mat-icon>
+    {{ current.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial' }}
+  </button>
 
-      <button
-        mat-icon-button
-        type="button"
-        class="actions-bar__refresh"
-        matTooltip="Actualizar"
-        (click)="load()"
-      >
-        <mat-icon>refresh</mat-icon>
-      </button>
-    </section>
+  @if (current.documentUrl) {
+    <button
+      mat-flat-button
+      type="button"
+      class="actions-bar__btn actions-bar__btn--secondary"
+      matTooltip="Descargar Excel oficial"
+      (click)="downloadOfficialDocument()"
+    >
+      <mat-icon>download</mat-icon>
+      Descargar Excel
+    </button>
+  }
+
+  <button
+    mat-flat-button
+    type="button"
+    class="actions-bar__btn actions-bar__btn--primary"
+    [disabled]="!canSubmit || isSubmitting()"
+    [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe generar el Excel oficial antes de enviar'"
+    (click)="onSubmit()"
+  >
+    <mat-icon>send</mat-icon>
+    Enviar a CENACE
+  </button>
+
+  <button
+    mat-icon-button
+    type="button"
+    class="actions-bar__refresh"
+    matTooltip="Actualizar"
+    (click)="load()"
+  >
+    <mat-icon>refresh</mat-icon>
+  </button>
+</section>
 
     <app-table-card
       [loading]="isLoading()"
@@ -20567,6 +20626,12 @@ export const MY_SCHEDULE_SUBMISSIONS_ROUTES: Routes = [
   }
 }
 
+.actions-bar__btn--secondary {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .actions-bar__refresh {
   margin-left: auto;
   color: #cbd5e1;
@@ -20722,6 +20787,7 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
   submission = signal<CalibrationScheduleSubmission | null>(null);
   isLoading = signal(false);
   isSubmitting = signal(false);
+  isGeneratingDocument = signal(false);
 
   dataSource = new MatTableDataSource<CalibrationScheduleSubmissionItem>([]);
 
@@ -20765,6 +20831,14 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
       this.hasDocument;
   }
 
+get canGenerateExcel(): boolean {
+  const current = this.submission();
+
+  return !!current &&
+    Number(current.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
+    this.itemsCount > 0;
+}
+
   load(id = this.submissionId): void {
     this.isLoading.set(true);
 
@@ -20792,6 +20866,72 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
   back(): void {
     this.router.navigate(['/my-schedule-submissions']);
   }
+
+onGenerateOfficialDocument(): void {
+  const current = this.submission();
+
+  if (!current) return;
+
+  if (!this.canGenerateExcel) {
+    this.toast.warning('El cronograma debe estar en borrador y tener al menos un ítem.');
+    return;
+  }
+
+  this.confirmDialog.confirm({
+    title: current.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial',
+    message: current.documentUrl
+      ? 'Se generará nuevamente el Excel oficial del cronograma. ¿Deseas continuar?'
+      : 'Se generará el Excel oficial del cronograma con los ítems agregados. ¿Deseas continuar?',
+    confirmText: current.documentUrl ? 'Regenerar' : 'Generar',
+    cancelText: 'Cancelar',
+    type: 'info'
+  }).subscribe(confirmed => {
+    if (!confirmed) return;
+
+    this.isGeneratingDocument.set(true);
+
+    this.service.generateOfficialDocument(current.id).subscribe({
+      next: response => {
+        this.isGeneratingDocument.set(false);
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(response.message ?? 'No se pudo generar el Excel oficial.');
+          return;
+        }
+
+        const updated = response.result;
+        const currentItems = current.items ?? [];
+
+        this.submission.set({
+          ...current,
+          ...updated,
+          items: updated.items?.length ? updated.items : currentItems
+        });
+
+        this.dataSource.data = updated.items?.length
+          ? updated.items
+          : currentItems;
+
+        this.toast.success('Excel oficial generado correctamente.');
+      },
+      error: () => {
+        this.isGeneratingDocument.set(false);
+        this.toast.error('Error al generar el Excel oficial.');
+      }
+    });
+  });
+}
+
+downloadOfficialDocument(): void {
+  const documentUrl = this.submission()?.documentUrl;
+
+  if (!documentUrl) {
+    this.toast.warning('Primero debes generar el Excel oficial.');
+    return;
+  }
+
+  window.open(documentUrl, '_blank', 'noopener');
+}
 
   onSubmit(): void {
     const current = this.submission();
@@ -20823,7 +20963,16 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
             return;
           }
 
-          this.toast.success('Cronograma enviado a CENACE.');
+          this.toast.success('Cronograma enviado correctamente a CENACE.');
+
+          if (response.result) {
+            this.submission.set({
+              ...current,
+              ...response.result,
+              items: current.items ?? []
+            });
+          }
+
           this.load(current.id);
         },
         error: () => {
@@ -20847,6 +20996,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
+      
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
 
       default:
         return '—';
@@ -20868,6 +21020,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
+        
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
 
       default:
         return 'neutral';
@@ -20887,6 +21042,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'cancel';
+
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
 
       default:
         return 'info';
@@ -21018,18 +21176,30 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
               <mat-icon>visibility</mat-icon>
             </button>
 
-            @if (row.submissionStatus === CalibrationScheduleSubmissionStatus.Draft) {
-              <button
-                mat-icon-button
-                type="button"
-                class="row-actions__btn"
-                [matTooltip]="canSubmit(row) ? 'Enviar a CENACE' : 'Debe tener ítems y documento oficial'"
-                [disabled]="!canSubmit(row)"
-                (click)="onSubmit(row)"
-              >
-                <mat-icon>send</mat-icon>
-              </button>
-            }
+@if (row.submissionStatus === CalibrationScheduleSubmissionStatus.Draft) {
+  <button
+    mat-icon-button
+    type="button"
+    class="row-actions__btn"
+    [matTooltip]="canGenerateExcel(row) ? (row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial') : 'Debe tener ítems para generar Excel'"
+    [disabled]="!canGenerateExcel(row) || generatingDocumentId() === row.id"
+    (click)="onGenerateOfficialDocument(row)"
+  >
+    <mat-icon>description</mat-icon>
+  </button>
+
+  <button
+    mat-icon-button
+    type="button"
+    class="row-actions__btn"
+    [matTooltip]="canSubmit(row) ? 'Enviar a CENACE' : 'Debe generar el Excel oficial antes de enviar'"
+    [disabled]="!canSubmit(row)"
+    (click)="onSubmit(row)"
+  >
+    <mat-icon>send</mat-icon>
+  </button>
+}
+            
           </div>
         </td>
       </ng-container>
@@ -21278,6 +21448,7 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
 
   searchTerm = '';
   isLoading = signal(false);
+  generatingDocumentId = signal<number | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -21347,6 +21518,11 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
       !!row.documentUrl;
   }
 
+canGenerateExcel(row: CalibrationScheduleSubmission): boolean {
+  return Number(row.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
+    (row.itemsCount ?? 0) > 0;
+}
+
   onCreateClicked(): void {
     this.createDrawerOpen.set(true);
   }
@@ -21360,6 +21536,45 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
     this.pageIndex = 0;
     this.load();
   }
+
+onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
+  if (!this.canGenerateExcel(row)) {
+    this.toast.warning('El cronograma debe estar en borrador y tener al menos un ítem.');
+    return;
+  }
+
+  this.confirmDialog.confirm({
+    title: row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial',
+    message: row.documentUrl
+      ? 'Se generará nuevamente el Excel oficial del cronograma. ¿Deseas continuar?'
+      : 'Se generará el Excel oficial del cronograma con los ítems agregados. ¿Deseas continuar?',
+    confirmText: row.documentUrl ? 'Regenerar' : 'Generar',
+    cancelText: 'Cancelar',
+    type: 'info'
+  }).subscribe(confirmed => {
+    if (!confirmed) return;
+
+    this.generatingDocumentId.set(row.id);
+
+    this.service.generateOfficialDocument(row.id).subscribe({
+      next: response => {
+        this.generatingDocumentId.set(null);
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(response.message ?? 'No se pudo generar el Excel oficial.');
+          return;
+        }
+
+        this.toast.success('Excel oficial generado correctamente.');
+        this.load();
+      },
+      error: () => {
+        this.generatingDocumentId.set(null);
+        this.toast.error('Error al generar el Excel oficial.');
+      }
+    });
+  });
+}
 
   onSubmit(row: CalibrationScheduleSubmission): void {
     if (!this.canSubmit(row)) {
@@ -21410,6 +21625,9 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
+      
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
 
       default:
         return '—';
@@ -21432,6 +21650,9 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
+
       default:
         return 'neutral';
     }
@@ -21451,6 +21672,9 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'cancel';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
+
       default:
         return 'info';
     }
@@ -21462,7 +21686,7 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
       <p class="drawer__eyebrow">CRONOGRAMA PMSE</p>
       <h2>Crear cronograma</h2>
       <p class="drawer__description">
-        Crea el cronograma oficial de calibración para un plan publicado y adjunta la URL del documento oficial.
+        Crea un cronograma en borrador para un plan anual publicado. Luego podrás agregar ítems y generar el Excel oficial.
       </p>
     </div>
 
@@ -21506,21 +21730,6 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
 
           @if (form.controls.calibrationPlanId.hasError('required') && form.controls.calibrationPlanId.touched) {
             <mat-error>El plan anual es obligatorio.</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>URL del documento oficial</mat-label>
-
-          <input
-            matInput
-            formControlName="documentUrl"
-            autocomplete="off"
-            placeholder="https://..."
-          />
-
-          @if (form.controls.documentUrl.hasError('required') && form.controls.documentUrl.touched) {
-            <mat-error>La URL del documento oficial es obligatoria.</mat-error>
           }
         </mat-form-field>
 
@@ -21806,11 +22015,10 @@ export class CreateScheduleSubmissionDrawerComponent {
   loadingPlans = signal(false);
   plans = signal<CalibrationPlan[]>([]);
 
-  readonly form = this.fb.group({
-    calibrationPlanId: [null as number | null, Validators.required],
-    documentUrl: ['', [Validators.required, Validators.maxLength(1000)]],
-    notes: ['', [Validators.maxLength(1000)]]
-  });
+readonly form = this.fb.group({
+  calibrationPlanId: [null as number | null, Validators.required],
+  notes: ['', [Validators.maxLength(1000)]]
+});
 
   constructor() {
     this.loadPublishedPlans();
@@ -21838,14 +22046,12 @@ export class CreateScheduleSubmissionDrawerComponent {
       return;
     }
 
-    const raw = this.form.getRawValue();
+   const raw = this.form.getRawValue();
 
-    const dto: CreateCalibrationScheduleSubmissionRequest = {
-      calibrationPlanId: Number(raw.calibrationPlanId),
-      pmseCompanyId,
-      documentUrl: this.normalizeRequired(raw.documentUrl),
-      notes: this.normalize(raw.notes)
-    };
+  const dto: CreateCalibrationScheduleSubmissionRequest = {
+    calibrationPlanId: Number(raw.calibrationPlanId),
+    notes: this.normalize(raw.notes)
+  };
 
     this.loading = true;
 
@@ -21904,7 +22110,6 @@ export class CreateScheduleSubmissionDrawerComponent {
   private reset(): void {
     this.form.reset({
       calibrationPlanId: null,
-      documentUrl: '',
       notes: ''
     });
 
@@ -21919,11 +22124,6 @@ export class CreateScheduleSubmissionDrawerComponent {
     return normalized ? normalized : null;
   }
 
-  private normalizeRequired(value: unknown): string {
-    return typeof value === 'string'
-      ? value.trim()
-      : '';
-  }
 }=== ./src/app/features/pmse-companies/data-access/pmse-companies.service.ts ===
 import { Injectable } from '@angular/core';
 
@@ -23099,6 +23299,1145 @@ export class PmseCompanyDrawerComponent {
 
     this.isLoading.set(false);
   }
+}=== ./src/app/features/pmse-laboratories/data-access/pmse-laboratories.service.ts ===
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+import { BaseApiService } from '../../../core/http/base-api.service';
+import {
+  EmptyResult,
+  PaginatedResult
+} from '../../../shared/models/api-result.model';
+
+import {
+  CreatePmseLaboratoryRequest,
+  PmseLaboratory
+} from '../domain/pmse-laboratory.model';
+
+@Injectable({ providedIn: 'root' })
+export class PmseLaboratoriesService extends BaseApiService<
+  PmseLaboratory,
+  CreatePmseLaboratoryRequest
+> {
+  protected override readonly endpoint = 'PmseCompanyLaboratoryContracts';
+
+  getMyLaboratories(): Observable<PaginatedResult<PmseLaboratory>> {
+    return this.getAll({
+      page: 1,
+      take: 300,
+      filter: 'Status eq 1',
+      orderBy: 'CreatedAt desc'
+    });
+  }
+
+  deactivate(id: number): Observable<EmptyResult> {
+    return this.patch<EmptyResult>(`${id}/deactivate`);
+  }
+}=== ./src/app/features/pmse-laboratories/domain/pmse-laboratory.model.ts ===
+export enum EntityStatus {
+  Active = 1,
+  Inactive = 2,
+  Deleted = 3
+}
+
+export interface PmseLaboratory {
+  id: number;
+
+  pmseCompanyId: number;
+  pmseCompanyName?: string | null;
+
+  accreditedLaboratoryId: number;
+  accreditedLaboratoryName?: string | null;
+  accreditationCode?: string | null;
+
+  scope?: string | null;
+  contactEmail?: string | null;
+  phone?: string | null;
+  address?: string | null;
+
+  contractStartDate?: string | null;
+  contractNumber?: string | null;
+  contractDocumentUrl?: string | null;
+  notes?: string | null;
+
+  status: EntityStatus;
+  createdAt?: string | null;
+}
+
+export interface CreatePmseLaboratoryRequest {
+  pmseCompanyId?: number | null;
+
+  name: string;
+  accreditationCode: string;
+  scope?: string | null;
+  contactEmail?: string | null;
+  phone?: string | null;
+  address?: string | null;
+
+  contractNumber?: string | null;
+  contractDocumentUrl?: string | null;
+  notes?: string | null;
+}=== ./src/app/features/pmse-laboratories/pages/pmse-laboratories-list/pmse-laboratories-list.html ===
+<section class="page">
+  <app-page-header
+    eyebrow="Laboratorios PMSE"
+    title="Mis laboratorios"
+    description="Registra y administra los laboratorios contratados por el PMSE para la calibración de medidores."
+    actionText="Nuevo laboratorio"
+    actionIcon="add"
+    (actionClicked)="drawerOpen.set(true)"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por laboratorio, acreditación, contrato o email..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando laboratorios..."
+    emptyIcon="science"
+    emptyTitle="No hay laboratorios registrados"
+    emptyDescription="Registra el laboratorio contratado por el PMSE para usarlo en certificados, cronogramas y procesos de calibración."
+    emptyActionText="Nuevo laboratorio"
+    emptyActionIcon="add"
+    (emptyActionClicked)="drawerOpen.set(true)"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="laboratories-table"
+    >
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Laboratorio</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="laboratory-name">
+            <div class="laboratory-name__avatar">
+              <mat-icon>science</mat-icon>
+            </div>
+
+            <div>
+            <strong>{{ row.accreditedLaboratoryName ?? '—' }}</strong>
+            <span>ID laboratorio: {{ row.accreditedLaboratoryId }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="pmseCompany">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.pmseCompanyName ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="accreditationCode">
+        <th mat-header-cell *matHeaderCellDef>Acreditación</th>
+
+        <td mat-cell *matCellDef="let row">
+          <code class="code-pill">{{ row.accreditationCode }}</code>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="contactEmail">
+        <th mat-header-cell *matHeaderCellDef>Correo</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.contactEmail ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="phone">
+        <th mat-header-cell *matHeaderCellDef>Teléfono</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.phone ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="contractNumber">
+        <th mat-header-cell *matHeaderCellDef>Contrato</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.contractNumber ?? '—' }}</strong>
+
+            @if (row.contractDocumentUrl) {
+              <a
+                [href]="row.contractDocumentUrl"
+                target="_blank"
+                rel="noopener"
+              >
+                Ver documento
+              </a>
+            } @else {
+              <span>Sin documento</span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          @let chip = getEntityStatusChip(row.status);
+
+          <app-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon ?? null"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button
+            mat-icon-button
+            type="button"
+            [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
+            (click)="onToggleStatus(row)"
+          >
+            <mat-icon
+              [class.action-danger]="row.status === EntityStatus.Active"
+              [class.action-success]="row.status !== EntityStatus.Active"
+            >
+              {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
+            </mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>
+
+<app-drawer-shell
+  [open]="drawerOpen()"
+  width="560px"
+  (closed)="drawerOpen.set(false)"
+>
+  <app-pmse-laboratory-drawer
+    (created)="onCreated()"
+    (closed)="drawerOpen.set(false)"
+  />
+</app-drawer-shell>=== ./src/app/features/pmse-laboratories/pages/pmse-laboratories-list/pmse-laboratories-list.scss ===
+.page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.laboratories-table {
+  width: 100%;
+  min-width: 1120px;
+  background: transparent;
+
+  th {
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  td {
+    color: var(--color-text, #f9fafb);
+  }
+
+  tr.mat-mdc-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.laboratory-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  strong {
+    display: block;
+    color: var(--color-text, #f9fafb);
+    font-weight: 700;
+  }
+
+  span {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.8rem;
+  }
+}
+
+.laboratory-name__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--color-primary, #60a5fa);
+  display: grid;
+  place-items: center;
+}
+
+.code-pill {
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: var(--color-text, #f9fafb);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+}
+
+.stacked-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  strong {
+    color: var(--color-text, #f9fafb);
+    font-size: 0.9rem;
+  }
+
+  span,
+  a {
+    color: var(--color-text-muted, #9ca3af);
+    font-size: 0.78rem;
+  }
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-primary, #60a5fa);
+    }
+  }
+}
+
+.muted {
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.actions-cell {
+  width: 72px;
+  text-align: right;
+}
+
+.action-danger {
+  color: #f87171;
+}
+
+.action-success {
+  color: #22c55e;
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 16px;
+  }
+}=== ./src/app/features/pmse-laboratories/pages/pmse-laboratories-list/pmse-laboratories-list.ts ===
+import { Component, OnInit, inject, signal } from '@angular/core';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
+import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
+import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
+import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
+import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
+
+import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
+
+import { getEntityStatusChip } from '../../../../shared/utils/status-chip.util';
+
+import { PmseLaboratoriesService } from '../../data-access/pmse-laboratories.service';
+import {
+  EntityStatus,
+  PmseLaboratory
+} from '../../domain/pmse-laboratory.model';
+
+import { PmseLaboratoryDrawerComponent } from '../../ui/pmse-laboratory-drawer/pmse-laboratory-drawer';
+
+@Component({
+  selector: 'app-pmse-laboratories-list',
+  standalone: true,
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatPaginatorModule,
+    MatTableModule,
+    MatTooltipModule,
+    PageHeaderComponent,
+    SearchToolbarComponent,
+    TableCardComponent,
+    StatusChipComponent,
+    DrawerShellComponent,
+    PmseLaboratoryDrawerComponent
+  ],
+  templateUrl: './pmse-laboratories-list.html',
+  styleUrl: './pmse-laboratories-list.scss'
+})
+export class PmseLaboratoriesListComponent implements OnInit {
+  private readonly service = inject(PmseLaboratoriesService);
+  private readonly odata = inject(ODataQueryBuilder);
+  private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly userScope = inject(UserScopeService);
+
+  readonly getEntityStatusChip = getEntityStatusChip;
+  readonly EntityStatus = EntityStatus;
+
+  dataSource = new MatTableDataSource<PmseLaboratory>([]);
+
+  displayedColumns: string[] = [
+    'name',
+    'pmseCompany',
+    'accreditationCode',
+    'contactEmail',
+    'phone',
+    'contractNumber',
+    'status',
+    'actions'
+  ];
+
+  totalRecords = 0;
+  pageSize = 10;
+  pageIndex = 0;
+  pageSizeOptions = [10, 20, 50];
+
+  searchTerm = '';
+  isLoading = signal(false);
+  drawerOpen = signal(false);
+
+  ngOnInit(): void {
+    if (this.userScope.isPmseUser()) {
+      this.displayedColumns = [
+        'name',
+        'accreditationCode',
+        'contactEmail',
+        'phone',
+        'contractNumber',
+        'status',
+        'actions'
+      ];
+    }
+
+    this.load();
+  }
+
+  load(): void {
+    this.isLoading.set(true);
+
+    const searchFilter = this.odata.searchInFields(
+    [
+        'AccreditedLaboratoryName',
+        'AccreditationCode',
+        'ContractNumber',
+        'PmseCompanyName'
+    ],
+    this.searchTerm
+    );
+
+    const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
+
+    this.service.getAll({
+      page: this.pageIndex + 1,
+      take: this.pageSize,
+      filter: this.odata.and(searchFilter, pmseFilter),
+      orderBy: 'CreatedAt desc'
+    }).subscribe({
+      next: response => {
+        this.isLoading.set(false);
+
+        if (!response.succeed) {
+          this.dataSource.data = [];
+          this.totalRecords = 0;
+          this.toast.error(response.message ?? 'Error al cargar los laboratorios contratados.');
+          return;
+        }
+
+        this.dataSource.data = response.result ?? [];
+        this.totalRecords = response.totalRecords ?? 0;
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.dataSource.data = [];
+        this.totalRecords = 0;
+        this.toast.error('Error al cargar los laboratorios contratados.');
+      }
+    });
+  }
+
+  onSearch(): void {
+    this.pageIndex = 0;
+    this.load();
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.load();
+  }
+
+  onCreated(): void {
+    this.drawerOpen.set(false);
+    this.pageIndex = 0;
+    this.load();
+  }
+
+  onToggleStatus(laboratory: PmseLaboratory): void {
+    const action = laboratory.status === EntityStatus.Active
+      ? 'inactivar'
+      : 'activar';
+
+    this.confirmDialog.confirm({
+      title: `${action[0].toUpperCase()}${action.substring(1)} laboratorio`,
+      message: `¿Deseas ${action} el laboratorio "${laboratory.accreditedLaboratoryName ?? '—'}"?`,
+      confirmText: action[0].toUpperCase() + action.substring(1),
+      cancelText: 'Cancelar',
+      type: laboratory.status === EntityStatus.Active ? 'warning' : 'info'
+    }).subscribe(confirmed => {
+      if (!confirmed) return;
+
+      this.service.toggleStatus(laboratory.id).subscribe({
+        next: response => {
+          if (!response.succeed) {
+            this.toast.error(response.message ?? 'No se pudo actualizar el estado.');
+            return;
+          }
+
+          this.toast.success('Estado actualizado correctamente.');
+          this.load();
+        },
+        error: () => {
+          this.toast.error('Error al actualizar el estado del laboratorio.');
+        }
+      });
+    });
+  }
+}=== ./src/app/features/pmse-laboratories/pmse-laboratories.routes.ts ===
+import { Routes } from '@angular/router';
+
+import { permissionGuard } from '../../core/auth/guards/permission.guard';
+import { PermissionAction } from '../../core/auth/permissions/permission.model';
+
+export const PMSE_LABORATORIES_ROUTES: Routes = [
+  {
+    path: '',
+    canActivate: [permissionGuard],
+    data: {
+      permission: {
+        resource: 'calibrationProcess',
+        action: PermissionAction.Read
+      }
+    },
+    loadComponent: () =>
+      import('./pages/pmse-laboratories-list/pmse-laboratories-list')
+        .then(m => m.PmseLaboratoriesListComponent)
+  }
+];=== ./src/app/features/pmse-laboratories/ui/pmse-laboratory-drawer/pmse-laboratory-drawer.html ===
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">LABORATORIOS PMSE</p>
+      <h2>Registrar laboratorio contratado</h2>
+      <p class="drawer__description">
+        Registra el laboratorio que el PMSE contrató para ejecutar calibraciones.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (!isPmseUser) {
+        <section class="form-section">
+          <div class="section-title">Empresa PMSE</div>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Empresa PMSE</mat-label>
+
+            <mat-select formControlName="pmseCompanyId">
+              @for (company of companies(); track company.id) {
+                <mat-option [value]="company.id">
+                  {{ getCompanyLabel(company) }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (form.controls.pmseCompanyId.hasError('required') && form.controls.pmseCompanyId.touched) {
+              <mat-error>Seleccione una empresa PMSE.</mat-error>
+            }
+          </mat-form-field>
+        </section>
+      }
+
+      <section class="form-section">
+        <div class="section-title">Datos del laboratorio</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Nombre del laboratorio</mat-label>
+          <input matInput formControlName="name" autocomplete="off" />
+
+          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+            <mat-error>El nombre es obligatorio.</mat-error>
+          }
+
+          @if (form.controls.name.hasError('maxlength') && form.controls.name.touched) {
+            <mat-error>Máximo 200 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Código de acreditación</mat-label>
+          <input matInput formControlName="accreditationCode" autocomplete="off" />
+
+          @if (form.controls.accreditationCode.hasError('required') && form.controls.accreditationCode.touched) {
+            <mat-error>El código de acreditación es obligatorio.</mat-error>
+          }
+
+          @if (form.controls.accreditationCode.hasError('maxlength') && form.controls.accreditationCode.touched) {
+            <mat-error>Máximo 100 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Alcance</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="scope"
+          ></textarea>
+
+          <mat-hint>
+            Ejemplo: calibración de medidores eléctricos clase 0.2S / 0.5S.
+          </mat-hint>
+
+          @if (form.controls.scope.hasError('maxlength') && form.controls.scope.touched) {
+            <mat-error>Máximo 500 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Email de contacto</mat-label>
+          <input matInput formControlName="contactEmail" autocomplete="off" />
+
+          @if (form.controls.contactEmail.hasError('email') && form.controls.contactEmail.touched) {
+            <mat-error>Ingrese un email válido.</mat-error>
+          }
+
+          @if (form.controls.contactEmail.hasError('maxlength') && form.controls.contactEmail.touched) {
+            <mat-error>Máximo 180 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Teléfono</mat-label>
+          <input matInput formControlName="phone" autocomplete="off" />
+
+          @if (form.controls.phone.hasError('maxlength') && form.controls.phone.touched) {
+            <mat-error>Máximo 50 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Dirección</mat-label>
+          <textarea
+            matInput
+            rows="3"
+            formControlName="address"
+          ></textarea>
+
+          @if (form.controls.address.hasError('maxlength') && form.controls.address.touched) {
+            <mat-error>Máximo 300 caracteres.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">Datos del contrato</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Número de contrato</mat-label>
+          <input matInput formControlName="contractNumber" autocomplete="off" />
+
+          @if (form.controls.contractNumber.hasError('maxlength') && form.controls.contractNumber.touched) {
+            <mat-error>Máximo 100 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>URL del documento de contrato</mat-label>
+          <input matInput formControlName="contractDocumentUrl" autocomplete="off" />
+
+          @if (form.controls.contractDocumentUrl.hasError('maxlength') && form.controls.contractDocumentUrl.touched) {
+            <mat-error>Máximo 1000 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Notas</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="notes"
+          ></textarea>
+
+          @if (form.controls.notes.hasError('maxlength') && form.controls.notes.touched) {
+            <mat-error>Máximo 1000 caracteres.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear laboratorio"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>=== ./src/app/features/pmse-laboratories/ui/pmse-laboratory-drawer/pmse-laboratory-drawer.scss ===
+.drawer {
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface, #0b1730);
+  color: var(--color-text, #f9fafb);
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer__header {
+  padding: 24px 24px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  h2 {
+    margin: 4px 0 8px;
+    font-size: 1.85rem;
+    font-weight: 750;
+    line-height: 1.15;
+  }
+}
+
+.drawer__eyebrow {
+  margin: 0;
+  color: #2b8ae2;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.drawer__description {
+  margin: 0;
+  color: #a8b3c7;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.drawer__close-btn {
+  color: #9fb0c9;
+  border-radius: 12px;
+  transition:
+    transform 0.25s ease,
+    background-color 0.25s ease,
+    color 0.25s ease;
+
+  &:hover {
+    transform: rotate(90deg);
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+  }
+}
+
+.drawer__form {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer__body {
+  min-height: 0;
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-section {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-title {
+  margin-bottom: 16px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.drawer__field {
+  width: 100%;
+}
+
+.drawer__textarea textarea {
+  resize: vertical;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field {
+  width: 100%;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 56px;
+  padding: 16px 14px 12px !important;
+}
+
+.drawer ::ng-deep input.mat-mdc-input-element,
+.drawer ::ng-deep textarea.mat-mdc-input-element {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f9fafb !important;
+  font-size: 0.96rem;
+}
+
+.drawer ::ng-deep textarea.mat-mdc-input-element {
+  line-height: 1.5;
+}
+
+.drawer ::ng-deep .mat-mdc-select-value {
+  color: #f9fafb !important;
+}
+
+.drawer ::ng-deep .mat-mdc-select-arrow {
+  color: #a8b3c7 !important;
+}
+
+.drawer ::ng-deep .mdc-floating-label {
+  color: #a8b3c7 !important;
+}
+
+.drawer ::ng-deep .mat-focused .mdc-floating-label {
+  color: #2b8ae2 !important;
+}
+
+.drawer ::ng-deep .mdc-notched-outline__leading,
+.drawer ::ng-deep .mdc-notched-outline__notch,
+.drawer ::ng-deep .mdc-notched-outline__trailing {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+.drawer ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+.drawer ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(43, 138, 226, 0.45) !important;
+}
+
+.drawer ::ng-deep .mat-focused .mdc-notched-outline__leading,
+.drawer ::ng-deep .mat-focused .mdc-notched-outline__notch,
+.drawer ::ng-deep .mat-focused .mdc-notched-outline__trailing {
+  border-color: #2b8ae2 !important;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field-hint {
+  color: #7f90aa !important;
+  font-size: 0.8rem;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field-error {
+  color: #ffb4b4 !important;
+  font-size: 0.82rem;
+}=== ./src/app/features/pmse-laboratories/ui/pmse-laboratory-drawer/pmse-laboratory-drawer.ts ===
+import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
+
+import { ToastService } from '../../../../core/services/toast.service';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
+
+import { PmseCompaniesService } from '../../../pmse-companies/data-access/pmse-companies.service';
+import { PmseCompany } from '../../../pmse-companies/domain/pmse-company.model';
+
+import { PmseLaboratoriesService } from '../../data-access/pmse-laboratories.service';
+import {
+  CreatePmseLaboratoryRequest,
+  PmseLaboratory
+} from '../../domain/pmse-laboratory.model';
+
+@Component({
+  selector: 'app-pmse-laboratory-drawer',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatDividerModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatSelectModule,
+    MatTooltipModule,
+    DrawerActionsComponent
+  ],
+  templateUrl: './pmse-laboratory-drawer.html',
+  styleUrl: './pmse-laboratory-drawer.scss'
+})
+export class PmseLaboratoryDrawerComponent {
+  private readonly fb = inject(FormBuilder);
+  private readonly service = inject(PmseLaboratoriesService);
+  private readonly companiesService = inject(PmseCompaniesService);
+  private readonly userScope = inject(UserScopeService);
+  private readonly toast = inject(ToastService);
+
+  @Output() closed = new EventEmitter<void>();
+  @Output() created = new EventEmitter<PmseLaboratory>();
+
+  loading = false;
+  loadingCompanies = signal(false);
+  companies = signal<PmseCompany[]>([]);
+
+  readonly form = this.fb.group({
+    pmseCompanyId: [null as number | null],
+
+    name: ['', [Validators.required, Validators.maxLength(200)]],
+    accreditationCode: ['', [Validators.required, Validators.maxLength(100)]],
+    scope: ['', [Validators.maxLength(500)]],
+    contactEmail: ['', [Validators.email, Validators.maxLength(180)]],
+    phone: ['', [Validators.maxLength(50)]],
+    address: ['', [Validators.maxLength(300)]],
+
+    contractNumber: ['', [Validators.maxLength(100)]],
+    contractDocumentUrl: ['', [Validators.maxLength(1000)]],
+    notes: ['', [Validators.maxLength(1000)]]
+  });
+
+  constructor() {
+    this.configurePmseField();
+    this.loadCompaniesIfNeeded();
+  }
+
+  get isPmseUser(): boolean {
+    return this.userScope.isPmseUser();
+  }
+
+  get saveDisabled(): boolean {
+    return this.loading || this.loadingCompanies() || this.form.invalid;
+  }
+
+  submit(): void {
+    if (this.form.invalid || this.loading) {
+      this.form.markAllAsTouched();
+      this.toast.warning('Revisa los campos obligatorios antes de guardar.');
+      return;
+    }
+
+    const pmseCompanyId = this.resolvePmseCompanyId();
+
+    if (!pmseCompanyId) {
+      this.toast.error('No se pudo resolver la empresa PMSE.');
+      return;
+    }
+
+    const raw = this.form.getRawValue();
+
+    const dto: CreatePmseLaboratoryRequest = {
+      pmseCompanyId,
+
+      name: this.normalizeRequired(raw.name),
+      accreditationCode: this.normalizeRequired(raw.accreditationCode),
+      scope: this.normalize(raw.scope),
+      contactEmail: this.normalize(raw.contactEmail),
+      phone: this.normalize(raw.phone),
+      address: this.normalize(raw.address),
+
+      contractNumber: this.normalize(raw.contractNumber),
+      contractDocumentUrl: this.normalize(raw.contractDocumentUrl),
+      notes: this.normalize(raw.notes)
+    };
+
+    this.loading = true;
+
+    this.service.create(dto).subscribe({
+      next: response => {
+        this.loading = false;
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(response.message ?? 'No se pudo crear el laboratorio contratado.');
+          return;
+        }
+
+        this.toast.success('Laboratorio contratado creado correctamente.');
+        this.created.emit(response.result);
+        this.reset();
+      },
+      error: () => {
+        this.loading = false;
+        this.toast.error('Error al crear el laboratorio contratado.');
+      }
+    });
+  }
+
+  close(): void {
+    if (this.loading) return;
+
+    this.reset();
+    this.closed.emit();
+  }
+
+  getCompanyLabel(company: PmseCompany): string {
+    return `${company.name} - ${company.externalCode}`;
+  }
+
+  private configurePmseField(): void {
+    if (this.isPmseUser) {
+      const pmseCompanyId = this.userScope.pmseCompanyId();
+
+      this.form.controls.pmseCompanyId.setValue(pmseCompanyId);
+      this.form.controls.pmseCompanyId.disable();
+
+      return;
+    }
+
+    this.form.controls.pmseCompanyId.addValidators(Validators.required);
+    this.form.controls.pmseCompanyId.updateValueAndValidity();
+  }
+
+  private loadCompaniesIfNeeded(): void {
+    if (this.isPmseUser) return;
+
+    this.loadingCompanies.set(true);
+
+    this.companiesService.getAll({
+      page: 1,
+      take: 300,
+      filter: 'Status eq 1',
+      orderBy: 'Name asc'
+    }).subscribe({
+      next: response => {
+        this.loadingCompanies.set(false);
+
+        if (response.succeed) {
+          this.companies.set(response.result ?? []);
+          return;
+        }
+
+        this.toast.warning(response.message ?? 'No se pudieron cargar las empresas PMSE.');
+      },
+      error: () => {
+        this.loadingCompanies.set(false);
+        this.toast.warning('No se pudieron cargar las empresas PMSE.');
+      }
+    });
+  }
+
+  private resolvePmseCompanyId(): number | null {
+    if (this.isPmseUser) {
+      return this.userScope.pmseCompanyId();
+    }
+
+    const raw = this.form.getRawValue();
+
+    return raw.pmseCompanyId ? Number(raw.pmseCompanyId) : null;
+  }
+
+  private reset(): void {
+    this.form.reset({
+      pmseCompanyId: this.isPmseUser ? this.userScope.pmseCompanyId() : null,
+
+      name: '',
+      accreditationCode: '',
+      scope: '',
+      contactEmail: '',
+      phone: '',
+      address: '',
+
+      contractNumber: '',
+      contractDocumentUrl: '',
+      notes: ''
+    });
+
+    if (this.isPmseUser) {
+      this.form.controls.pmseCompanyId.disable();
+    }
+
+    this.loading = false;
+  }
+
+  private normalize(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+
+    const normalized = value.trim();
+
+    return normalized ? normalized : null;
+  }
+
+  private normalizeRequired(value: unknown): string {
+    return typeof value === 'string'
+      ? value.trim()
+      : '';
+  }
 }=== ./src/app/features/schedule-submission-reviews/pages/schedule-submission-review-detail/schedule-submission-review-detail.html ===
 <section class="page">
   <button
@@ -23142,7 +24481,7 @@ export class PmseCompanyDrawerComponent {
             target="_blank"
             rel="noopener"
           >
-            Ver documento
+            Descargar Excel oficial
           </a>
         } @else {
           <strong class="warning-text">Sin documento</strong>
@@ -23744,6 +25083,9 @@ export class ScheduleSubmissionReviewDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
+      
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
 
       default:
         return '—';
@@ -23766,6 +25108,9 @@ export class ScheduleSubmissionReviewDetailComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
+
       default:
         return 'neutral';
     }
@@ -23784,6 +25129,9 @@ export class ScheduleSubmissionReviewDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Draft:
         return 'edit_note';
+
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
 
       default:
         return 'info';
@@ -23864,7 +25212,7 @@ export class ScheduleSubmissionReviewDetailComponent implements OnInit {
               target="_blank"
               rel="noopener"
             >
-              Ver documento
+              Ver Excel
             </a>
           } @else {
             <span class="muted">Sin documento</span>
@@ -24194,6 +25542,9 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
+
       default:
         return '—';
     }
@@ -24215,6 +25566,9 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
+
       default:
         return 'neutral';
     }
@@ -24230,6 +25584,9 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'cancel';
+
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
 
       default:
         return 'info';
@@ -26536,6 +27893,9 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
       case CalibrationWorkAuthorizationStatus.Rejected:
         return 'Rechazada';
 
+      case CalibrationWorkAuthorizationStatus.Cancelled:
+        return 'Cancelada';
+
       default:
         return '—';
     }
@@ -26554,6 +27914,9 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
       case CalibrationWorkAuthorizationStatus.Rejected:
         return 'danger';
 
+      case CalibrationWorkAuthorizationStatus.Cancelled:
+        return 'info';
+
       default:
         return 'neutral';
     }
@@ -26569,6 +27932,9 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
 
       case CalibrationWorkAuthorizationStatus.Rejected:
         return 'block';
+
+      case CalibrationWorkAuthorizationStatus.Cancelled:
+        return 'cancel';
 
       default:
         return 'info';
@@ -27174,14 +28540,6 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
-        label: 'Laboratorios',
-        route: '/accredited-laboratories',
-        icon: 'science',
-        section: null,
-        permission: 'calibrationPlan',
-        action: PermissionAction.Read
-      },
-      {
         label: 'Medidores',
         route: '/meters',
         icon: 'meter',
@@ -27267,6 +28625,14 @@ export class SidebarComponent {
         route: '/meters',
         icon: 'meter',
         section: 'Catálogos técnicos',
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Mis laboratorios',
+        route: '/pmse-laboratories',
+        icon: 'science',
+        section: null,
         permission: 'calibrationProcess',
         action: PermissionAction.Read
       },
@@ -27532,6 +28898,217 @@ export class ConfirmDialogComponent {
 
   confirm(): void { this.dialogRef.close(true); }
   cancel(): void  { this.dialogRef.close(false); }
+}=== ./src/app/shared/components/date-field/date-field.html ===
+<mat-form-field appearance="outline" class="date-field">
+  <mat-label>{{ label }}</mat-label>
+
+  <input
+  matInput
+  [matDatepicker]="picker"
+  [value]="value"
+  [min]="minDate"
+  [max]="maxDate"
+  [readonly]="readonly"
+  [disabled]="disabled"
+  (dateChange)="onDateChange($event.value)"
+  (blur)="markAsTouched()"
+/>
+
+  <mat-datepicker-toggle
+    matIconSuffix
+    [for]="picker"
+    [disabled]="disabled"
+  />
+
+  <mat-datepicker #picker />
+
+  @if (hint) {
+    <mat-hint>{{ hint }}</mat-hint>
+  }
+</mat-form-field>=== ./src/app/shared/components/date-field/date-field.scss ===
+.date-field {
+  width: 100%;
+}
+
+:host ::ng-deep .mat-mdc-form-field {
+  width: 100%;
+}
+
+:host ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 56px;
+  padding: 16px 14px 12px !important;
+}
+
+:host ::ng-deep input.mat-mdc-input-element {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f9fafb !important;
+  font-size: 0.96rem;
+}
+
+:host ::ng-deep .mdc-floating-label {
+  color: #a8b3c7 !important;
+}
+
+:host ::ng-deep .mat-focused .mdc-floating-label {
+  color: #2b8ae2 !important;
+}
+
+:host ::ng-deep .mdc-notched-outline__leading,
+:host ::ng-deep .mdc-notched-outline__notch,
+:host ::ng-deep .mdc-notched-outline__trailing {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+:host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+:host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(43, 138, 226, 0.45) !important;
+}
+
+:host ::ng-deep .mat-focused .mdc-notched-outline__leading,
+:host ::ng-deep .mat-focused .mdc-notched-outline__notch,
+:host ::ng-deep .mat-focused .mdc-notched-outline__trailing {
+  border-color: #2b8ae2 !important;
+}
+
+:host ::ng-deep .mat-datepicker-toggle {
+  color: #a8b3c7 !important;
+}
+
+:host ::ng-deep .mat-datepicker-toggle:hover {
+  color: #ffffff !important;
+}=== ./src/app/shared/components/date-field/date-field.ts ===
+import {
+  Component,
+  EventEmitter,
+  forwardRef,
+  Input,
+  Output
+} from '@angular/core';
+import {
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule
+} from '@angular/forms';
+
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import {
+  MAT_DATE_LOCALE,
+  provideNativeDateAdapter
+} from '@angular/material/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+
+@Component({
+  selector: 'app-date-field',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule
+  ],
+  templateUrl: './date-field.html',
+  styleUrl: './date-field.scss',
+  providers: [
+    provideNativeDateAdapter(),
+    {
+      provide: MAT_DATE_LOCALE,
+      useValue: 'es-EC'
+    },
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => DateFieldComponent),
+      multi: true
+    }
+  ]
+})
+export class DateFieldComponent implements ControlValueAccessor {
+@Input() label = 'Fecha';
+@Input() requiredMessage = 'La fecha es obligatoria.';
+@Input() hint: string | null = null;
+@Input() readonly = true;
+@Input() min: string | Date | null = null;
+@Input() max: string | Date | null = null;
+
+  @Output() valueChanged = new EventEmitter<string | null>();
+
+  value: Date | null = null;
+  disabled = false;
+
+  get minDate(): Date | null {
+  return this.parseDate(this.min);
+}
+
+get maxDate(): Date | null {
+  return this.parseDate(this.max);
+}
+
+  private onChange: (value: string | null) => void = () => {};
+  private onTouched: () => void = () => {};
+
+  writeValue(value: string | Date | null | undefined): void {
+    this.value = this.parseDate(value);
+  }
+
+  registerOnChange(fn: (value: string | null) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled = isDisabled;
+  }
+
+onDateChange(value: Date | null): void {
+  this.value = value;
+
+  const formattedValue = this.formatDate(value);
+
+  this.onChange(formattedValue);
+  this.onTouched();
+  this.valueChanged.emit(formattedValue);
+}
+
+  markAsTouched(): void {
+    this.onTouched();
+  }
+
+  private parseDate(value: string | Date | null | undefined): Date | null {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    const parts = value.split('-');
+
+    if (parts.length !== 3) return null;
+
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
+
+    if (!year || !month || !day) return null;
+
+    return new Date(year, month - 1, day);
+  }
+
+  private formatDate(value: Date | null): string | null {
+    if (!value || Number.isNaN(value.getTime())) {
+      return null;
+    }
+
+    const year = value.getFullYear();
+    const month = `${value.getMonth() + 1}`.padStart(2, '0');
+    const day = `${value.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
 }=== ./src/app/shared/components/document-uploader/document-uploader.html ===
 <section class="document-uploader">
   <div class="document-uploader__info">
@@ -28994,6 +30571,45 @@ a { color: var(--color-primary); text-decoration: none; }
   border: 1px solid var(--border-subtle) !important;
   border-radius: 16px !important;
   padding: 0 !important;
+}
+
+.mat-datepicker-content {
+  background: #111827 !important;
+  color: #f9fafb !important;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45) !important;
+}
+
+.mat-calendar {
+  background: #111827 !important;
+  color: #f9fafb !important;
+}
+
+.mat-calendar-body-label,
+.mat-calendar-period-button,
+.mat-calendar-previous-button,
+.mat-calendar-next-button,
+.mat-calendar-table-header,
+.mat-calendar-body-cell-content {
+  color: #f9fafb !important;
+}
+
+.mat-calendar-body-disabled > .mat-calendar-body-cell-content {
+  color: rgba(249, 250, 251, 0.32) !important;
+}
+
+.mat-calendar-body-selected {
+  background-color: #2b8ae2 !important;
+  color: #ffffff !important;
+}
+
+.mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  border-color: #60a5fa !important;
+}
+
+.mat-calendar-arrow {
+  fill: #f9fafb !important;
 }
 
 // ── Angular Material Dark Mode Bridge ────────────────

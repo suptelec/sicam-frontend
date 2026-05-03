@@ -258,6 +258,52 @@
   font-size: 0.82rem;
 }
 
+.approved-laboratory-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: rgba(43, 138, 226, 0.08);
+  border: 1px solid rgba(43, 138, 226, 0.22);
+
+  span {
+    display: block;
+    margin-bottom: 4px;
+    color: #8fb8e8;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 750;
+  }
+
+  small {
+    display: block;
+    margin-top: 3px;
+    color: #a8b3c7;
+    font-size: 0.82rem;
+  }
+}
+
+.approved-laboratory-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
 @media (max-width: 760px) {
   .field-row {
     grid-template-columns: 1fr;

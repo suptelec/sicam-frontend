@@ -1,0 +1,175 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">LABORATORIOS PMSE</p>
+      <h2>Registrar laboratorio contratado</h2>
+      <p class="drawer__description">
+        Registra el laboratorio que el PMSE contrató para ejecutar calibraciones.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (!isPmseUser) {
+        <section class="form-section">
+          <div class="section-title">Empresa PMSE</div>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Empresa PMSE</mat-label>
+
+            <mat-select formControlName="pmseCompanyId">
+              @for (company of companies(); track company.id) {
+                <mat-option [value]="company.id">
+                  {{ getCompanyLabel(company) }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (form.controls.pmseCompanyId.hasError('required') && form.controls.pmseCompanyId.touched) {
+              <mat-error>Seleccione una empresa PMSE.</mat-error>
+            }
+          </mat-form-field>
+        </section>
+      }
+
+      <section class="form-section">
+        <div class="section-title">Datos del laboratorio</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Nombre del laboratorio</mat-label>
+          <input matInput formControlName="name" autocomplete="off" />
+
+          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+            <mat-error>El nombre es obligatorio.</mat-error>
+          }
+
+          @if (form.controls.name.hasError('maxlength') && form.controls.name.touched) {
+            <mat-error>Máximo 200 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Código de acreditación</mat-label>
+          <input matInput formControlName="accreditationCode" autocomplete="off" />
+
+          @if (form.controls.accreditationCode.hasError('required') && form.controls.accreditationCode.touched) {
+            <mat-error>El código de acreditación es obligatorio.</mat-error>
+          }
+
+          @if (form.controls.accreditationCode.hasError('maxlength') && form.controls.accreditationCode.touched) {
+            <mat-error>Máximo 100 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Alcance</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="scope"
+          ></textarea>
+
+          <mat-hint>
+            Ejemplo: calibración de medidores eléctricos clase 0.2S / 0.5S.
+          </mat-hint>
+
+          @if (form.controls.scope.hasError('maxlength') && form.controls.scope.touched) {
+            <mat-error>Máximo 500 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Email de contacto</mat-label>
+          <input matInput formControlName="contactEmail" autocomplete="off" />
+
+          @if (form.controls.contactEmail.hasError('email') && form.controls.contactEmail.touched) {
+            <mat-error>Ingrese un email válido.</mat-error>
+          }
+
+          @if (form.controls.contactEmail.hasError('maxlength') && form.controls.contactEmail.touched) {
+            <mat-error>Máximo 180 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Teléfono</mat-label>
+          <input matInput formControlName="phone" autocomplete="off" />
+
+          @if (form.controls.phone.hasError('maxlength') && form.controls.phone.touched) {
+            <mat-error>Máximo 50 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Dirección</mat-label>
+          <textarea
+            matInput
+            rows="3"
+            formControlName="address"
+          ></textarea>
+
+          @if (form.controls.address.hasError('maxlength') && form.controls.address.touched) {
+            <mat-error>Máximo 300 caracteres.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">Datos del contrato</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Número de contrato</mat-label>
+          <input matInput formControlName="contractNumber" autocomplete="off" />
+
+          @if (form.controls.contractNumber.hasError('maxlength') && form.controls.contractNumber.touched) {
+            <mat-error>Máximo 100 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>URL del documento de contrato</mat-label>
+          <input matInput formControlName="contractDocumentUrl" autocomplete="off" />
+
+          @if (form.controls.contractDocumentUrl.hasError('maxlength') && form.controls.contractDocumentUrl.touched) {
+            <mat-error>Máximo 1000 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Notas</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="notes"
+          ></textarea>
+
+          @if (form.controls.notes.hasError('maxlength') && form.controls.notes.touched) {
+            <mat-error>Máximo 1000 caracteres.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Crear laboratorio"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

@@ -78,21 +78,22 @@
             </section>
           }
 
-          <mat-form-field appearance="outline" class="drawer__field full-field">
-            <mat-label>Laboratorio acreditado</mat-label>
+<mat-form-field appearance="outline" class="drawer__field full-field">
+  <mat-label>Laboratorio contratado</mat-label>
 
-            <mat-select formControlName="accreditedLaboratoryId">
-              <mat-option [value]="null">
-                Sin laboratorio asociado
-              </mat-option>
+  <mat-select formControlName="accreditedLaboratoryId">
+    @for (laboratory of laboratories(); track laboratory.id) {
+      <mat-option [value]="laboratory.accreditedLaboratoryId">
+        {{ getLaboratoryLabel(laboratory) }}
+      </mat-option>
+    }
+  </mat-select>
 
-              @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.id">
-                  {{ getLaboratoryLabel(laboratory) }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+  @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
+    <mat-error>El laboratorio contratado es obligatorio.</mat-error>
+  }
+</mat-form-field>
+
         </section>
 
         <section class="form-section">

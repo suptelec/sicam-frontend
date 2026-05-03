@@ -21,7 +21,7 @@ export class DateChangeRequestsService extends BaseApiService<
     dto: CreateCalibrationDateChangeRequest
   ): Observable<ApiResult<CalibrationDateChangeRequest>> {
     return this.http.post<ApiResult<CalibrationDateChangeRequest>>(
-      `${this.baseUrl}/v1/CalibrationPlanItems/${calibrationPlanItemId}/date-change-requests`,
+      `${this.apiBaseUrl}/CalibrationPlanItems/${calibrationPlanItemId}/date-change-requests`,
       dto
     );
   }

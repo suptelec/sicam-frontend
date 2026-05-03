@@ -49,20 +49,19 @@
         <section class="form-section">
           <div class="section-title">Datos de la autorización</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha de trabajo</mat-label>
+<div class="drawer__field">
+  <app-date-field
+    formControlName="requestedWorkDate"
+    label="Fecha de trabajo"
+    [readonly]="true"
+    [min]="scheduledDate"
+    [max]="scheduledDate"
+  />
 
-            <input
-              matInput
-              type="date"
-              formControlName="requestedWorkDate"
-              readonly
-            />
-
-            @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
-              <mat-error>La fecha de trabajo es obligatoria.</mat-error>
-            }
-          </mat-form-field>
+  @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
+    <div class="form-error">La fecha de trabajo es obligatoria.</div>
+  }
+</div>
 
           <div class="field-row">
             <mat-form-field appearance="outline" class="drawer__field">

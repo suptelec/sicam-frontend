@@ -13,9 +13,7 @@ export enum CalibrationResult {
 }
 
 export interface CreateCalibrationProcessRequest {
-  accreditedLaboratoryId: number;
   executionDate: string;
-  laboratoryName?: string | null;
   certificateNumber: string;
   certificateIssueDate: string;
   certificateValidUntil: string;

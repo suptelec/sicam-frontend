@@ -156,14 +156,6 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
-        label: 'Laboratorios',
-        route: '/accredited-laboratories',
-        icon: 'science',
-        section: null,
-        permission: 'calibrationPlan',
-        action: PermissionAction.Read
-      },
-      {
         label: 'Medidores',
         route: '/meters',
         icon: 'meter',
@@ -249,6 +241,14 @@ export class SidebarComponent {
         route: '/meters',
         icon: 'meter',
         section: 'Catálogos técnicos',
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Mis laboratorios',
+        route: '/pmse-laboratories',
+        icon: 'science',
+        section: null,
         permission: 'calibrationProcess',
         action: PermissionAction.Read
       },

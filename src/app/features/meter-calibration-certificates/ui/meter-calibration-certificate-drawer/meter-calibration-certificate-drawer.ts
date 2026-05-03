@@ -25,8 +25,8 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { MetersService } from '../../../meters/data-access/meters.service';
 import { Meter } from '../../../meters/domain/meter.model';
 
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
+import { PmseLaboratoriesService } from '../../../pmse-laboratories/data-access/pmse-laboratories.service';
+import { PmseLaboratory } from '../../../pmse-laboratories/domain/pmse-laboratory.model';
 
 import { MeterCalibrationCertificatesService } from '../../data-access/meter-calibration-certificates.service';
 import {
@@ -35,6 +35,7 @@ import {
   CreateMeterCalibrationCertificateRequest,
   MeterCalibrationCertificate
 } from '../../domain/meter-calibration-certificate.model';
+
 import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 @Component({
@@ -60,7 +61,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(MeterCalibrationCertificatesService);
   private readonly metersService = inject(MetersService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
+  private readonly laboratoriesService = inject(PmseLaboratoriesService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
@@ -71,7 +72,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   loadingCatalogs = signal(false);
 
   meters = signal<Meter[]>([]);
-  laboratories = signal<AccreditedLaboratory[]>([]);
+  laboratories = signal<PmseLaboratory[]>([]);
 
   readonly CalibrationResult = CalibrationResult;
   readonly CalibrationResultLabels = CalibrationResultLabels;
@@ -82,7 +83,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   readonly form = this.fb.group(
     {
       meterId: [null as number | null, Validators.required],
-      accreditedLaboratoryId: [null as number | null],
+      accreditedLaboratoryId: [null as number | null, Validators.required],
 
       certificateNumber: ['', [Validators.required, Validators.maxLength(120)]],
       secondaryCertificateNumber: ['', [Validators.maxLength(120)]],
@@ -105,12 +106,12 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   }
 
   get isPmseUser(): boolean {
-  return this.userScope.isPmseUser();
-}
+    return this.userScope.isPmseUser();
+  }
 
-get currentPmseCompanyName(): string | null {
-  return this.userScope.pmseCompanyName();
-}
+  get currentPmseCompanyName(): string | null {
+    return this.userScope.pmseCompanyName();
+  }
 
   get saveDisabled(): boolean {
     return this.loading || this.loadingCatalogs() || this.form.invalid;
@@ -139,12 +140,13 @@ get currentPmseCompanyName(): string | null {
     return `${meter.code}${serial}${company}`;
   }
 
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
+  getLaboratoryLabel(laboratory: PmseLaboratory): string {
+    const name = laboratory.accreditedLaboratoryName ?? 'Laboratorio';
     const code = laboratory.accreditationCode
       ? ` · ${laboratory.accreditationCode}`
       : '';
 
-    return `${laboratory.name}${code}`;
+    return `${name}${code}`;
   }
 
   getResultLabel(result: CalibrationResult): string {
@@ -173,9 +175,7 @@ get currentPmseCompanyName(): string | null {
 
     const dto: CreateMeterCalibrationCertificateRequest = {
       meterId: Number(raw.meterId),
-      accreditedLaboratoryId: raw.accreditedLaboratoryId
-        ? Number(raw.accreditedLaboratoryId)
-        : null,
+      accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
 
       certificateNumber: this.normalizeRequired(raw.certificateNumber),
       secondaryCertificateNumber: this.normalize(raw.secondaryCertificateNumber),
@@ -220,7 +220,9 @@ get currentPmseCompanyName(): string | null {
 
   private loadCatalogs(): void {
     this.loadingCatalogs.set(true);
+
     const meterFilter = this.userScope.getPmseFilter('PmseCompanyId');
+    const laboratoryPmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
     let completed = 0;
 
@@ -233,45 +235,61 @@ get currentPmseCompanyName(): string | null {
     };
 
     this.metersService.getAll({
-  page: 1,
-  take: 500,
-  filter: meterFilter || undefined,
-  orderBy: 'Code asc'
-}).subscribe({
-  next: response => {
-    if (response.succeed) {
-      this.meters.set(response.result ?? []);
-    } else {
-      this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
-    }
-
-    finish();
-  },
-  error: () => {
-    this.toast.warning('No se pudieron cargar los medidores.');
-    finish();
-  }
-});
-
-    this.laboratoriesService.getAll({
       page: 1,
-      take: 300,
-      orderBy: 'Name asc'
+      take: 500,
+      filter: meterFilter || undefined,
+      orderBy: 'Code asc'
     }).subscribe({
       next: response => {
         if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
+          this.meters.set(response.result ?? []);
         } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
+          this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
         }
 
         finish();
       },
       error: () => {
-        this.toast.warning('No se pudieron cargar los laboratorios.');
+        this.toast.warning('No se pudieron cargar los medidores.');
         finish();
       }
     });
+
+    this.laboratoriesService.getAll({
+      page: 1,
+      take: 300,
+      filter: this.buildLaboratoryFilter(laboratoryPmseFilter),
+      orderBy: 'AccreditedLaboratoryName asc'
+    }).subscribe({
+      next: response => {
+        if (response.succeed) {
+          this.laboratories.set(response.result ?? []);
+        } else {
+          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+        }
+
+        finish();
+      },
+      error: () => {
+        this.toast.warning('No se pudieron cargar los laboratorios contratados.');
+        finish();
+      }
+    });
+  }
+
+  private buildLaboratoryFilter(pmseFilter: string | null): string {
+    return this.userScope.isPmseUser()
+      ? this.userScope.currentUser()
+        ? this.joinFilters('Status eq 1', pmseFilter)
+        : 'Status eq 1'
+      : 'Status eq 1';
+  }
+
+  private joinFilters(...filters: Array<string | null | undefined>): string {
+    return filters
+      .filter(Boolean)
+      .map(filter => `(${filter})`)
+      .join(' and ');
   }
 
   private reset(): void {

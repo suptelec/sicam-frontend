@@ -311,7 +311,7 @@ export class CalibrationPlanDetailComponent implements OnInit {
         return 'primary';
 
       case CalibrationPlanItemStatus.Approved:
-      
+        return 'success';
 
       case CalibrationPlanItemStatus.Rejected:
         return 'danger';

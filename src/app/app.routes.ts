@@ -29,12 +29,6 @@ export const routes: Routes = [
             .then(m => m.EXTERNAL_CLIENTS_ROUTES)
       },
       {
-        path: 'accredited-laboratories',
-        loadChildren: () =>
-          import('./features/accredited-laboratories/accredited-laboratories.routes')
-            .then(m => m.ACCREDITED_LABORATORIES_ROUTES)
-      },
-      {
         path: 'meters',
         loadChildren: () =>
           import('./features/meters/meters.routes')
@@ -99,6 +93,13 @@ export const routes: Routes = [
           import('./features/calibration-process-reviews/calibration-process-reviews.routes')
             .then(m => m.CALIBRATION_PROCESS_REVIEWS_ROUTES)
       },
+      {
+        path: 'pmse-laboratories',
+        loadChildren: () =>
+          import('./features/pmse-laboratories/pmse-laboratories.routes')
+            .then(m => m.PMSE_LABORATORIES_ROUTES)
+      },
+      
     ]
   },
   {

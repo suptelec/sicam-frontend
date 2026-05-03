@@ -4,7 +4,7 @@
       <p class="drawer__eyebrow">CRONOGRAMA PMSE</p>
       <h2>Crear cronograma</h2>
       <p class="drawer__description">
-        Crea el cronograma oficial de calibración para un plan publicado y adjunta la URL del documento oficial.
+        Crea un cronograma en borrador para un plan anual publicado. Luego podrás agregar ítems y generar el Excel oficial.
       </p>
     </div>
 
@@ -48,21 +48,6 @@
 
           @if (form.controls.calibrationPlanId.hasError('required') && form.controls.calibrationPlanId.touched) {
             <mat-error>El plan anual es obligatorio.</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>URL del documento oficial</mat-label>
-
-          <input
-            matInput
-            formControlName="documentUrl"
-            autocomplete="off"
-            placeholder="https://..."
-          />
-
-          @if (form.controls.documentUrl.hasError('required') && form.controls.documentUrl.touched) {
-            <mat-error>La URL del documento oficial es obligatoria.</mat-error>
           }
         </mat-form-field>
 

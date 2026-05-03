@@ -26,6 +26,12 @@ export abstract class BaseApiService<
     return `${environment.apiUrl}/v1/${this.endpoint}`;
   }
 
+  protected get apiBaseUrl(): string {
+    return `${environment.apiUrl}/v1`;
+  }
+
+
+
   getAll(query?: PaginatedODataQuery): Observable<PaginatedResult<TEntity>> {
     const params = this.odata.toHttpParams(query);
 

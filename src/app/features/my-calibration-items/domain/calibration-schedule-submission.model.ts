@@ -2,21 +2,19 @@ export enum CalibrationScheduleSubmissionStatus {
   Draft = 1,
   Submitted = 2,
   Approved = 3,
-  Rejected = 4
+  Rejected = 4,
+  Cancelled = 5
 }
 
 export interface CreateCalibrationScheduleSubmissionRequest {
   calibrationPlanId: number;
-  pmseCompanyId: number;
-  documentUrl?: string | null;
   notes?: string | null;
 }
 
 export interface AddCalibrationScheduleSubmissionItemRequest {
   calibrationPlanItemId: number;
-  accreditedLaboratoryId?: number | null;
+  accreditedLaboratoryId: number;
   proposedCalibrationDate: string;
-  laboratoryName?: string | null;
   notes?: string | null;
 }
 

@@ -62,32 +62,29 @@
         <section class="form-section">
           <div class="section-title">Propuesta de calibración</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha propuesta</mat-label>
+<div class="drawer__field">
+  <app-date-field
+    formControlName="scheduledDate"
+    label="Fecha propuesta"
+    [min]="minDate"
+    [max]="maxDate"
+  />
 
-            <input
-              matInput
-              type="date"
-              formControlName="scheduledDate"
-              [attr.min]="minDate"
-              [attr.max]="maxDate"
-            />
+  @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La fecha propuesta es obligatoria.</div>
+  }
 
-            @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
-              <mat-error>La fecha propuesta es obligatoria.</mat-error>
-            }
-
-            @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
-              <mat-error>La fecha debe estar dentro del rango planificado.</mat-error>
-            }
-          </mat-form-field>
+  @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La fecha debe estar dentro del rango planificado.</div>
+  }
+</div>
 
           <mat-form-field appearance="outline" class="drawer__field">
             <mat-label>Laboratorio acreditado</mat-label>
 
             <mat-select formControlName="accreditedLaboratoryId">
               @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.id">
+                <mat-option [value]="laboratory.accreditedLaboratoryId">
                   {{ getLaboratoryLabel(laboratory) }}
                 </mat-option>
               }

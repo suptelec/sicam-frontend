@@ -48,29 +48,23 @@
           }
         </mat-form-field>
 
-        <div class="field-row">
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha inicio</mat-label>
-            <input matInput type="date" formControlName="startDate" />
+       <div class="field-row">
+  <app-date-field
+    formControlName="startDate"
+    label="Fecha inicio"
+  />
 
-            @if (form.controls.startDate.hasError('required') && form.controls.startDate.touched) {
-              <mat-error>La fecha inicio es obligatoria.</mat-error>
-            }
-          </mat-form-field>
+  <app-date-field
+    formControlName="endDate"
+    label="Fecha fin"
+  />
+</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha fin</mat-label>
-            <input matInput type="date" formControlName="endDate" />
-
-            @if (form.controls.endDate.hasError('required') && form.controls.endDate.touched) {
-              <mat-error>La fecha fin es obligatoria.</mat-error>
-            }
-
-            @if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
-              <mat-error>La fecha fin no puede ser anterior a la fecha inicio.</mat-error>
-            }
-          </mat-form-field>
-        </div>
+@if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
+  <div class="form-error">
+    La fecha fin no puede ser anterior a la fecha inicio.
+  </div>
+}
 
         <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
           <mat-label>Descripción</mat-label>

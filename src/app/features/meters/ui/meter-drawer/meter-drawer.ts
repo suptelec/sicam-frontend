@@ -524,13 +524,13 @@ get currentPmseCompanyName(): string | null {
   private reset(): void {
     this.form.reset({
       identification: {
-        pmseCompanyId: null,
-        code: '',
-        serial: '',
-        tplCode: '',
-        cenaceCode: '',
-        brand: '',
-        model: ''
+      pmseCompanyId: this.isPmseUser ? this.currentPmseCompanyId : null,
+      code: '',
+      serial: '',
+       tplCode: '',
+       cenaceCode: '',
+       brand: '',
+       model: ''
       },
       cenace: {
         installationType: null,

@@ -69,29 +69,54 @@
       </section>
     }
 
-    <section class="actions-bar">
-      <button
-        mat-flat-button
-        type="button"
-        class="actions-bar__btn actions-bar__btn--primary"
-        [disabled]="!canSubmit || isSubmitting()"
-        [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe estar en borrador, tener ítems y documento oficial'"
-        (click)="onSubmit()"
-      >
-        <mat-icon>send</mat-icon>
-        Enviar a CENACE
-      </button>
+<section class="actions-bar">
+  <button
+    mat-flat-button
+    type="button"
+    class="actions-bar__btn actions-bar__btn--secondary"
+    [disabled]="!canGenerateExcel || isGeneratingDocument() || current.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft"
+    [matTooltip]="canGenerateExcel ? 'Generar Excel oficial' : 'Debe estar en borrador y tener ítems'"
+    (click)="onGenerateOfficialDocument()"
+  >
+    <mat-icon>description</mat-icon>
+    {{ current.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial' }}
+  </button>
 
-      <button
-        mat-icon-button
-        type="button"
-        class="actions-bar__refresh"
-        matTooltip="Actualizar"
-        (click)="load()"
-      >
-        <mat-icon>refresh</mat-icon>
-      </button>
-    </section>
+  @if (current.documentUrl) {
+    <button
+      mat-flat-button
+      type="button"
+      class="actions-bar__btn actions-bar__btn--secondary"
+      matTooltip="Descargar Excel oficial"
+      (click)="downloadOfficialDocument()"
+    >
+      <mat-icon>download</mat-icon>
+      Descargar Excel
+    </button>
+  }
+
+  <button
+    mat-flat-button
+    type="button"
+    class="actions-bar__btn actions-bar__btn--primary"
+    [disabled]="!canSubmit || isSubmitting()"
+    [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe generar el Excel oficial antes de enviar'"
+    (click)="onSubmit()"
+  >
+    <mat-icon>send</mat-icon>
+    Enviar a CENACE
+  </button>
+
+  <button
+    mat-icon-button
+    type="button"
+    class="actions-bar__refresh"
+    matTooltip="Actualizar"
+    (click)="load()"
+  >
+    <mat-icon>refresh</mat-icon>
+  </button>
+</section>
 
     <app-table-card
       [loading]="isLoading()"

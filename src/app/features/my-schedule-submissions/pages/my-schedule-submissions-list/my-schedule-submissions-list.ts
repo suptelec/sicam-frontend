@@ -77,6 +77,7 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
 
   searchTerm = '';
   isLoading = signal(false);
+  generatingDocumentId = signal<number | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -146,6 +147,11 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
       !!row.documentUrl;
   }
 
+canGenerateExcel(row: CalibrationScheduleSubmission): boolean {
+  return Number(row.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
+    (row.itemsCount ?? 0) > 0;
+}
+
   onCreateClicked(): void {
     this.createDrawerOpen.set(true);
   }
@@ -159,6 +165,45 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
     this.pageIndex = 0;
     this.load();
   }
+
+onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
+  if (!this.canGenerateExcel(row)) {
+    this.toast.warning('El cronograma debe estar en borrador y tener al menos un ítem.');
+    return;
+  }
+
+  this.confirmDialog.confirm({
+    title: row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial',
+    message: row.documentUrl
+      ? 'Se generará nuevamente el Excel oficial del cronograma. ¿Deseas continuar?'
+      : 'Se generará el Excel oficial del cronograma con los ítems agregados. ¿Deseas continuar?',
+    confirmText: row.documentUrl ? 'Regenerar' : 'Generar',
+    cancelText: 'Cancelar',
+    type: 'info'
+  }).subscribe(confirmed => {
+    if (!confirmed) return;
+
+    this.generatingDocumentId.set(row.id);
+
+    this.service.generateOfficialDocument(row.id).subscribe({
+      next: response => {
+        this.generatingDocumentId.set(null);
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(response.message ?? 'No se pudo generar el Excel oficial.');
+          return;
+        }
+
+        this.toast.success('Excel oficial generado correctamente.');
+        this.load();
+      },
+      error: () => {
+        this.generatingDocumentId.set(null);
+        this.toast.error('Error al generar el Excel oficial.');
+      }
+    });
+  });
+}
 
   onSubmit(row: CalibrationScheduleSubmission): void {
     if (!this.canSubmit(row)) {
@@ -209,6 +254,9 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
+      
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
 
       default:
         return '—';
@@ -231,6 +279,9 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
+
       default:
         return 'neutral';
     }
@@ -249,6 +300,9 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'cancel';
+
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
 
       default:
         return 'info';

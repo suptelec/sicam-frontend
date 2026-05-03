@@ -1,7 +1,8 @@
 export enum CalibrationWorkAuthorizationStatus {
   Requested = 1,
   Authorized = 2,
-  Rejected = 3
+  Rejected = 3,
+  Cancelled = 4
 }
 
 export interface CreateCalibrationWorkAuthorizationRequest {

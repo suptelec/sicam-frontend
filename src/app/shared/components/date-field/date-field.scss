@@ -1,0 +1,53 @@
+.date-field {
+  width: 100%;
+}
+
+:host ::ng-deep .mat-mdc-form-field {
+  width: 100%;
+}
+
+:host ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 56px;
+  padding: 16px 14px 12px !important;
+}
+
+:host ::ng-deep input.mat-mdc-input-element {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f9fafb !important;
+  font-size: 0.96rem;
+}
+
+:host ::ng-deep .mdc-floating-label {
+  color: #a8b3c7 !important;
+}
+
+:host ::ng-deep .mat-focused .mdc-floating-label {
+  color: #2b8ae2 !important;
+}
+
+:host ::ng-deep .mdc-notched-outline__leading,
+:host ::ng-deep .mdc-notched-outline__notch,
+:host ::ng-deep .mdc-notched-outline__trailing {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+:host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+:host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(43, 138, 226, 0.45) !important;
+}
+
+:host ::ng-deep .mat-focused .mdc-notched-outline__leading,
+:host ::ng-deep .mat-focused .mdc-notched-outline__notch,
+:host ::ng-deep .mat-focused .mdc-notched-outline__trailing {
+  border-color: #2b8ae2 !important;
+}
+
+:host ::ng-deep .mat-datepicker-toggle {
+  color: #a8b3c7 !important;
+}
+
+:host ::ng-deep .mat-datepicker-toggle:hover {
+  color: #ffffff !important;
+}

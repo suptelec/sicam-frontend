@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, effect, inject, input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, effect, inject, input } from '@angular/core';
 
 import {
   AbstractControl,
@@ -20,9 +20,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
 import { ToastService } from '../../../../core/services/toast.service';
 
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
-
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 
 import { CalibrationProcessesService } from '../../data-access/calibration-processes.service';
@@ -30,6 +27,7 @@ import {
   CalibrationResult,
   CreateCalibrationProcessRequest
 } from '../../domain/calibration-process.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-start-calibration-process-drawer',
@@ -43,7 +41,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './start-calibration-process-drawer.html',
   styleUrl: './start-calibration-process-drawer.scss'
@@ -56,40 +55,33 @@ export class StartCalibrationProcessDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationProcessesService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
   private readonly toast = inject(ToastService);
 
   readonly CalibrationResult = CalibrationResult;
 
   loading = false;
-  loadingCatalogs = signal(false);
-  laboratories = signal<AccreditedLaboratory[]>([]);
 
   readonly form = this.fb.group(
-  {
-    accreditedLaboratoryId: [null as number | null, Validators.required],
-    executionDate: ['', Validators.required],
-    laboratoryName: ['', [Validators.maxLength(250)]],
+    {
+      executionDate: ['', Validators.required],
 
-    certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
-    certificateIssueDate: ['', Validators.required],
-    certificateValidUntil: ['', Validators.required],
-    calibrationResult: [CalibrationResult.Approved, Validators.required],
+      certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
+      certificateIssueDate: ['', Validators.required],
+      certificateValidUntil: ['', Validators.required],
+      calibrationResult: [CalibrationResult.Approved, Validators.required],
 
-    mainMeterSealAfterCalibration: ['', [Validators.maxLength(100)]],
-    terminalBlockSealOneAfterCalibration: ['', [Validators.maxLength(100)]],
-    terminalBlockSealTwoAfterCalibration: ['', [Validators.maxLength(100)]],
+      mainMeterSealAfterCalibration: ['', [Validators.maxLength(100)]],
+      terminalBlockSealOneAfterCalibration: ['', [Validators.maxLength(100)]],
+      terminalBlockSealTwoAfterCalibration: ['', [Validators.maxLength(100)]],
 
-    notes: ['', [Validators.maxLength(1000)]]
-  },
-  {
-    validators: [this.validUntilAfterIssueDateValidator()]
-  }
-);
+      notes: ['', [Validators.maxLength(1000)]]
+    },
+    {
+      validators: [this.validUntilAfterIssueDateValidator()]
+    }
+  );
 
   constructor() {
-    this.loadLaboratories();
-
     effect(() => {
       const currentItem = this.item();
 
@@ -115,18 +107,9 @@ export class StartCalibrationProcessDrawerComponent {
 
   get saveDisabled(): boolean {
     return this.loading ||
-      this.loadingCatalogs() ||
       this.form.invalid ||
       !this.currentItem ||
       !this.scheduledDate;
-  }
-
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
-    const code = laboratory.accreditationCode
-      ? ` · ${laboratory.accreditationCode}`
-      : '';
-
-    return `${laboratory.name}${code}`;
   }
 
   submit(): void {
@@ -151,9 +134,7 @@ export class StartCalibrationProcessDrawerComponent {
     const raw = this.form.getRawValue();
 
     const dto: CreateCalibrationProcessRequest = {
-      accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
       executionDate: currentItem.scheduledDate,
-      laboratoryName: this.normalize(raw.laboratoryName),
       certificateNumber: this.normalizeRequired(raw.certificateNumber),
       certificateIssueDate: this.normalizeRequired(raw.certificateIssueDate),
       certificateValidUntil: this.normalizeRequired(raw.certificateValidUntil),
@@ -193,35 +174,9 @@ export class StartCalibrationProcessDrawerComponent {
     this.closed.emit();
   }
 
-  private loadLaboratories(): void {
-    this.loadingCatalogs.set(true);
-
-    this.laboratoriesService.getAll({
-      page: 1,
-      take: 300,
-      orderBy: 'Name asc'
-    }).subscribe({
-      next: response => {
-        this.loadingCatalogs.set(false);
-
-        if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
-        } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
-        }
-      },
-      error: () => {
-        this.loadingCatalogs.set(false);
-        this.toast.warning('No se pudieron cargar los laboratorios.');
-      }
-    });
-  }
-
   private reset(): void {
     this.form.reset({
-      accreditedLaboratoryId: null,
       executionDate: this.currentItem?.scheduledDate ?? '',
-      laboratoryName: '',
       certificateNumber: '',
       certificateIssueDate: this.currentItem?.scheduledDate ?? '',
       certificateValidUntil: '',
@@ -249,25 +204,25 @@ export class StartCalibrationProcessDrawerComponent {
       : '';
   }
 
-private validUntilAfterIssueDateValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const issueDate = control.get('certificateIssueDate')?.value;
-    const validUntil = control.get('certificateValidUntil')?.value;
+  private validUntilAfterIssueDateValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const issueDate = control.get('certificateIssueDate')?.value;
+      const validUntil = control.get('certificateValidUntil')?.value;
 
-    if (!issueDate || !validUntil) {
-      return null;
-    }
+      if (!issueDate || !validUntil) {
+        return null;
+      }
 
-    const issue = new Date(issueDate);
-    const until = new Date(validUntil);
+      const issue = new Date(issueDate);
+      const until = new Date(validUntil);
 
-    if (Number.isNaN(issue.getTime()) || Number.isNaN(until.getTime())) {
-      return null;
-    }
+      if (Number.isNaN(issue.getTime()) || Number.isNaN(until.getTime())) {
+        return null;
+      }
 
-    return until <= issue
-      ? { certificateValidUntilBeforeOrEqualIssueDate: true }
-      : null;
-  };
-}
+      return until <= issue
+        ? { certificateValidUntilBeforeOrEqualIssueDate: true }
+        : null;
+    };
+  }
 }

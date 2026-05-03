@@ -49,6 +49,7 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
   submission = signal<CalibrationScheduleSubmission | null>(null);
   isLoading = signal(false);
   isSubmitting = signal(false);
+  isGeneratingDocument = signal(false);
 
   dataSource = new MatTableDataSource<CalibrationScheduleSubmissionItem>([]);
 
@@ -92,6 +93,14 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
       this.hasDocument;
   }
 
+get canGenerateExcel(): boolean {
+  const current = this.submission();
+
+  return !!current &&
+    Number(current.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
+    this.itemsCount > 0;
+}
+
   load(id = this.submissionId): void {
     this.isLoading.set(true);
 
@@ -119,6 +128,72 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
   back(): void {
     this.router.navigate(['/my-schedule-submissions']);
   }
+
+onGenerateOfficialDocument(): void {
+  const current = this.submission();
+
+  if (!current) return;
+
+  if (!this.canGenerateExcel) {
+    this.toast.warning('El cronograma debe estar en borrador y tener al menos un ítem.');
+    return;
+  }
+
+  this.confirmDialog.confirm({
+    title: current.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial',
+    message: current.documentUrl
+      ? 'Se generará nuevamente el Excel oficial del cronograma. ¿Deseas continuar?'
+      : 'Se generará el Excel oficial del cronograma con los ítems agregados. ¿Deseas continuar?',
+    confirmText: current.documentUrl ? 'Regenerar' : 'Generar',
+    cancelText: 'Cancelar',
+    type: 'info'
+  }).subscribe(confirmed => {
+    if (!confirmed) return;
+
+    this.isGeneratingDocument.set(true);
+
+    this.service.generateOfficialDocument(current.id).subscribe({
+      next: response => {
+        this.isGeneratingDocument.set(false);
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(response.message ?? 'No se pudo generar el Excel oficial.');
+          return;
+        }
+
+        const updated = response.result;
+        const currentItems = current.items ?? [];
+
+        this.submission.set({
+          ...current,
+          ...updated,
+          items: updated.items?.length ? updated.items : currentItems
+        });
+
+        this.dataSource.data = updated.items?.length
+          ? updated.items
+          : currentItems;
+
+        this.toast.success('Excel oficial generado correctamente.');
+      },
+      error: () => {
+        this.isGeneratingDocument.set(false);
+        this.toast.error('Error al generar el Excel oficial.');
+      }
+    });
+  });
+}
+
+downloadOfficialDocument(): void {
+  const documentUrl = this.submission()?.documentUrl;
+
+  if (!documentUrl) {
+    this.toast.warning('Primero debes generar el Excel oficial.');
+    return;
+  }
+
+  window.open(documentUrl, '_blank', 'noopener');
+}
 
   onSubmit(): void {
     const current = this.submission();
@@ -150,7 +225,16 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
             return;
           }
 
-          this.toast.success('Cronograma enviado a CENACE.');
+          this.toast.success('Cronograma enviado correctamente a CENACE.');
+
+          if (response.result) {
+            this.submission.set({
+              ...current,
+              ...response.result,
+              items: current.items ?? []
+            });
+          }
+
           this.load(current.id);
         },
         error: () => {
@@ -174,6 +258,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
+      
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
 
       default:
         return '—';
@@ -195,6 +282,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
+        
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
 
       default:
         return 'neutral';
@@ -214,6 +304,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'cancel';
+
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
 
       default:
         return 'info';

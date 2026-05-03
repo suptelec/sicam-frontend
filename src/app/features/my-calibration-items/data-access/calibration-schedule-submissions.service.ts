@@ -68,6 +68,15 @@ reject(
   );
 }
 
+generateOfficialDocument(
+  submissionId: number
+): Observable<ApiResult<CalibrationScheduleSubmission>> {
+  return this.http.post<ApiResult<CalibrationScheduleSubmission>>(
+    `${this.baseUrl}/${submissionId}/generate-official-document`,
+    {}
+  );
+}
+
   submit(submissionId: number): Observable<ApiResult<CalibrationScheduleSubmission>> {
     return this.http.patch<ApiResult<CalibrationScheduleSubmission>>(
       `${this.baseUrl}/${submissionId}/submit`,

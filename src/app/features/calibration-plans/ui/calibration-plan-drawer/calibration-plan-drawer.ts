@@ -22,6 +22,7 @@ import {
   CalibrationPlan,
   CreateCalibrationPlanRequest
 } from '../../domain/calibration-plan.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-calibration-plan-drawer',
@@ -33,7 +34,8 @@ import {
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './calibration-plan-drawer.html',
   styleUrl: './calibration-plan-drawer.scss'

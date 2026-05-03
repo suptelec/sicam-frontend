@@ -258,6 +258,12 @@
   font-size: 0.82rem;
 }
 
+.form-error {
+  margin-top: 6px;
+  color: #ffb4b4;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 760px) {
   .field-row {
     grid-template-columns: 1fr;

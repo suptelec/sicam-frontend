@@ -1,0 +1,166 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Laboratorios PMSE"
+    title="Mis laboratorios"
+    description="Registra y administra los laboratorios contratados por el PMSE para la calibración de medidores."
+    actionText="Nuevo laboratorio"
+    actionIcon="add"
+    (actionClicked)="drawerOpen.set(true)"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por laboratorio, acreditación, contrato o email..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando laboratorios..."
+    emptyIcon="science"
+    emptyTitle="No hay laboratorios registrados"
+    emptyDescription="Registra el laboratorio contratado por el PMSE para usarlo en certificados, cronogramas y procesos de calibración."
+    emptyActionText="Nuevo laboratorio"
+    emptyActionIcon="add"
+    (emptyActionClicked)="drawerOpen.set(true)"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="laboratories-table"
+    >
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Laboratorio</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="laboratory-name">
+            <div class="laboratory-name__avatar">
+              <mat-icon>science</mat-icon>
+            </div>
+
+            <div>
+            <strong>{{ row.accreditedLaboratoryName ?? '—' }}</strong>
+            <span>ID laboratorio: {{ row.accreditedLaboratoryId }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="pmseCompany">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.pmseCompanyName ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="accreditationCode">
+        <th mat-header-cell *matHeaderCellDef>Acreditación</th>
+
+        <td mat-cell *matCellDef="let row">
+          <code class="code-pill">{{ row.accreditationCode }}</code>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="contactEmail">
+        <th mat-header-cell *matHeaderCellDef>Correo</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.contactEmail ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="phone">
+        <th mat-header-cell *matHeaderCellDef>Teléfono</th>
+
+        <td mat-cell *matCellDef="let row">
+          <span class="muted">{{ row.phone ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="contractNumber">
+        <th mat-header-cell *matHeaderCellDef>Contrato</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.contractNumber ?? '—' }}</strong>
+
+            @if (row.contractDocumentUrl) {
+              <a
+                [href]="row.contractDocumentUrl"
+                target="_blank"
+                rel="noopener"
+              >
+                Ver documento
+              </a>
+            } @else {
+              <span>Sin documento</span>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          @let chip = getEntityStatusChip(row.status);
+
+          <app-status-chip
+            [label]="chip.label"
+            [tone]="chip.tone"
+            [icon]="chip.icon ?? null"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button
+            mat-icon-button
+            type="button"
+            [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
+            (click)="onToggleStatus(row)"
+          >
+            <mat-icon
+              [class.action-danger]="row.status === EntityStatus.Active"
+              [class.action-success]="row.status !== EntityStatus.Active"
+            >
+              {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
+            </mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>
+
+<app-drawer-shell
+  [open]="drawerOpen()"
+  width="560px"
+  (closed)="drawerOpen.set(false)"
+>
+  <app-pmse-laboratory-drawer
+    (created)="onCreated()"
+    (closed)="drawerOpen.set(false)"
+  />
+</app-drawer-shell>

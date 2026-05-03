@@ -141,6 +141,9 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'Cancelado';
+
       default:
         return '—';
     }
@@ -162,6 +165,9 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'danger';
 
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'neutral';
+
       default:
         return 'neutral';
     }
@@ -177,6 +183,9 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'cancel';
+
+      case CalibrationScheduleSubmissionStatus.Cancelled:
+        return 'block';
 
       default:
         return 'info';

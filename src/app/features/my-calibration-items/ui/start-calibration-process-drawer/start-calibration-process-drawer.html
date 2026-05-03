@@ -46,46 +46,25 @@
           </div>
         </section>
 
-        <section class="form-section">
-          <div class="section-title">Laboratorio y ejecución</div>
+<section class="approved-laboratory-card">
+  <div class="approved-laboratory-card__icon">
+    <mat-icon>science</mat-icon>
+  </div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Laboratorio acreditado</mat-label>
+  <div>
+    <span>Laboratorio aprobado</span>
 
-            <mat-select formControlName="accreditedLaboratoryId">
-              @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.id">
-                  {{ getLaboratoryLabel(laboratory) }}
-                </mat-option>
-              }
-            </mat-select>
-            @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
-                <mat-error>El laboratorio acreditado es obligatorio.</mat-error>
-            }
-          </mat-form-field>
+    <strong>
+      {{ item.suggestedLaboratoryName ?? 'Laboratorio definido por cronograma aprobado' }}
+    </strong>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Nombre de laboratorio externo</mat-label>
-
-            <input
-              matInput
-              formControlName="laboratoryName"
-              autocomplete="off"
-              placeholder="Opcional si seleccionaste laboratorio acreditado"
-            />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Fecha de ejecución</mat-label>
-
-            <input
-              matInput
-              type="date"
-              formControlName="executionDate"
-              readonly
-            />
-          </mat-form-field>
-        </section>
+    @if (item.suggestedLaboratoryAccreditationCode) {
+      <small>Código: {{ item.suggestedLaboratoryAccreditationCode }}</small>
+    } @else {
+      <small>No puede modificarse al iniciar la calibración.</small>
+    }
+  </div>
+</section>
 
         <section class="form-section">
           <div class="section-title">Certificado</div>
@@ -104,35 +83,29 @@
             }
           </mat-form-field>
 
-          <div class="field-row">
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Fecha emisión</mat-label>
+<div class="field-row">
+  <div class="drawer__field">
+    <app-date-field
+      formControlName="certificateIssueDate"
+      label="Fecha emisión"
+    />
 
-              <input
-                matInput
-                type="date"
-                formControlName="certificateIssueDate"
-              />
+    @if (form.controls.certificateIssueDate.hasError('required') && form.controls.certificateIssueDate.touched) {
+      <div class="form-error">La fecha de emisión es obligatoria.</div>
+    }
+  </div>
 
-              @if (form.controls.certificateIssueDate.hasError('required') && form.controls.certificateIssueDate.touched) {
-                <mat-error>La fecha de emisión es obligatoria.</mat-error>
-              }
-            </mat-form-field>
+  <div class="drawer__field">
+    <app-date-field
+      formControlName="certificateValidUntil"
+      label="Válido hasta"
+    />
 
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Válido hasta</mat-label>
-
-              <input
-                matInput
-                type="date"
-                formControlName="certificateValidUntil"
-              />
-
-              @if (form.hasError('certificateValidUntilBeforeOrEqualIssueDate') && form.controls.certificateValidUntil.touched) {
-                <mat-error>La fecha de vigencia debe ser mayor que la fecha de emisión.</mat-error>
-                }
-            </mat-form-field>
-          </div>
+    @if (form.hasError('certificateValidUntilBeforeOrEqualIssueDate') && form.controls.certificateValidUntil.touched) {
+      <div class="form-error">La fecha de vigencia debe ser mayor que la fecha de emisión.</div>
+    }
+  </div>
+</div>
 
           <mat-form-field appearance="outline" class="drawer__field">
             <mat-label>Resultado de calibración</mat-label>
@@ -143,10 +116,7 @@
               </mat-option>
               <mat-option [value]="CalibrationResult.Rejected">
                 Rechazado
-              </mat-option>
-              <mat-option [value]="CalibrationResult.Conditional">
-                Condicional
-              </mat-option>
+              </mat-option>              
             </mat-select>
           </mat-form-field>
         </section>

@@ -123,18 +123,30 @@
               <mat-icon>visibility</mat-icon>
             </button>
 
-            @if (row.submissionStatus === CalibrationScheduleSubmissionStatus.Draft) {
-              <button
-                mat-icon-button
-                type="button"
-                class="row-actions__btn"
-                [matTooltip]="canSubmit(row) ? 'Enviar a CENACE' : 'Debe tener ítems y documento oficial'"
-                [disabled]="!canSubmit(row)"
-                (click)="onSubmit(row)"
-              >
-                <mat-icon>send</mat-icon>
-              </button>
-            }
+@if (row.submissionStatus === CalibrationScheduleSubmissionStatus.Draft) {
+  <button
+    mat-icon-button
+    type="button"
+    class="row-actions__btn"
+    [matTooltip]="canGenerateExcel(row) ? (row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial') : 'Debe tener ítems para generar Excel'"
+    [disabled]="!canGenerateExcel(row) || generatingDocumentId() === row.id"
+    (click)="onGenerateOfficialDocument(row)"
+  >
+    <mat-icon>description</mat-icon>
+  </button>
+
+  <button
+    mat-icon-button
+    type="button"
+    class="row-actions__btn"
+    [matTooltip]="canSubmit(row) ? 'Enviar a CENACE' : 'Debe generar el Excel oficial antes de enviar'"
+    [disabled]="!canSubmit(row)"
+    (click)="onSubmit(row)"
+  >
+    <mat-icon>send</mat-icon>
+  </button>
+}
+            
           </div>
         </td>
       </ng-container>

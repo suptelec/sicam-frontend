@@ -19,11 +19,11 @@ export class WorkAuthorizationsService extends BaseApiService<
   protected override readonly endpoint = 'CalibrationWorkAuthorizations';
 
   createForPlanItem(
-    calibrationPlanItemId: number,
-    dto: CreateCalibrationWorkAuthorizationRequest
+  calibrationPlanItemId: number,
+  dto: CreateCalibrationWorkAuthorizationRequest
   ): Observable<ApiResult<CalibrationWorkAuthorization>> {
     return this.http.post<ApiResult<CalibrationWorkAuthorization>>(
-      `${this.baseUrl}/v1/CalibrationPlanItems/${calibrationPlanItemId}/work-authorizations`,
+      `${this.apiBaseUrl}/CalibrationPlanItems/${calibrationPlanItemId}/work-authorizations`,
       dto
     );
   }

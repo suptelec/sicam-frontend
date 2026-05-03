@@ -53,11 +53,10 @@ export class CreateScheduleSubmissionDrawerComponent {
   loadingPlans = signal(false);
   plans = signal<CalibrationPlan[]>([]);
 
-  readonly form = this.fb.group({
-    calibrationPlanId: [null as number | null, Validators.required],
-    documentUrl: ['', [Validators.required, Validators.maxLength(1000)]],
-    notes: ['', [Validators.maxLength(1000)]]
-  });
+readonly form = this.fb.group({
+  calibrationPlanId: [null as number | null, Validators.required],
+  notes: ['', [Validators.maxLength(1000)]]
+});
 
   constructor() {
     this.loadPublishedPlans();
@@ -85,14 +84,12 @@ export class CreateScheduleSubmissionDrawerComponent {
       return;
     }
 
-    const raw = this.form.getRawValue();
+   const raw = this.form.getRawValue();
 
-    const dto: CreateCalibrationScheduleSubmissionRequest = {
-      calibrationPlanId: Number(raw.calibrationPlanId),
-      pmseCompanyId,
-      documentUrl: this.normalizeRequired(raw.documentUrl),
-      notes: this.normalize(raw.notes)
-    };
+  const dto: CreateCalibrationScheduleSubmissionRequest = {
+    calibrationPlanId: Number(raw.calibrationPlanId),
+    notes: this.normalize(raw.notes)
+  };
 
     this.loading = true;
 
@@ -151,7 +148,6 @@ export class CreateScheduleSubmissionDrawerComponent {
   private reset(): void {
     this.form.reset({
       calibrationPlanId: null,
-      documentUrl: '',
       notes: ''
     });
 
@@ -166,9 +162,4 @@ export class CreateScheduleSubmissionDrawerComponent {
     return normalized ? normalized : null;
   }
 
-  private normalizeRequired(value: unknown): string {
-    return typeof value === 'string'
-      ? value.trim()
-      : '';
-  }
 }

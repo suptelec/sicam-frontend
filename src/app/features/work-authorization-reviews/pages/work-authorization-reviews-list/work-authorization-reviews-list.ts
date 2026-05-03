@@ -189,6 +189,9 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
       case CalibrationWorkAuthorizationStatus.Rejected:
         return 'Rechazada';
 
+      case CalibrationWorkAuthorizationStatus.Cancelled:
+        return 'Cancelada';
+
       default:
         return '—';
     }
@@ -207,6 +210,9 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
       case CalibrationWorkAuthorizationStatus.Rejected:
         return 'danger';
 
+      case CalibrationWorkAuthorizationStatus.Cancelled:
+        return 'info';
+
       default:
         return 'neutral';
     }
@@ -222,6 +228,9 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
 
       case CalibrationWorkAuthorizationStatus.Rejected:
         return 'block';
+
+      case CalibrationWorkAuthorizationStatus.Cancelled:
+        return 'cancel';
 
       default:
         return 'info';

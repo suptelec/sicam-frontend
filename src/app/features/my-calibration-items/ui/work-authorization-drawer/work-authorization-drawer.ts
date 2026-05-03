@@ -21,6 +21,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 import { WorkAuthorizationsService } from '../../data-access/work-authorizations.service';
 import { CreateCalibrationWorkAuthorizationRequest } from '../../domain/work-authorization.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-work-authorization-drawer',
@@ -33,7 +34,8 @@ import { CreateCalibrationWorkAuthorizationRequest } from '../../domain/work-aut
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './work-authorization-drawer.html',
   styleUrl: './work-authorization-drawer.scss'

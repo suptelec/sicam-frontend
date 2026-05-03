@@ -134,9 +134,13 @@ export interface CalibrationPlanItem {
 
   plannedStartDate?: string | null;
   plannedEndDate?: string | null;
-  scheduledDate?: string | null;
+scheduledDate?: string | null;
 
-  itemStatus: CalibrationPlanItemStatus;
+suggestedLaboratoryId?: number | null;
+suggestedLaboratoryName?: string | null;
+suggestedLaboratoryAccreditationCode?: string | null;
+
+itemStatus: CalibrationPlanItemStatus;
 
   status: EntityStatus;
   createdAt: string;
@@ -145,13 +149,13 @@ export interface CalibrationPlanItem {
 export const CalibrationPlanItemStatusLabels: Record<CalibrationPlanItemStatus, string> = {
   [CalibrationPlanItemStatus.Pending]: 'Pendiente',
   [CalibrationPlanItemStatus.DateChangeRequested]: 'Cambio de rango solicitado',
-  [CalibrationPlanItemStatus.ScheduledByPmse]: 'Cronograma enviado',
+  [CalibrationPlanItemStatus.ScheduledByPmse]: 'Agregado al cronograma',
   [CalibrationPlanItemStatus.ScheduleApproved]: 'Cronograma aprobado',
   [CalibrationPlanItemStatus.AuthorizationRequested]: 'Autorización solicitada',
-  [CalibrationPlanItemStatus.Authorized]: 'Autorizado',
-  [CalibrationPlanItemStatus.InProcess]: 'En proceso',
-  [CalibrationPlanItemStatus.InReview]: 'En revisión',
-  [CalibrationPlanItemStatus.Approved]: 'Aprobado',
-  [CalibrationPlanItemStatus.Rejected]: 'Rechazado',
-  [CalibrationPlanItemStatus.Expired]: 'Expirado'
+  [CalibrationPlanItemStatus.Authorized]: 'Autorizado para calibración',
+  [CalibrationPlanItemStatus.InProcess]: 'Calibración en proceso',
+  [CalibrationPlanItemStatus.InReview]: 'Proceso en revisión',
+  [CalibrationPlanItemStatus.Approved]: 'Calibración aprobada',
+  [CalibrationPlanItemStatus.Rejected]: 'Calibración rechazada',
+  [CalibrationPlanItemStatus.Expired]: 'Vencido'
 };

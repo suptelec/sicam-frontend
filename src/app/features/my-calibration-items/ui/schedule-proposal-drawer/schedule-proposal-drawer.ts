@@ -22,8 +22,8 @@ import { DrawerActionsComponent } from '../../../../shared/components/drawer-act
 import { ToastService } from '../../../../core/services/toast.service';
 import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
+import { PmseLaboratoriesService } from '../../../pmse-laboratories/data-access/pmse-laboratories.service';
+import { PmseLaboratory } from '../../../pmse-laboratories/domain/pmse-laboratory.model';
 
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 
@@ -34,6 +34,7 @@ import {
   CalibrationScheduleSubmissionStatus,
   CreateCalibrationScheduleSubmissionRequest
 } from '../../domain/calibration-schedule-submission.model';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-schedule-proposal-drawer',
@@ -47,7 +48,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent,
   ],
   templateUrl: './schedule-proposal-drawer.html',
   styleUrl: './schedule-proposal-drawer.scss'
@@ -60,13 +62,13 @@ export class ScheduleProposalDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationScheduleSubmissionsService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
+  private readonly laboratoriesService = inject(PmseLaboratoriesService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
   loading = false;
   loadingCatalogs = signal(false);
-  laboratories = signal<AccreditedLaboratory[]>([]);
+  laboratories = signal<PmseLaboratory[]>([]);
 
   readonly form = this.fb.group(
     {
@@ -99,12 +101,14 @@ export class ScheduleProposalDrawerComponent {
     return this.currentItem?.plannedEndDate ?? null;
   }
 
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
+  getLaboratoryLabel(laboratory: PmseLaboratory): string {
+    const name = laboratory.accreditedLaboratoryName ?? 'Laboratorio';
+
     const code = laboratory.accreditationCode
       ? ` · ${laboratory.accreditationCode}`
       : '';
 
-    return `${laboratory.name}${code}`;
+    return `${name}${code}`;
   }
 
 submit(): void {
@@ -131,13 +135,12 @@ submit(): void {
   const raw = this.form.getRawValue();
   const notes = this.normalize(raw.notes);
 
-  const addItemDto = {
-    calibrationPlanItemId: currentItem.id,
-    accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
-    proposedCalibrationDate: this.normalizeRequired(raw.scheduledDate),
-    laboratoryName: null,
-    notes
-  };
+const addItemDto: AddCalibrationScheduleSubmissionItemRequest = {
+  calibrationPlanItemId: currentItem.id,
+  accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
+  proposedCalibrationDate: this.normalizeRequired(raw.scheduledDate),
+  notes
+};
 
   this.loading = true;
 
@@ -176,29 +179,41 @@ submit(): void {
     this.closed.emit();
   }
 
-  private loadLaboratories(): void {
-    this.loadingCatalogs.set(true);
+private loadLaboratories(): void {
+  this.loadingCatalogs.set(true);
 
-    this.laboratoriesService.getAll({
-      page: 1,
-      take: 300,
-      orderBy: 'Name asc'
-    }).subscribe({
-      next: response => {
-        this.loadingCatalogs.set(false);
+  const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
-        if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
-        } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
-        }
-      },
-      error: () => {
-        this.loadingCatalogs.set(false);
-        this.toast.warning('No se pudieron cargar los laboratorios.');
+  const filter = [
+    'Status eq 1',
+    pmseFilter
+  ]
+    .filter(Boolean)
+    .map(value => `(${value})`)
+    .join(' and ');
+
+  this.laboratoriesService.getAll({
+    page: 1,
+    take: 300,
+    filter,
+    orderBy: 'AccreditedLaboratoryName asc'
+  }).subscribe({
+    next: response => {
+      this.loadingCatalogs.set(false);
+
+      if (response.succeed) {
+        this.laboratories.set(response.result ?? []);
+        return;
       }
-    });
-  }
+
+      this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+    },
+    error: () => {
+      this.loadingCatalogs.set(false);
+      this.toast.warning('No se pudieron cargar los laboratorios contratados.');
+    }
+  });
+}
 
   private reset(): void {
     this.form.reset({
