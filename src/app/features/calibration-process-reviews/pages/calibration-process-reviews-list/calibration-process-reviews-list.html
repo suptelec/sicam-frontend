@@ -1,0 +1,117 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Revisión CENACE"
+    title="Procesos de calibración en revisión"
+    description="Revisa los procesos de calibración enviados por los PMSE."
+    [showAction]="false"
+  />
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por medidor, PMSE, certificado o laboratorio..."
+    [loading]="isLoading()"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando procesos en revisión..."
+    emptyIcon="fact_check"
+    emptyTitle="No hay procesos en revisión"
+    emptyDescription="Cuando un PMSE envíe un proceso a revisión, aparecerá aquí."
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="process-table"
+    >
+      <ng-container matColumnDef="meter">
+        <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="process-name">
+            <div class="process-name__avatar">
+              <mat-icon>electric_meter</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.meterCode ?? '—' }}</strong>
+              <span>Serial: {{ row.meterSerial ?? '—' }}</span>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="pmse">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <strong>{{ row.pmseCompanyName ?? '—' }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="certificate">
+        <th mat-header-cell *matHeaderCellDef>Certificado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.certificateNumber ?? '—' }}</strong>
+            <span>Válido hasta {{ row.certificateValidUntil ?? '—' }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="executionDate">
+        <th mat-header-cell *matHeaderCellDef>Fecha ejecución</th>
+
+        <td mat-cell *matCellDef="let row">
+          <strong>{{ row.executionDate ?? '—' }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="processStatus">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <app-status-chip
+            [label]="getProcessStatusLabel(row.processStatus)"
+            [tone]="getProcessStatusTone(row.processStatus)"
+            icon="fact_check"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button
+            mat-icon-button
+            type="button"
+            class="row-actions__btn"
+            matTooltip="Revisar proceso"
+            (click)="onViewDetail(row)"
+          >
+            <mat-icon>visibility</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>

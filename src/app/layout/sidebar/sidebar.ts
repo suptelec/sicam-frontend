@@ -124,6 +124,14 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
+        label: 'Procesos en revisión',
+        route: '/calibration-process-reviews',
+        icon: 'factCheck',
+        section: 'Revisión CENACE',
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
         label: 'Telemedición',
         route: '/telemedicion',
         icon: 'signal',

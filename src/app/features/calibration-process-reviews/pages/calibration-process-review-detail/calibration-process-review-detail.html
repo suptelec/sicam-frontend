@@ -1,0 +1,375 @@
+<section class="page">
+  <button
+    mat-button
+    type="button"
+    class="back-button"
+    (click)="back()"
+  >
+    <mat-icon>arrow_back</mat-icon>
+    Volver a procesos en revisión
+  </button>
+
+  @if (process(); as current) {
+    <app-page-header
+      eyebrow="Revisión CENACE"
+      [title]="current.meterCode ?? 'Proceso #' + current.id"
+      description="Revisa la información técnica, documentos y eventos del proceso de calibración enviado por el PMSE."
+      [showAction]="false"
+    />
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <div class="summary-card__icon">
+          <mat-icon>electric_meter</mat-icon>
+        </div>
+
+        <div>
+          <span>Medidor</span>
+          <strong>{{ current.meterCode ?? '—' }}</strong>
+          <small>Serial: {{ current.meterSerial ?? '—' }}</small>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div class="summary-card__icon">
+          <mat-icon>business</mat-icon>
+        </div>
+
+        <div>
+          <span>PMSE</span>
+          <strong>{{ current.pmseCompanyName ?? '—' }}</strong>
+          <small>Empresa responsable del proceso</small>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div class="summary-card__icon">
+          <mat-icon>workspace_premium</mat-icon>
+        </div>
+
+        <div>
+          <span>Certificado</span>
+          <strong>{{ current.certificateNumber  }}</strong>
+          <small>Válido hasta {{ current.certificateValidUntil  }}</small>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <div class="summary-card__icon">
+          <mat-icon>fact_check</mat-icon>
+        </div>
+
+        <div>
+          <span>Estado</span>
+
+          <app-status-chip
+            [label]="getProcessStatusLabel(current.processStatus)"
+            [tone]="getProcessStatusTone(current.processStatus)"
+            icon="fact_check"
+          />
+        </div>
+      </article>
+    </section>
+    @if (current.processStatus === CalibrationProcessStatus.Approved) {
+  <section class="completion-card">
+    <mat-icon>verified</mat-icon>
+
+    <div>
+      <strong>Proceso aprobado</strong>
+      <p>
+        El proceso de calibración fue aprobado. El certificado histórico del medidor
+        fue actualizado y el flujo queda finalizado.
+      </p>
+    </div>
+  </section>
+}
+
+    <section class="review-grid">
+      <article class="review-card">
+        <span>Fecha de ejecución</span>
+        <strong>{{ current.executionDate  }}</strong>
+        <small>Fecha en la que se ejecutó la calibración</small>
+      </article>
+
+      <article class="review-card">
+        <span>Laboratorio</span>
+        <strong>
+          {{ current.accreditedLaboratoryName ?? current.laboratoryName ?? '—' }}
+        </strong>
+        <small>Laboratorio declarado por el PMSE</small>
+      </article>
+
+      <article class="review-card">
+        <span>Resultado</span>
+        <strong>{{ current.calibrationResult  }}</strong>
+        <small>Resultado técnico de la calibración</small>
+      </article>
+
+      <article class="review-card">
+        <span>Fecha emisión certificado</span>
+        <strong>{{ current.certificateIssueDate  }}</strong>
+        <small>Fecha de emisión del certificado</small>
+      </article>
+    </section>
+
+    <section class="seals-card">
+      <div class="section-heading">
+        <div>
+          <p>Sellos posteriores</p>
+          <h3>Información registrada después de la calibración</h3>
+        </div>
+      </div>
+
+      <div class="seals-grid">
+        <article>
+          <span>Sello principal del medidor</span>
+          <strong>{{ current.mainMeterSealAfterCalibration ?? '—' }}</strong>
+        </article>
+
+        <article>
+          <span>Sello bornera 1</span>
+          <strong>{{ current.terminalBlockSealOneAfterCalibration ?? '—' }}</strong>
+        </article>
+
+        <article>
+          <span>Sello bornera 2</span>
+          <strong>{{ current.terminalBlockSealTwoAfterCalibration ?? '—' }}</strong>
+        </article>
+      </div>
+    </section>
+
+    @if (current.notes) {
+      <section class="notes-card">
+        <mat-icon>notes</mat-icon>
+
+        <div>
+          <strong>Notas del PMSE</strong>
+          <p>{{ current.notes }}</p>
+        </div>
+      </section>
+    }
+
+    <section class="actions-bar">
+      <button
+        mat-flat-button
+        type="button"
+        class="actions-bar__btn actions-bar__btn--success"
+        [disabled]="!canApprove || isApproving() || isRejecting()"
+        [matTooltip]="canApprove ? 'Aprobar proceso final' : 'Para aprobar, debe estar en revisión, tener resultado aprobado, certificado y acta'"
+        (click)="onApprove()"
+      >
+        <mat-icon>check_circle</mat-icon>
+        Aprobar proceso
+      </button>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="actions-bar__btn actions-bar__btn--danger"
+        [disabled]="!canReject || isApproving() || isRejecting()"
+        [matTooltip]="canReject ? 'Rechazar proceso' : 'Solo se pueden rechazar procesos en revisión'"
+        (click)="onRejectClicked()"
+      >
+        <mat-icon>block</mat-icon>
+        Rechazar
+      </button>
+
+      <button
+        mat-icon-button
+        type="button"
+        class="actions-bar__refresh"
+        matTooltip="Actualizar"
+        (click)="load()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </section>
+
+    <section class="checklist-card">
+      <article [class.checklist-card__item--done]="hasCertificate">
+        <mat-icon>
+          {{ hasCertificate ? 'check_circle' : 'radio_button_unchecked' }}
+        </mat-icon>
+
+        <div>
+          <strong>Certificado de calibración</strong>
+          <span>{{ hasCertificate ? 'Cargado' : 'Pendiente' }}</span>
+        </div>
+      </article>
+
+      <article [class.checklist-card__item--done]="hasAct">
+        <mat-icon>
+          {{ hasAct ? 'check_circle' : 'radio_button_unchecked' }}
+        </mat-icon>
+
+        <div>
+          <strong>Acta de calibración</strong>
+          <span>{{ hasAct ? 'Cargada' : 'Pendiente' }}</span>
+        </div>
+      </article>
+
+      <article [class.checklist-card__item--done]="hasCalibrationExecutedEvent">
+        <mat-icon>
+          {{ hasCalibrationExecutedEvent ? 'check_circle' : 'radio_button_unchecked' }}
+        </mat-icon>
+
+        <div>
+          <strong>Evento calibración ejecutada</strong>
+          <span>{{ hasCalibrationExecutedEvent ? 'Registrado' : 'Pendiente' }}</span>
+        </div>
+      </article>
+    </section>
+
+    <app-table-card
+      [loading]="isLoading()"
+      [empty]="documentsDataSource.data.length === 0"
+      loadingText="Cargando documentos..."
+      emptyIcon="description"
+      emptyTitle="No hay documentos cargados"
+      emptyDescription="El PMSE debe haber cargado certificado y acta antes de enviar a revisión."
+    >
+      <table
+        table-content
+        mat-table
+        [dataSource]="documentsDataSource"
+        class="documents-table"
+      >
+        <ng-container matColumnDef="documentType">
+          <th mat-header-cell *matHeaderCellDef>Tipo</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="document-type">
+              <mat-icon>description</mat-icon>
+              <strong>{{ getDocumentTypeLabel(row.documentType) }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="fileName">
+          <th mat-header-cell *matHeaderCellDef>Archivo</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="stacked-cell">
+              <strong>{{ row.fileName }}</strong>
+              <span>{{ row.contentType }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+
+          <td mat-cell *matCellDef="let row">
+            <span class="muted">{{ row.description ?? '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            <a
+              mat-icon-button
+              class="row-actions__btn"
+              [href]="row.fileUrl"
+              target="_blank"
+              rel="noopener"
+              matTooltip="Ver documento"
+            >
+              <mat-icon>open_in_new</mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="documentColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: documentColumns"></tr>
+      </table>
+    </app-table-card>
+
+    <app-table-card
+      [loading]="isLoading()"
+      [empty]="eventsDataSource.data.length === 0"
+      loadingText="Cargando eventos..."
+      emptyIcon="event_note"
+      emptyTitle="No hay eventos técnicos"
+      emptyDescription="El PMSE debe registrar el evento de calibración ejecutada antes de enviar a revisión."
+    >
+      <table
+        table-content
+        mat-table
+        [dataSource]="eventsDataSource"
+        class="events-table"
+      >
+        <ng-container matColumnDef="eventType">
+          <th mat-header-cell *matHeaderCellDef>Evento</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="event-type">
+              <mat-icon>event_available</mat-icon>
+              <strong>{{ getEventTypeLabel(row.eventType) }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="occurredAt">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ row.occurredAt ?? '—' }}</strong>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+
+          <td mat-cell *matCellDef="let row">
+            <span class="muted">{{ row.description ?? '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="attachment">
+          <th mat-header-cell *matHeaderCellDef>Adjunto</th>
+
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            @if (row.attachmentUrl) {
+              <a
+                mat-icon-button
+                class="row-actions__btn"
+                [href]="row.attachmentUrl"
+                target="_blank"
+                rel="noopener"
+                matTooltip="Ver adjunto"
+              >
+                <mat-icon>open_in_new</mat-icon>
+              </a>
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="eventColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: eventColumns"></tr>
+      </table>
+    </app-table-card>
+  } @else {
+    <section class="loading-page">
+      <mat-spinner diameter="36" />
+      <span>Cargando proceso...</span>
+    </section>
+  }
+</section>
+
+@if (rejectDrawerOpen()) {
+  <app-drawer-shell
+    [open]="rejectDrawerOpen()"
+    width="620px"
+    (closed)="onRejectDrawerClosed()"
+  >
+    <app-reject-calibration-process-drawer
+      [process]="process()"
+      (closed)="onRejectDrawerClosed()"
+      (rejected)="onRejectConfirmed($event)"
+    ></app-reject-calibration-process-drawer>
+  </app-drawer-shell>
+}

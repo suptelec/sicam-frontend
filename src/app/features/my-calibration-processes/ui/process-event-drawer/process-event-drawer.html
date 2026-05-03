@@ -1,0 +1,104 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">EVENTO TÉCNICO</p>
+
+      <h2>Registrar calibración ejecutada</h2>
+
+      <p class="drawer__description">
+        Registra el evento que confirma que la calibración fue ejecutada conforme a la autorización de CENACE.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      <section class="event-summary">
+        <div class="event-summary__icon">
+          <mat-icon>event_available</mat-icon>
+        </div>
+
+        <div>
+          <span>Tipo de evento</span>
+          <strong>Calibración ejecutada</strong>
+          <small>Este evento es obligatorio para enviar el proceso a revisión.</small>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">Datos del evento</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Fecha y hora de ejecución</mat-label>
+
+          <input
+            matInput
+            type="datetime-local"
+            formControlName="occurredAt"
+          />
+
+          @if (form.controls.occurredAt.hasError('required') && form.controls.occurredAt.touched) {
+            <mat-error>La fecha y hora es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Descripción</mat-label>
+
+          <textarea
+            matInput
+            rows="5"
+            formControlName="description"
+          ></textarea>
+
+          @if (form.controls.description.hasError('required') && form.controls.description.touched) {
+            <mat-error>La descripción es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>URL de evidencia o adjunto</mat-label>
+
+          <input
+            matInput
+            formControlName="attachmentUrl"
+            autocomplete="off"
+            placeholder="https://..."
+          />
+        </mat-form-field>
+      </section>
+
+      <section class="info-card">
+        <mat-icon>info</mat-icon>
+
+        <div>
+          <strong>Validación requerida</strong>
+          <p>
+            El proceso solo podrá enviarse a revisión cuando exista este evento,
+            el certificado de calibración y el acta de calibración.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Registrar evento"
+      submitIcon="save"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

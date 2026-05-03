@@ -1,0 +1,50 @@
+.summary-card,
+.info-card {
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  span {
+    display: block;
+    color: #8ea0bd;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  strong {
+    display: block;
+    margin-top: 4px;
+    color: #ffffff;
+    font-weight: 800;
+  }
+
+  small,
+  p {
+    display: block;
+    margin: 6px 0 0;
+    color: #a8b3c7;
+    line-height: 1.45;
+  }
+}
+
+.summary-card {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.22);
+
+  mat-icon {
+    color: #f87171;
+  }
+}
+
+.info-card {
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+
+  mat-icon {
+    color: #fbbf24;
+  }
+}

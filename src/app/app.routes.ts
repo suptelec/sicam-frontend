@@ -87,6 +87,18 @@ export const routes: Routes = [
           import('./features/work-authorization-reviews/work-authorization-reviews.routes')
             .then(m => m.WORK_AUTHORIZATION_REVIEWS_ROUTES)
       },
+      {
+        path: 'my-calibration-processes',
+        loadChildren: () =>
+          import('./features/my-calibration-processes/my-calibration-processes.routes')
+            .then(m => m.MY_CALIBRATION_PROCESSES_ROUTES)
+      },
+      {
+        path: 'calibration-process-reviews',
+        loadChildren: () =>
+          import('./features/calibration-process-reviews/calibration-process-reviews.routes')
+            .then(m => m.CALIBRATION_PROCESS_REVIEWS_ROUTES)
+      },
     ]
   },
   {

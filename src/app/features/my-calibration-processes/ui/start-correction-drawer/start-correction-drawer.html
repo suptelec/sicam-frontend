@@ -1,0 +1,78 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">CORRECCIÓN PMSE</p>
+
+      <h2>Iniciar corrección</h2>
+
+      <p class="drawer__description">
+        Inicia la corrección del proceso rechazado por CENACE para actualizar datos, documentos o eventos.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentProcess; as current) {
+        <section class="summary-card">
+          <mat-icon>fact_check</mat-icon>
+
+          <div>
+            <span>Proceso rechazado</span>
+            <strong>{{ current.meterCode ?? 'Proceso #' + current.id }}</strong>
+            <small>Certificado: {{ current.certificateNumber }}</small>
+          </div>
+        </section>
+      }
+
+      <section class="form-section">
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Notas de corrección</mat-label>
+
+          <textarea
+            matInput
+            rows="6"
+            formControlName="correctionNotes"
+            placeholder="Se corrige documentación observada por CENACE."
+          ></textarea>
+
+          @if (form.controls.correctionNotes.hasError('required') && form.controls.correctionNotes.touched) {
+            <mat-error>Las notas de corrección son obligatorias.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+
+      <section class="info-card">
+        <mat-icon>info</mat-icon>
+
+        <div>
+          <strong>Después de iniciar corrección</strong>
+          <p>
+            El proceso pasará a estado En corrección y podrás cargar documentos,
+            registrar eventos y reenviar a revisión.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Iniciar corrección"
+      submitIcon="edit"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

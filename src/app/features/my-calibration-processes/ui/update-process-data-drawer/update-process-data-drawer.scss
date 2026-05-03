@@ -1,0 +1,221 @@
+.drawer {
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface, #0b1730);
+  color: var(--color-text, #f9fafb);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.drawer__header {
+  padding: 24px 24px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+
+  h2 {
+    margin: 4px 0 8px;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+}
+
+.drawer__eyebrow {
+  margin: 0;
+  color: #2b8ae2;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.drawer__description {
+  margin: 0;
+  color: #c7d2e5;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.drawer__close-btn {
+  color: #9fb0c9;
+  border-radius: 12px;
+}
+
+.drawer__form {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer__body {
+  min-height: 0;
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.process-summary,
+.warning-card {
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  span {
+    display: block;
+    color: #8ea0bd;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  strong {
+    display: block;
+    margin-top: 4px;
+    color: #ffffff;
+    font-weight: 800;
+  }
+
+  small,
+  p {
+    display: block;
+    margin: 6px 0 0;
+    color: #a8b3c7;
+    line-height: 1.45;
+  }
+}
+
+.process-summary {
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+.process-summary__icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
+  display: grid;
+  place-items: center;
+}
+
+.warning-card {
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+
+  mat-icon {
+    color: #fbbf24;
+  }
+}
+
+.form-section {
+  width: 100%;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section-title {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.drawer__field {
+  width: 100%;
+  display: block;
+}
+
+.drawer__textarea textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field {
+  width: 100%;
+  display: block;
+}
+
+.drawer ::ng-deep .mat-mdc-text-field-wrapper {
+  background: rgba(8, 18, 38, 0.92) !important;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 56px;
+  padding: 16px 14px 12px !important;
+}
+
+.drawer ::ng-deep input.mat-mdc-input-element,
+.drawer ::ng-deep textarea.mat-mdc-input-element {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f9fafb !important;
+  font-size: 0.95rem;
+  caret-color: #60a5fa;
+}
+
+.drawer ::ng-deep input[readonly] {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.drawer ::ng-deep .mat-mdc-select-value,
+.drawer ::ng-deep .mat-mdc-select-arrow,
+.drawer ::ng-deep .mdc-floating-label {
+  color: #c7d2e5 !important;
+}
+
+.drawer ::ng-deep .mat-focused .mdc-floating-label {
+  color: #60a5fa !important;
+}
+
+.drawer ::ng-deep .mdc-notched-outline__leading,
+.drawer ::ng-deep .mdc-notched-outline__notch,
+.drawer ::ng-deep .mdc-notched-outline__trailing {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+.drawer ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+.drawer ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(96, 165, 250, 0.48) !important;
+}
+
+.drawer ::ng-deep .mat-focused .mdc-notched-outline__leading,
+.drawer ::ng-deep .mat-focused .mdc-notched-outline__notch,
+.drawer ::ng-deep .mat-focused .mdc-notched-outline__trailing {
+  border-color: #60a5fa !important;
+}
+
+.drawer ::ng-deep .mat-mdc-form-field-error {
+  color: #ffb4b4 !important;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 760px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}

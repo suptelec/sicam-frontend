@@ -171,7 +171,8 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Iniciar proceso de calibración"
-                disabled
+                [disabled]="!canStartCalibrationProcess(row)"
+                (click)="onStartProcessClicked(row)"
               >
                 <mat-icon>engineering</mat-icon>
               </button>
@@ -182,8 +183,8 @@
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Continuar proceso"
-                disabled
+                matTooltip="Continuar proceso de calibración"
+                (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>play_circle</mat-icon>
               </button>
@@ -194,8 +195,8 @@
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Proceso en revisión CENACE"
-                disabled
+                matTooltip="Ver proceso en revisión"
+                (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>fact_check</mat-icon>
               </button>
@@ -206,8 +207,8 @@
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Ver calibración aprobada"
-                disabled
+                matTooltip="Ver proceso aprobado"
+                (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>check_circle</mat-icon>
               </button>
@@ -218,8 +219,8 @@
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Ver rechazo / corregir"
-                disabled
+                matTooltip="Ver rechazo / iniciar corrección"
+                (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>error</mat-icon>
               </button>
@@ -300,6 +301,22 @@
         (closed)="onWorkAuthorizationDrawerClosed()"
         (created)="onWorkAuthorizationCreated()"
       ></app-work-authorization-drawer>
+    </app-drawer-shell>
+  }
+}
+
+@if (startProcessDrawerOpen()) {
+  @if (selectedStartProcessItem(); as item) {
+    <app-drawer-shell
+      [open]="startProcessDrawerOpen()"
+      width="720px"
+      (closed)="onStartProcessDrawerClosed()"
+    >
+      <app-start-calibration-process-drawer
+        [item]="item"
+        (closed)="onStartProcessDrawerClosed()"
+        (created)="onProcessCreated($event)"
+      ></app-start-calibration-process-drawer>
     </app-drawer-shell>
   }
 }

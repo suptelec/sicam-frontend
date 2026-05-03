@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -26,6 +27,8 @@ import {
 import { ScheduleProposalDrawerComponent } from '../../ui/schedule-proposal-drawer/schedule-proposal-drawer';
 import { DateChangeRequestDrawerComponent } from '../../ui/date-change-request-drawer/date-change-request-drawer';
 import { WorkAuthorizationDrawerComponent } from '../../ui/work-authorization-drawer/work-authorization-drawer';
+import { StartCalibrationProcessDrawerComponent } from '../../ui/start-calibration-process-drawer/start-calibration-process-drawer';
+import { CalibrationProcessesService } from '../../data-access/calibration-processes.service';
 
 @Component({
   selector: 'app-my-calibration-items-list',
@@ -43,7 +46,8 @@ import { WorkAuthorizationDrawerComponent } from '../../ui/work-authorization-dr
     DrawerShellComponent,
     ScheduleProposalDrawerComponent,
     DateChangeRequestDrawerComponent,
-    WorkAuthorizationDrawerComponent
+    WorkAuthorizationDrawerComponent,
+    StartCalibrationProcessDrawerComponent
   ],
   templateUrl: './my-calibration-items-list.html',
   styleUrl: './my-calibration-items-list.scss'
@@ -53,11 +57,15 @@ export class MyCalibrationItemsListComponent implements OnInit {
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
+  private readonly router = inject(Router);
+  private readonly processesService = inject(CalibrationProcessesService);
 
   readonly CalibrationPlanItemStatus = CalibrationPlanItemStatus;
 
   workAuthorizationDrawerOpen = signal(false);
   selectedWorkAuthorizationItem = signal<CalibrationPlanItem | null>(null);
+  startProcessDrawerOpen = signal(false);
+  selectedStartProcessItem = signal<CalibrationPlanItem | null>(null);
   dataSource = new MatTableDataSource<CalibrationPlanItem>([]);
 
   displayedColumns = [
@@ -194,6 +202,50 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.selectedItem.set(null);
     this.load();
   }
+
+onContinueProcessClicked(item: CalibrationPlanItem): void {
+  this.processesService.findActiveByPlanItem(item.id).subscribe({
+    next: process => {
+      if (!process) {
+        this.toast.warning('No se encontró un proceso activo para este ítem.');
+        return;
+      }
+
+      this.router.navigate(['/my-calibration-processes', process.id]);
+    },
+    error: () => {
+      this.toast.error('Error al buscar el proceso de calibración.');
+    }
+  });
+}
+
+canStartCalibrationProcess(item: CalibrationPlanItem): boolean {
+  return Number(item.itemStatus) === CalibrationPlanItemStatus.Authorized &&
+    !!item.scheduledDate;
+}
+
+onStartProcessClicked(item: CalibrationPlanItem): void {
+  if (!this.canStartCalibrationProcess(item)) {
+    this.toast.warning('Solo puedes iniciar calibración cuando el ítem está autorizado.');
+    return;
+  }
+
+  this.selectedStartProcessItem.set(item);
+  this.startProcessDrawerOpen.set(true);
+}
+
+onStartProcessDrawerClosed(): void {
+  this.startProcessDrawerOpen.set(false);
+  this.selectedStartProcessItem.set(null);
+}
+
+onProcessCreated(processId: number): void {
+  this.startProcessDrawerOpen.set(false);
+  this.selectedStartProcessItem.set(null);
+  this.load();
+
+  this.router.navigate(['/my-calibration-processes', processId]);
+}
 
 canRequestWorkAuthorization(item: CalibrationPlanItem): boolean {
   return Number(item.itemStatus) === CalibrationPlanItemStatus.ScheduleApproved &&

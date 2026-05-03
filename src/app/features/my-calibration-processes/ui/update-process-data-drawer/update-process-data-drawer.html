@@ -1,0 +1,223 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">DATOS DEL PROCESO</p>
+
+      <h2>Actualizar datos</h2>
+
+      <p class="drawer__description">
+        Corrige la información técnica del proceso de calibración antes de reenviarlo a revisión CENACE.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentProcess; as current) {
+        <section class="process-summary">
+          <div class="process-summary__icon">
+            <mat-icon>engineering</mat-icon>
+          </div>
+
+          <div>
+            <span>Proceso</span>
+            <strong>{{ current.meterCode ?? 'Proceso #' + current.id }}</strong>
+            <small>Certificado actual: {{ current.certificateNumber  }}</small>
+          </div>
+        </section>
+      }
+
+      @if (!canEdit) {
+        <section class="warning-card">
+          <mat-icon>lock</mat-icon>
+
+          <div>
+            <strong>Proceso no editable</strong>
+            <p>Solo se pueden editar procesos en estado En proceso o En corrección.</p>
+          </div>
+        </section>
+      }
+
+      <section class="form-section">
+        <div class="section-title">Laboratorio y ejecución</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Laboratorio acreditado</mat-label>
+
+          <mat-select formControlName="accreditedLaboratoryId">
+            @for (laboratory of laboratories(); track laboratory.id) {
+              <mat-option [value]="laboratory.id">
+                {{ getLaboratoryLabel(laboratory) }}
+              </mat-option>
+            }
+          </mat-select>
+
+          @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
+            <mat-error>El laboratorio acreditado es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Nombre de laboratorio externo</mat-label>
+
+          <input
+            matInput
+            formControlName="laboratoryName"
+            autocomplete="off"
+            placeholder="Opcional si seleccionaste laboratorio acreditado"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Fecha de ejecución</mat-label>
+
+          <input
+            matInput
+            type="date"
+            formControlName="executionDate"
+            readonly
+          />
+
+          @if (form.controls.executionDate.hasError('required') && form.controls.executionDate.touched) {
+            <mat-error>La fecha de ejecución es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">Certificado</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Número de certificado</mat-label>
+
+          <input
+            matInput
+            formControlName="certificateNumber"
+            autocomplete="off"
+            placeholder="CERT-CAL-2026-EMAPQU-006-CORR"
+          />
+
+          @if (form.controls.certificateNumber.hasError('required') && form.controls.certificateNumber.touched) {
+            <mat-error>El número de certificado es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Fecha emisión</mat-label>
+
+            <input
+              matInput
+              type="date"
+              formControlName="certificateIssueDate"
+            />
+
+            @if (form.controls.certificateIssueDate.hasError('required') && form.controls.certificateIssueDate.touched) {
+              <mat-error>La fecha de emisión es obligatoria.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Válido hasta</mat-label>
+
+            <input
+              matInput
+              type="date"
+              formControlName="certificateValidUntil"
+            />
+
+            @if (form.controls.certificateValidUntil.hasError('required') && form.controls.certificateValidUntil.touched) {
+              <mat-error>La fecha de vigencia es obligatoria.</mat-error>
+            }
+
+            @if (form.hasError('certificateValidUntilBeforeOrEqualIssueDate') && form.controls.certificateValidUntil.touched) {
+              <mat-error>La vigencia debe ser mayor que la fecha de emisión.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Resultado de calibración</mat-label>
+
+          <mat-select formControlName="calibrationResult">
+            <mat-option [value]="CalibrationResult.Approved">
+              Aprobado
+            </mat-option>
+
+            <mat-option [value]="CalibrationResult.Rejected">
+              Rechazado
+            </mat-option>
+            
+          </mat-select>
+        </mat-form-field>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title">Sellos posteriores</div>
+
+        <mat-form-field appearance="outline" class="drawer__field">
+          <mat-label>Sello principal del medidor</mat-label>
+
+          <input
+            matInput
+            formControlName="mainMeterSealAfterCalibration"
+            autocomplete="off"
+          />
+        </mat-form-field>
+
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Sello bornera 1</mat-label>
+
+            <input
+              matInput
+              formControlName="terminalBlockSealOneAfterCalibration"
+              autocomplete="off"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="drawer__field">
+            <mat-label>Sello bornera 2</mat-label>
+
+            <input
+              matInput
+              formControlName="terminalBlockSealTwoAfterCalibration"
+              autocomplete="off"
+            />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Notas</mat-label>
+
+          <textarea
+            matInput
+            rows="4"
+            formControlName="notes"
+            placeholder="Datos corregidos luego de revisión CENACE."
+          ></textarea>
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Guardar cambios"
+      submitIcon="save"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

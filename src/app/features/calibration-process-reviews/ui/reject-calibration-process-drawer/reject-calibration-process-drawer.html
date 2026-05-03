@@ -1,0 +1,64 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">RECHAZO CENACE</p>
+      <h2>Rechazar proceso</h2>
+      <p class="drawer__description">
+        Indica el motivo por el cual el proceso de calibración será rechazado.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentProcess; as current) {
+        <section class="summary-card">
+          <mat-icon>fact_check</mat-icon>
+
+          <div>
+            <span>Proceso</span>
+            <strong>{{ current.meterCode ?? 'Proceso #' + current.id }}</strong>
+            <small>Certificado: {{ current.certificateNumber }}</small>
+          </div>
+        </section>
+      }
+
+      <section class="form-section">
+        <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+          <mat-label>Motivo de rechazo</mat-label>
+
+          <textarea
+            matInput
+            rows="6"
+            formControlName="rejectionReason"
+            placeholder="Ejemplo: El acta de calibración no coincide con el certificado adjunto."
+          ></textarea>
+
+          @if (form.controls.rejectionReason.hasError('required') && form.controls.rejectionReason.touched) {
+            <mat-error>El motivo de rechazo es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Rechazar proceso"
+      submitIcon="block"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>
