@@ -3,7 +3,7 @@ export const environment = {
   apiUrl: 'https://sicam-backend-20260503-2101.onrender.com',
   identityUrl: 'https://identity-20260503-2125.onrender.com',
   oidc: {
-    issuer: 'https://identity-20260503-2125.onrender.com',
+    issuer: 'https://identity-20260503-2125.onrender.com/',
     redirectUri: 'https://sicam-frontend.onrender.com/auth/callback',
     postLogoutRedirectUri: 'https://sicam-frontend.onrender.com/auth/logout',
     clientId: 'scm-spa',
