@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://sicam-backend-20260503-2101.onrender.com',
+  apiUrl: 'https://sicam-backend-20260503-2101.onrender.com/api',
   identityUrl: 'https://identity-20260503-2125.onrender.com',
   oidc: {
     issuer: 'https://identity-20260503-2125.onrender.com/',
