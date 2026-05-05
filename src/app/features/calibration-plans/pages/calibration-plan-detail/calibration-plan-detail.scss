@@ -160,7 +160,12 @@
 }
 
 .filter-field--company {
-  width: 280px;
+  width: 320px;
+
+  app-searchable-select {
+    display: block;
+    width: 100%;
+  }
 }
 
 .filter-field--date-range {
@@ -235,52 +240,6 @@
     align-items: center;
   }
 
-  .mat-mdc-select {
-    display: flex;
-    align-items: center;
-  }
-
-  .mat-mdc-select-trigger {
-    height: 38px;
-    display: flex;
-    align-items: center;
-  }
-
-  .mat-mdc-select-value,
-  .mat-date-range-input {
-    color: var(--color-text, #f9fafb);
-    font-size: 0.88rem;
-    font-weight: 600;
-  }
-
-  .mat-mdc-select-placeholder,
-  .mat-date-range-input input::placeholder {
-    color: #cbd5e1;
-    font-size: 0.88rem;
-    font-weight: 500;
-  }
-
-  .mat-date-range-input {
-    width: 100%;
-  }
-
-  .mat-date-range-input input {
-    color: #f9fafb !important;
-  }
-
-  .mat-date-range-input-separator {
-    color: #94a3b8;
-    margin: 0 4px;
-  }
-
-  .mat-mdc-select-arrow {
-    color: #cbd5e1;
-  }
-
-  .mat-datepicker-toggle {
-    color: #cbd5e1;
-  }
-
   .mat-mdc-icon-button.mat-mdc-button-base {
     padding: 0;
   }
@@ -307,10 +266,37 @@
       border-width: 1px !important;
     }
 
-    .mat-mdc-select-arrow,
     .mat-datepicker-toggle {
       color: #60a5fa;
     }
+  }
+}
+
+:host ::ng-deep .date-range-control {
+  .mat-date-range-input {
+    width: 100%;
+    color: var(--color-text, #f9fafb);
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  .mat-date-range-input input {
+    color: #f9fafb !important;
+  }
+
+  .mat-date-range-input input::placeholder {
+    color: #cbd5e1;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+
+  .mat-date-range-input-separator {
+    color: #94a3b8;
+    margin: 0 4px;
+  }
+
+  .mat-datepicker-toggle {
+    color: #cbd5e1;
   }
 }
 

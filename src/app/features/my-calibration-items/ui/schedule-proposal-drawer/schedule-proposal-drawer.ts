@@ -8,7 +8,7 @@ import {
   Validators
 } from '@angular/forms';
 
-import { Observable, of, switchMap, throwError } from 'rxjs';
+import { Observable, forkJoin, of, switchMap, throwError } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -31,8 +31,7 @@ import { CalibrationScheduleSubmissionsService } from '../../data-access/calibra
 import {
   AddCalibrationScheduleSubmissionItemRequest,
   CalibrationScheduleSubmission,
-  CalibrationScheduleSubmissionStatus,
-  CreateCalibrationScheduleSubmissionRequest
+  CalibrationScheduleSubmissionStatus
 } from '../../domain/calibration-schedule-submission.model';
 import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
@@ -49,13 +48,13 @@ import { DateFieldComponent } from '../../../../shared/components/date-field/dat
     MatSelectModule,
     MatTooltipModule,
     DrawerActionsComponent,
-    DateFieldComponent,
+    DateFieldComponent
   ],
   templateUrl: './schedule-proposal-drawer.html',
   styleUrl: './schedule-proposal-drawer.scss'
 })
 export class ScheduleProposalDrawerComponent {
-  item = input<CalibrationPlanItem | null>(null);
+  items = input<CalibrationPlanItem[]>([]);
 
   @Output() closed = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<void>();
@@ -85,20 +84,67 @@ export class ScheduleProposalDrawerComponent {
     this.loadLaboratories();
   }
 
-  get currentItem(): CalibrationPlanItem | null {
-    return this.item();
+  get currentItems(): CalibrationPlanItem[] {
+    return this.items() ?? [];
+  }
+
+  get firstItem(): CalibrationPlanItem | null {
+    return this.currentItems[0] ?? null;
+  }
+
+  get isBulkMode(): boolean {
+    return this.currentItems.length > 1;
   }
 
   get saveDisabled(): boolean {
-    return this.loading || this.loadingCatalogs() || this.form.invalid || !this.currentItem;
+    return this.loading ||
+      this.loadingCatalogs() ||
+      this.form.invalid ||
+      this.currentItems.length === 0 ||
+      !this.hasCommonRange;
   }
 
   get minDate(): string | null {
-    return this.currentItem?.plannedStartDate ?? null;
+    return this.commonStartDate;
   }
 
   get maxDate(): string | null {
-    return this.currentItem?.plannedEndDate ?? null;
+    return this.commonEndDate;
+  }
+
+  get commonStartDate(): string | null {
+    const validDates = this.currentItems
+      .map(item => item.plannedStartDate)
+      .filter((date): date is string => !!date);
+
+    if (validDates.length !== this.currentItems.length || validDates.length === 0) {
+      return null;
+    }
+
+    return validDates.reduce((latest, current) =>
+      current > latest ? current : latest
+    );
+  }
+
+  get commonEndDate(): string | null {
+    const validDates = this.currentItems
+      .map(item => item.plannedEndDate)
+      .filter((date): date is string => !!date);
+
+    if (validDates.length !== this.currentItems.length || validDates.length === 0) {
+      return null;
+    }
+
+    return validDates.reduce((earliest, current) =>
+      current < earliest ? current : earliest
+    );
+  }
+
+  get hasCommonRange(): boolean {
+    const start = this.commonStartDate;
+    const end = this.commonEndDate;
+
+    return !!start && !!end && start <= end;
   }
 
   getLaboratoryLabel(laboratory: PmseLaboratory): string {
@@ -111,66 +157,96 @@ export class ScheduleProposalDrawerComponent {
     return `${name}${code}`;
   }
 
-submit(): void {
-  const currentItem = this.currentItem;
+  submit(): void {
+    const items = this.currentItems;
 
-  if (!currentItem) {
-    this.toast.error('No se recibió el ítem del plan.');
-    return;
-  }
-
-  if (this.form.invalid || this.loading) {
-    this.form.markAllAsTouched();
-    this.toast.warning('Revisa los campos obligatorios antes de guardar.');
-    return;
-  }
-
-  const pmseCompanyId = this.userScope.pmseCompanyId();
-
-  if (!pmseCompanyId) {
-    this.toast.error('No se pudo resolver la empresa PMSE del usuario.');
-    return;
-  }
-
-  const raw = this.form.getRawValue();
-  const notes = this.normalize(raw.notes);
-
-const addItemDto: AddCalibrationScheduleSubmissionItemRequest = {
-  calibrationPlanItemId: currentItem.id,
-  accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
-  proposedCalibrationDate: this.normalizeRequired(raw.scheduledDate),
-  notes
-};
-
-  this.loading = true;
-
-  this.getOrCreateDraftSubmission(
-    currentItem.calibrationPlanId,
-    pmseCompanyId,
-    notes
-  ).pipe(
-    switchMap(submission => {
-      return this.service.addItem(submission.id, addItemDto);
-    })
-  ).subscribe({
-    next: response => {
-      this.loading = false;
-
-      if (!response.succeed) {
-        this.toast.error(response.message ?? 'No se pudo agregar el ítem al cronograma.');
-        return;
-      }
-
-      this.toast.success('Propuesta agregada al cronograma.');
-      this.submitted.emit();
-      this.reset();
-    },
-    error: error => {
-      this.loading = false;
-      this.toast.error(error?.message ?? 'Error al guardar la propuesta.');
+    if (items.length === 0) {
+      this.toast.error('No se recibieron ítems del plan.');
+      return;
     }
-  });
-}
+
+    if (!this.hasCommonRange) {
+      this.toast.warning('Los ítems seleccionados no tienen un rango planificado común.');
+      return;
+    }
+
+    if (this.form.invalid || this.loading) {
+      this.form.markAllAsTouched();
+      this.toast.warning('Revisa los campos obligatorios antes de guardar.');
+      return;
+    }
+
+    const pmseCompanyId = this.userScope.pmseCompanyId();
+
+    if (!pmseCompanyId) {
+      this.toast.error('No se pudo resolver la empresa PMSE del usuario.');
+      return;
+    }
+
+    const planIds = new Set(items.map(item => item.calibrationPlanId));
+
+    if (planIds.size > 1) {
+      this.toast.warning('Los ítems seleccionados deben pertenecer al mismo plan anual.');
+      return;
+    }
+
+    const raw = this.form.getRawValue();
+    const notes = this.normalize(raw.notes);
+    const proposedCalibrationDate = this.normalizeDateValue(raw.scheduledDate);
+    const accreditedLaboratoryId = Number(raw.accreditedLaboratoryId);
+
+    const calibrationPlanId = items[0].calibrationPlanId;
+
+    this.loading = true;
+
+    this.getOrCreateDraftSubmission(
+      calibrationPlanId,
+      pmseCompanyId,
+      notes
+    ).pipe(
+      switchMap(submission => {
+        const requests = items.map(item => {
+          const dto: AddCalibrationScheduleSubmissionItemRequest = {
+            calibrationPlanItemId: item.id,
+            accreditedLaboratoryId,
+            proposedCalibrationDate,
+            notes
+          };
+
+          return this.service.addItem(submission.id, dto);
+        });
+
+        return forkJoin(requests);
+      })
+    ).subscribe({
+      next: responses => {
+        this.loading = false;
+
+        const failed = responses.filter(response => !response.succeed);
+
+        if (failed.length > 0) {
+          this.toast.error(
+            items.length === 1
+              ? failed[0].message ?? 'No se pudo agregar el ítem al cronograma.'
+              : `No se pudieron agregar ${failed.length} ítem(s) al cronograma.`
+          );
+          return;
+        }
+
+        const message = items.length === 1
+          ? 'Propuesta agregada al cronograma.'
+          : `Propuesta agregada al cronograma para ${items.length} ítems.`;
+
+        this.toast.success(message);
+        this.submitted.emit();
+        this.reset();
+      },
+      error: error => {
+        this.loading = false;
+        this.toast.error(error?.message ?? 'Error al guardar la propuesta.');
+      }
+    });
+  }
 
   close(): void {
     if (this.loading) return;
@@ -179,41 +255,41 @@ const addItemDto: AddCalibrationScheduleSubmissionItemRequest = {
     this.closed.emit();
   }
 
-private loadLaboratories(): void {
-  this.loadingCatalogs.set(true);
+  private loadLaboratories(): void {
+    this.loadingCatalogs.set(true);
 
-  const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
+    const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
-  const filter = [
-    'Status eq 1',
-    pmseFilter
-  ]
-    .filter(Boolean)
-    .map(value => `(${value})`)
-    .join(' and ');
+    const filter = [
+      'Status eq 1',
+      pmseFilter
+    ]
+      .filter(Boolean)
+      .map(value => `(${value})`)
+      .join(' and ');
 
-  this.laboratoriesService.getAll({
-    page: 1,
-    take: 300,
-    filter,
-    orderBy: 'AccreditedLaboratoryName asc'
-  }).subscribe({
-    next: response => {
-      this.loadingCatalogs.set(false);
+    this.laboratoriesService.getAll({
+      page: 1,
+      take: 300,
+      filter,
+      orderBy: 'AccreditedLaboratoryName asc'
+    }).subscribe({
+      next: response => {
+        this.loadingCatalogs.set(false);
 
-      if (response.succeed) {
-        this.laboratories.set(response.result ?? []);
-        return;
+        if (response.succeed) {
+          this.laboratories.set(response.result ?? []);
+          return;
+        }
+
+        this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+      },
+      error: () => {
+        this.loadingCatalogs.set(false);
+        this.toast.warning('No se pudieron cargar los laboratorios contratados.');
       }
-
-      this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
-    },
-    error: () => {
-      this.loadingCatalogs.set(false);
-      this.toast.warning('No se pudieron cargar los laboratorios contratados.');
-    }
-  });
-}
+    });
+  }
 
   private reset(): void {
     this.form.reset({
@@ -233,69 +309,84 @@ private loadLaboratories(): void {
     return normalized ? normalized : null;
   }
 
-  private normalizeRequired(value: unknown): string {
+  private normalizeDateValue(value: unknown): string {
+    if (value instanceof Date) {
+      return this.formatDate(value);
+    }
+
     return typeof value === 'string'
       ? value.trim()
       : '';
   }
 
-private getOrCreateDraftSubmission(
-  calibrationPlanId: number,
-  pmseCompanyId: number,
-  notes: string | null
-): Observable<CalibrationScheduleSubmission> {
-  return this.service.findActiveByPlanAndPmse(
-    calibrationPlanId,
-    pmseCompanyId
-  ).pipe(
-    switchMap(existingSubmission => {
-      if (!existingSubmission) {
-        return throwError(() => new Error(
-          'Primero debes crear un cronograma borrador desde Mis cronogramas.'
-        ));
-      }
+  private getOrCreateDraftSubmission(
+    calibrationPlanId: number,
+    pmseCompanyId: number,
+    notes: string | null
+  ): Observable<CalibrationScheduleSubmission> {
+    return this.service.findActiveByPlanAndPmse(
+      calibrationPlanId,
+      pmseCompanyId
+    ).pipe(
+      switchMap(existingSubmission => {
+        if (!existingSubmission) {
+          return throwError(() => new Error(
+            'Primero debes crear un cronograma borrador desde Mis cronogramas.'
+          ));
+        }
 
-      if (existingSubmission.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft) {
-        return throwError(() => new Error(
-          'Ya existe un cronograma activo para este plan, pero no está en borrador.'
-        ));
-      }
+        if (existingSubmission.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft) {
+          return throwError(() => new Error(
+            'Ya existe un cronograma activo para este plan, pero no está en borrador.'
+          ));
+        }
 
-      return of(existingSubmission);
-    })
-  );
-}
+        return of(existingSubmission);
+      })
+    );
+  }
 
   private scheduledDateInsidePlannedRangeValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const scheduledDate = control.get('scheduledDate')?.value;
-      const currentItem = this.currentItem;
+      const items = this.currentItems;
 
-      if (
-        !scheduledDate ||
-        !currentItem?.plannedStartDate ||
-        !currentItem?.plannedEndDate
-      ) {
+      if (!scheduledDate || items.length === 0) {
         return null;
       }
 
-      const scheduled = new Date(scheduledDate);
-      const start = new Date(currentItem.plannedStartDate);
-      const end = new Date(currentItem.plannedEndDate);
+      const scheduled = new Date(this.normalizeDateValue(scheduledDate));
 
-      if (
-        Number.isNaN(scheduled.getTime()) ||
-        Number.isNaN(start.getTime()) ||
-        Number.isNaN(end.getTime())
-      ) {
+      if (Number.isNaN(scheduled.getTime())) {
         return null;
       }
 
-      if (scheduled < start || scheduled > end) {
-        return { scheduledDateOutsideRange: true };
-      }
+      const isOutsideAnyRange = items.some(item => {
+        if (!item.plannedStartDate || !item.plannedEndDate) {
+          return false;
+        }
 
-      return null;
+        const start = new Date(item.plannedStartDate);
+        const end = new Date(item.plannedEndDate);
+
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+          return false;
+        }
+
+        return scheduled < start || scheduled > end;
+      });
+
+      return isOutsideAnyRange
+        ? { scheduledDateOutsideRange: true }
+        : null;
     };
+  }
+
+  private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

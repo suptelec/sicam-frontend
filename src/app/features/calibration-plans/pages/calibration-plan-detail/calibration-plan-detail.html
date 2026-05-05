@@ -48,16 +48,16 @@
     <section class="actions-bar">
       <div class="actions-bar__buttons">
         <button
-  mat-stroked-button
-  type="button"
-  class="actions-bar__btn"
-  [disabled]="!canGenerateItems"
-  [matTooltip]="canGenerateItems ? 'Sincronizar ítems faltantes' : 'Solo se puede sincronizar ítems en borrador'"
-  (click)="onGenerateItems()"
->
-  <mat-icon>sync</mat-icon>
-  Sincronizar ítems
-</button>
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn"
+          [disabled]="!canGenerateItems"
+          [matTooltip]="canGenerateItems ? 'Sincronizar ítems con certificados históricos' : 'Solo se puede sincronizar ítems en borrador'"
+          (click)="onGenerateItems()"
+        >
+          <mat-icon>sync</mat-icon>
+          Sincronizar ítems
+        </button>
 
         <button
           mat-stroked-button
@@ -110,41 +110,23 @@
 
       <div class="actions-bar__tools">
         <div class="filter-field filter-field--company">
-          <span class="filter-field__label">Empresa</span>
+  <span class="filter-field__label">Empresa</span>
 
-          <mat-form-field
-            appearance="outline"
-            class="filter-field__control"
-          >
-            <mat-select
-              placeholder="Todas las empresas"
-              [value]="selectedPmseCompanyId()"
-              (selectionChange)="onPmseCompanyFilterChange($event.value)"
-            >
-              <mat-option [value]="null">Todas las empresas</mat-option>
-
-              @for (company of pmseCompanies(); track company.id) {
-                <mat-option [value]="company.id">
-                  {{ company.name }}
-                </mat-option>
-              }
-            </mat-select>
-
-            @if (selectedPmseCompanyId()) {
-              <button
-                mat-icon-button
-                matSuffix
-                type="button"
-                class="filter-field__clear"
-                aria-label="Limpiar filtro de empresa"
-                (mousedown)="$event.preventDefault()"
-                (click)="clearPmseCompanyFilter($event)"
-              >
-                <mat-icon>close</mat-icon>
-              </button>
-            }
-          </mat-form-field>
-        </div>
+  <app-searchable-select
+    class="filter-field__control"
+    placeholder="Todas las empresas"
+    emptyLabel="Todas las empresas"
+    noResultsText="No se encontraron empresas"
+    [options]="pmseCompanies()"
+    displayKey="name"
+    valueKey="id"
+    [searchKeys]="['name', 'externalCode', 'ruc']"
+    [allowEmpty]="true"
+    [showLabel]="false"
+    [compact]="true"
+    [formControl]="pmseCompanyIdControl"
+  />
+</div>
 
         <div class="filter-field filter-field--date-range">
           <span class="filter-field__label">Rango planificado</span>

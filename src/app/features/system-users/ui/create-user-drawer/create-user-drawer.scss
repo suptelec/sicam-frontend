@@ -328,6 +328,16 @@
   transform: none !important;
 }
 
+.searchable-company-field {
+  display: block;
+  width: 100%;
+
+  app-searchable-select {
+    display: block;
+    width: 100%;
+  }
+}
+
 @media (max-width: 720px) {
   .drawer {
     width: 100%;

@@ -1,0 +1,62 @@
+<mat-form-field
+  appearance="outline"
+  class="searchable-select"
+  [class.searchable-select--compact]="compact"
+  [class.searchable-select--disabled]="isDisabled"
+>
+  @if (showLabel && label) {
+    <mat-label>{{ label }}</mat-label>
+  }
+
+  <input
+    type="text"
+    matInput
+    [placeholder]="showLabel ? '' : placeholder"
+    [formControl]="searchControl"
+    [matAutocomplete]="auto"
+    [required]="required"
+    (focus)="onInputFocus()"
+    (blur)="onTouched()"
+  />
+
+  <mat-icon matPrefix>search</mat-icon>
+
+  @if (showClearButton) {
+    <button
+      mat-icon-button
+      matSuffix
+      type="button"
+      class="searchable-select__clear"
+      aria-label="Limpiar selección"
+      (mousedown)="$event.preventDefault()"
+      (click)="clear($event)"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  }
+
+  <mat-autocomplete
+    #auto="matAutocomplete"
+    class="searchable-select__panel"
+    [displayWith]="displayAutocompleteValue"
+    (optionSelected)="selectOption($event.option.value)"
+  >
+    @if (allowEmpty) {
+      <mat-option [value]="null">
+        {{ emptyLabel }}
+      </mat-option>
+    }
+
+    @for (option of filteredOptions; track getOptionValue(option)) {
+      <mat-option [value]="option">
+        {{ getDisplayValue(option) }}
+      </mat-option>
+    }
+
+    @if (filteredOptions.length === 0) {
+      <mat-option disabled>
+        {{ noResultsText }}
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>

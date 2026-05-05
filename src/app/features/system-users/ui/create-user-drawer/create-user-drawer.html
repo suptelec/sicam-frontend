@@ -149,22 +149,27 @@
         @if (selectedType() === UserType.PmseAdmin) {
           <section class="form-section">
             <div class="section-title">Empresa</div>
+<div class="drawer__field full-field searchable-company-field">
+  <app-searchable-select
+    label="Empresa PMSE"
+    placeholder="Buscar empresa PMSE"
+    emptyLabel="Sin empresa"
+    noResultsText="No se encontraron empresas"
+    [options]="companies()"
+    displayKey="name"
+    valueKey="id"
+    [searchKeys]="['name', 'externalCode', 'ruc']"
+    [allowEmpty]="true"
+    [required]="true"
+    [formControl]="pmseCompanyForm.controls.pmseCompanyId"
+  />
 
-            <mat-form-field appearance="outline" class="drawer__field full-field">
-              <mat-label>Empresa PMSE</mat-label>
-
-              <mat-select [formControl]="pmseCompanyForm.controls.pmseCompanyId">
-                @for (company of companies(); track company.id) {
-                  <mat-option [value]="company.id">
-                    {{ company.name }}
-                  </mat-option>
-                }
-              </mat-select>
-
-              @if (pmseCompanyForm.controls.pmseCompanyId.hasError('required') && pmseCompanyForm.controls.pmseCompanyId.touched) {
-                <mat-error>La empresa es obligatoria.</mat-error>
-              }
-            </mat-form-field>
+  @if (pmseCompanyForm.controls.pmseCompanyId.hasError('required') && pmseCompanyForm.controls.pmseCompanyId.touched) {
+    <div class="form-error">
+      La empresa es obligatoria.
+    </div>
+  }
+</div>
           </section>
         }
 

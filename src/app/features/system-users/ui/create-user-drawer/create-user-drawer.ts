@@ -11,6 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
 import { ToastService } from '../../../../core/services/toast.service';
 import { UserType } from '../../../../core/models/current-user.model';
+import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select';
 
 import { PmseCompaniesService } from '../../../pmse-companies/data-access/pmse-companies.service';
 import { PmseCompany } from '../../../pmse-companies/domain/pmse-company.model';
@@ -29,7 +30,8 @@ import { PermissionLabels, PermissionValue } from '../../domain/system-user.enum
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    SearchableSelectComponent
   ],
   templateUrl: './create-user-drawer.html',
   styleUrl: './create-user-drawer.scss'

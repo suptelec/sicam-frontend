@@ -5,6 +5,9 @@
       <h2>Proponer cronograma</h2>
       <p class="drawer__description">
         Selecciona la fecha propuesta y el laboratorio acreditado que ejecutará la calibración.
+        @if (isBulkMode) {
+          La misma información se aplicará a los ítems seleccionados.
+        }
       </p>
     </div>
 
@@ -23,94 +26,136 @@
 
   <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
     <div class="drawer__body">
-      @if (currentItem; as item) {
-        <section class="item-summary">
-          <div class="item-summary__icon">
-            <mat-icon>electric_meter</mat-icon>
-          </div>
+      @if (currentItems.length > 0) {
+        @if (firstItem; as item) {
+          <section class="item-summary">
+            <div class="item-summary__icon">
+              <mat-icon>{{ isBulkMode ? 'checklist' : 'electric_meter' }}</mat-icon>
+            </div>
 
-          <div>
-            <span>Medidor</span>
-            <strong>{{ item.meterCode ?? '—' }}</strong>
-            <small>Serial: {{ item.meterSerial ?? '—' }}</small>
-          </div>
-        </section>
+            <div>
+              <span>{{ isBulkMode ? 'Ítems seleccionados' : 'Medidor' }}</span>
 
-        <section class="detail-grid">
-          <article>
-            <span>Certificado anterior</span>
-            <strong>{{ item.certificateNumber ?? '—' }}</strong>
-          </article>
-
-          <article>
-            <span>Vigente hasta</span>
-            <strong>{{ item.lastCertificateValidUntil ?? '—' }}</strong>
-          </article>
-
-          <article>
-            <span>Rango planificado</span>
-            <strong>{{ item.plannedStartDate ?? '—' }}</strong>
-            <small>Hasta {{ item.plannedEndDate ?? '—' }}</small>
-          </article>
-
-          <article>
-            <span>PMSE</span>
-            <strong>{{ item.pmseCompanyName ?? '—' }}</strong>
-          </article>
-        </section>
-
-        <section class="form-section">
-          <div class="section-title">Propuesta de calibración</div>
-
-<div class="drawer__field">
-  <app-date-field
-    formControlName="scheduledDate"
-    label="Fecha propuesta"
-    [min]="minDate"
-    [max]="maxDate"
-  />
-
-  @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
-    <div class="form-error">La fecha propuesta es obligatoria.</div>
-  }
-
-  @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
-    <div class="form-error">La fecha debe estar dentro del rango planificado.</div>
-  }
-</div>
-
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Laboratorio acreditado</mat-label>
-
-            <mat-select formControlName="accreditedLaboratoryId">
-              @for (laboratory of laboratories(); track laboratory.id) {
-                <mat-option [value]="laboratory.accreditedLaboratoryId">
-                  {{ getLaboratoryLabel(laboratory) }}
-                </mat-option>
+              @if (isBulkMode) {
+                <strong>{{ currentItems.length }} ítems</strong>
+                <small>Se aplicará la misma propuesta de cronograma.</small>
+              } @else {
+                <strong>{{ item.meterCode ?? '—' }}</strong>
+                <small>Serial: {{ item.meterSerial ?? '—' }}</small>
               }
-            </mat-select>
+            </div>
+          </section>
 
-            @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
-              <mat-error>El laboratorio es obligatorio.</mat-error>
+          @if (isBulkMode) {
+            <section class="selected-items">
+              <div class="section-title">Ítems incluidos</div>
+
+              <div class="selected-items__list">
+                @for (selected of currentItems; track selected.id) {
+                  <article>
+                    <strong>{{ selected.meterCode ?? '—' }}</strong>
+                    <span>Serial: {{ selected.meterSerial ?? '—' }}</span>
+                    <small>
+                      Rango: {{ selected.plannedStartDate ?? '—' }} - {{ selected.plannedEndDate ?? '—' }}
+                    </small>
+                  </article>
+                }
+              </div>
+            </section>
+          } @else {
+            <section class="detail-grid">
+              <article>
+                <span>Certificado anterior</span>
+                <strong>{{ item.certificateNumber ?? '—' }}</strong>
+              </article>
+
+              <article>
+                <span>Vigente hasta</span>
+                <strong>{{ item.lastCertificateValidUntil ?? '—' }}</strong>
+              </article>
+
+              <article>
+                <span>Rango planificado</span>
+                <strong>{{ item.plannedStartDate ?? '—' }}</strong>
+                <small>Hasta {{ item.plannedEndDate ?? '—' }}</small>
+              </article>
+
+              <article>
+                <span>PMSE</span>
+                <strong>{{ item.pmseCompanyName ?? '—' }}</strong>
+              </article>
+            </section>
+          }
+
+          <section class="form-section">
+            <div class="section-title">Propuesta de calibración</div>
+
+            @if (isBulkMode) {
+              <div class="bulk-note">
+                <mat-icon>info</mat-icon>
+                <span>
+                  La fecha propuesta debe estar dentro del rango planificado de todos los ítems seleccionados.
+                  Rango común: {{ commonStartDate ?? '—' }} - {{ commonEndDate ?? '—' }}.
+                </span>
+              </div>
             }
-          </mat-form-field>
 
-          <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-            <mat-label>Observaciones</mat-label>
+            @if (!hasCommonRange) {
+              <div class="form-error form-error--block">
+                Los ítems seleccionados no tienen un rango planificado común. Selecciona ítems con rangos compatibles.
+              </div>
+            }
 
-            <textarea
-              matInput
-              rows="4"
-              formControlName="notes"
-              placeholder="Ejemplo: coordinación preliminar con SUPTELEC, disponibilidad de cuadrilla, restricciones operativas..."
-            ></textarea>
-          </mat-form-field>
-        </section>
+            <div class="drawer__field">
+              <app-date-field
+                formControlName="scheduledDate"
+                label="Fecha propuesta"
+                [min]="minDate"
+                [max]="maxDate"
+              />
+
+              @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+                <div class="form-error">La fecha propuesta es obligatoria.</div>
+              }
+
+              @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+                <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
+              }
+            </div>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Laboratorio acreditado</mat-label>
+
+              <mat-select formControlName="accreditedLaboratoryId">
+                @for (laboratory of laboratories(); track laboratory.id) {
+                  <mat-option [value]="laboratory.accreditedLaboratoryId">
+                    {{ getLaboratoryLabel(laboratory) }}
+                  </mat-option>
+                }
+              </mat-select>
+
+              @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
+                <mat-error>El laboratorio es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+              <mat-label>Observaciones</mat-label>
+
+              <textarea
+                matInput
+                rows="4"
+                formControlName="notes"
+                placeholder="Ejemplo: coordinación preliminar con SUPTELEC, disponibilidad de cuadrilla, restricciones operativas..."
+              ></textarea>
+            </mat-form-field>
+          </section>
+        }
       } @else {
         <section class="empty-state">
           <mat-icon>warning</mat-icon>
-          <h3>No se recibió el ítem del plan</h3>
-          <p>Cierra este panel y vuelve a seleccionar el ítem desde la tabla.</p>
+          <h3>No se recibieron ítems del plan</h3>
+          <p>Cierra este panel y vuelve a seleccionar los ítems desde la tabla.</p>
         </section>
       }
     </div>

@@ -1,7 +1,8 @@
 import { SelectionModel } from '@angular/cdk/collections';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -12,7 +13,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -20,6 +20,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
 import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
 import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
+import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select';
 
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -48,6 +49,7 @@ import { CalibrationPlanItemRangeDrawerComponent } from '../../ui/calibration-pl
   selector: 'app-calibration-plan-detail',
   standalone: true,
   imports: [
+    ReactiveFormsModule,
     MatButtonModule,
     MatCheckboxModule,
     MatDatepickerModule,
@@ -57,20 +59,20 @@ import { CalibrationPlanItemRangeDrawerComponent } from '../../ui/calibration-pl
     MatNativeDateModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
-    MatSelectModule,
     MatTableModule,
     MatTooltipModule,
     PageHeaderComponent,
     StatusChipComponent,
     TableCardComponent,
     DrawerShellComponent,
+    SearchableSelectComponent,
     CalibrationPlanValidationDrawerComponent,
     CalibrationPlanItemRangeDrawerComponent
   ],
   templateUrl: './calibration-plan-detail.html',
   styleUrl: './calibration-plan-detail.scss'
 })
-export class CalibrationPlanDetailComponent implements OnInit {
+export class CalibrationPlanDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly plansService = inject(CalibrationPlansService);
@@ -78,6 +80,8 @@ export class CalibrationPlanDetailComponent implements OnInit {
   private readonly pmseCompaniesService = inject(PmseCompaniesService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+
+  private readonly subscriptions = new Subscription();
 
   readonly CalibrationPlanStatus = CalibrationPlanStatus;
 
@@ -87,6 +91,7 @@ export class CalibrationPlanDetailComponent implements OnInit {
 
   pmseCompanies = signal<PmseCompany[]>([]);
   selectedPmseCompanyId = signal<number | null>(null);
+  pmseCompanyIdControl = new FormControl<number | null>(null);
 
   plannedRangeStart = signal<Date | null>(null);
   plannedRangeEnd = signal<Date | null>(null);
@@ -126,9 +131,20 @@ export class CalibrationPlanDetailComponent implements OnInit {
       return;
     }
 
+    this.subscriptions.add(
+      this.pmseCompanyIdControl.valueChanges.subscribe(pmseCompanyId => {
+        this.selectedPmseCompanyId.set(pmseCompanyId);
+        this.resetPaginationAndLoad();
+      })
+    );
+
     this.loadPlan(id);
     this.loadPmseCompanies();
     this.loadItems(id);
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   get planId(): number {
@@ -215,11 +231,12 @@ export class CalibrationPlanDetailComponent implements OnInit {
         if (response.succeed) {
           this.dataSource.data = response.result ?? [];
           this.totalRecords = response.totalRecords ?? 0;
-        } else {
-          this.dataSource.data = [];
-          this.totalRecords = 0;
-          this.toast.error(response.message ?? 'No se pudieron cargar los ítems.');
+          return;
         }
+
+        this.dataSource.data = [];
+        this.totalRecords = 0;
+        this.toast.error(response.message ?? 'No se pudieron cargar los ítems.');
       },
       error: () => {
         this.isLoadingItems.set(false);
@@ -251,20 +268,6 @@ export class CalibrationPlanDetailComponent implements OnInit {
     }
 
     return filters.join(' and ');
-  }
-
-  onPmseCompanyFilterChange(pmseCompanyId: number | null): void {
-    this.selectedPmseCompanyId.set(pmseCompanyId);
-    this.resetPaginationAndLoad();
-  }
-
-  clearPmseCompanyFilter(event?: MouseEvent): void {
-    event?.stopPropagation();
-
-    if (!this.selectedPmseCompanyId()) return;
-
-    this.selectedPmseCompanyId.set(null);
-    this.resetPaginationAndLoad();
   }
 
   onPlannedRangeStartChange(value: Date | null): void {
@@ -406,39 +409,39 @@ export class CalibrationPlanDetailComponent implements OnInit {
     this.rangeDrawerOpen.set(true);
   }
 
-onGenerateItems(): void {
-  const currentPlan = this.plan();
+  onGenerateItems(): void {
+    const currentPlan = this.plan();
 
-  if (!currentPlan) return;
+    if (!currentPlan) return;
 
-  this.confirmDialog.confirm({
-    title: 'Sincronizar ítems del plan',
-    message: `Se sincronizarán los ítems del plan ${currentPlan.year} usando los certificados históricos. Los ítems existentes se conservarán y se completarán los faltantes. ¿Deseas continuar?`,
-    confirmText: 'Sincronizar',
-    cancelText: 'Cancelar',
-    type: 'info'
-  }).subscribe(confirmed => {
-    if (!confirmed) return;
+    this.confirmDialog.confirm({
+      title: 'Sincronizar ítems del plan',
+      message: `Se sincronizarán los ítems del plan ${currentPlan.year} usando los certificados históricos. Los ítems existentes se conservarán y se completarán los faltantes. ¿Deseas continuar?`,
+      confirmText: 'Sincronizar',
+      cancelText: 'Cancelar',
+      type: 'info'
+    }).subscribe(confirmed => {
+      if (!confirmed) return;
 
-    this.plansService.generateItems(currentPlan.id).subscribe({
-      next: response => {
-        if (!response.succeed || !response.result) {
-          this.toast.error(response.message ?? 'No se pudieron sincronizar las ítems.');
-          return;
+      this.plansService.generateItems(currentPlan.id).subscribe({
+        next: response => {
+          if (!response.succeed || !response.result) {
+            this.toast.error(response.message ?? 'No se pudieron sincronizar los ítems.');
+            return;
+          }
+
+          this.toast.success(
+            `Sincronización completada. Nuevos ítems: ${response.result.generatedItemsCount}. Ya existentes: ${response.result.skippedExistingItemsCount}.`
+          );
+
+          this.refresh();
+        },
+        error: () => {
+          this.toast.error('Error al sincronizar los ítems del plan.');
         }
-
-        this.toast.success(
-          `Sincronización completada. Nuevas ítems: ${response.result.generatedItemsCount}. Ya existentes: ${response.result.skippedExistingItemsCount}.`
-        );
-
-        this.refresh();
-      },
-      error: () => {
-        this.toast.error('Error al sincronizar las ítems del plan.');
-      }
+      });
     });
-  });
-}
+  }
 
   onValidate(): void {
     const currentPlan = this.plan();
