@@ -134,16 +134,26 @@ export interface CalibrationPlanItem {
 
   plannedStartDate?: string | null;
   plannedEndDate?: string | null;
-scheduledDate?: string | null;
+  scheduledDate?: string | null;
 
-suggestedLaboratoryId?: number | null;
-suggestedLaboratoryName?: string | null;
-suggestedLaboratoryAccreditationCode?: string | null;
+  suggestedLaboratoryId?: number | null;
+  suggestedLaboratoryName?: string | null;
+  suggestedLaboratoryAccreditationCode?: string | null;
 
-itemStatus: CalibrationPlanItemStatus;
+  itemStatus: CalibrationPlanItemStatus;
 
   status: EntityStatus;
   createdAt: string;
+}
+
+export interface UpdateCalibrationPlanItemPlannedRangeRequest {
+  plannedStartDate: string;
+  plannedEndDate: string;
+}
+
+export interface CalibrationPlanPmseFilterOption {
+  id: number;
+  name: string;
 }
 
 export const CalibrationPlanItemStatusLabels: Record<CalibrationPlanItemStatus, string> = {

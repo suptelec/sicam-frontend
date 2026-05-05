@@ -46,59 +46,162 @@
     </section>
 
     <section class="actions-bar">
-      <button
-        mat-stroked-button
-        type="button"
-        class="actions-bar__btn"
-        [disabled]="!canGenerateItems"
-        [matTooltip]="canGenerateItems ? 'Generar ítems desde certificados históricos' : 'Solo se puede generar ítems en borrador'"
-        (click)="onGenerateItems()"
-      >
-        <mat-icon>auto_fix_high</mat-icon>
-        Generar ítems
-      </button>
+      <div class="actions-bar__buttons">
+        <button
+  mat-stroked-button
+  type="button"
+  class="actions-bar__btn"
+  [disabled]="!canGenerateItems"
+  [matTooltip]="canGenerateItems ? 'Sincronizar ítems faltantes' : 'Solo se puede sincronizar ítems en borrador'"
+  (click)="onGenerateItems()"
+>
+  <mat-icon>sync</mat-icon>
+  Sincronizar ítems
+</button>
 
-      <button
-        mat-stroked-button
-        type="button"
-        class="actions-bar__btn"
-        (click)="onValidate()"
-      >
-        <mat-icon>fact_check</mat-icon>
-        Validar
-      </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn"
+          (click)="onValidate()"
+        >
+          <mat-icon>fact_check</mat-icon>
+          Validar
+        </button>
 
-      <button
-        mat-stroked-button
-        type="button"
-        class="actions-bar__btn"
-        (click)="onExport()"
-      >
-        <mat-icon>download</mat-icon>
-        Exportar
-      </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn"
+          (click)="onExport()"
+        >
+          <mat-icon>download</mat-icon>
+          Exportar
+        </button>
 
-      <button
-        mat-flat-button
-        type="button"
-        class="actions-bar__btn actions-bar__btn--primary"
-        [disabled]="!canPublish"
-        [matTooltip]="canPublish ? 'Publicar plan anual' : 'El plan ya no está en borrador'"
-        (click)="onPublish()"
-      >
-        <mat-icon>publish</mat-icon>
-        Publicar
-      </button>
+        <button
+          mat-flat-button
+          type="button"
+          class="actions-bar__btn actions-bar__btn--primary"
+          [disabled]="!canPublish"
+          [matTooltip]="canPublish ? 'Publicar plan anual' : 'El plan ya no está en borrador'"
+          (click)="onPublish()"
+        >
+          <mat-icon>publish</mat-icon>
+          Publicar
+        </button>
 
-      <button
-        mat-icon-button
-        type="button"
-        class="actions-bar__refresh"
-        matTooltip="Actualizar"
-        (click)="refresh()"
-      >
-        <mat-icon>refresh</mat-icon>
-      </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn actions-bar__btn--range"
+          [disabled]="!canEditPlannedRange || selectedItemsCount === 0"
+          [matTooltip]="canEditPlannedRange ? 'Editar rango planificado de los ítems seleccionados' : 'Solo se puede editar el rango en borrador'"
+          (click)="onEditSelectedRanges()"
+        >
+          <mat-icon>edit_calendar</mat-icon>
+          Editar rango
+
+          @if (selectedItemsCount > 0) {
+            <span class="selected-count">{{ selectedItemsCount }}</span>
+          }
+        </button>
+      </div>
+
+      <div class="actions-bar__tools">
+        <div class="filter-field filter-field--company">
+          <span class="filter-field__label">Empresa</span>
+
+          <mat-form-field
+            appearance="outline"
+            class="filter-field__control"
+          >
+            <mat-select
+              placeholder="Todas las empresas"
+              [value]="selectedPmseCompanyId()"
+              (selectionChange)="onPmseCompanyFilterChange($event.value)"
+            >
+              <mat-option [value]="null">Todas las empresas</mat-option>
+
+              @for (company of pmseCompanies(); track company.id) {
+                <mat-option [value]="company.id">
+                  {{ company.name }}
+                </mat-option>
+              }
+            </mat-select>
+
+            @if (selectedPmseCompanyId()) {
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                class="filter-field__clear"
+                aria-label="Limpiar filtro de empresa"
+                (mousedown)="$event.preventDefault()"
+                (click)="clearPmseCompanyFilter($event)"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="filter-field filter-field--date-range">
+          <span class="filter-field__label">Rango planificado</span>
+
+          <mat-form-field
+            appearance="outline"
+            class="filter-field__control date-range-control"
+          >
+            <mat-date-range-input [rangePicker]="plannedRangePicker">
+              <input
+                matStartDate
+                placeholder="Inicio"
+                [value]="plannedRangeStart()"
+                (dateChange)="onPlannedRangeStartChange($event.value)"
+              />
+
+              <input
+                matEndDate
+                placeholder="Fin"
+                [value]="plannedRangeEnd()"
+                (dateChange)="onPlannedRangeEndChange($event.value)"
+              />
+            </mat-date-range-input>
+
+            @if (hasPlannedRangeFilter) {
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                class="filter-field__clear"
+                aria-label="Limpiar filtro de fechas"
+                (mousedown)="$event.preventDefault()"
+                (click)="clearPlannedRangeFilter($event)"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+
+            <mat-datepicker-toggle
+              matIconSuffix
+              [for]="plannedRangePicker"
+            />
+
+            <mat-date-range-picker #plannedRangePicker />
+          </mat-form-field>
+        </div>
+
+        <button
+          mat-icon-button
+          type="button"
+          class="actions-bar__refresh"
+          matTooltip="Actualizar"
+          (click)="refresh()"
+        >
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
     </section>
 
     <app-table-card
@@ -106,10 +209,10 @@
       [empty]="dataSource.data.length === 0"
       loadingText="Cargando ítems del plan..."
       emptyIcon="checklist"
-      emptyTitle="No hay ítems generados"
-      emptyDescription="Genera los ítems desde los certificados históricos para llenar el plan anual."
-      emptyActionText="Generar ítems"
-      emptyActionIcon="auto_fix_high"
+      emptyTitle="No hay ítems sincronizados"
+      emptyDescription="Sincroniza los ítems desde los certificados históricos para completar el plan anual."
+      emptyActionText="Sincronizar ítems"
+      emptyActionIcon="sync"
       [showEmptyAction]="canGenerateItems"
       (emptyActionClicked)="onGenerateItems()"
     >
@@ -119,6 +222,28 @@
         [dataSource]="dataSource"
         class="items-table"
       >
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef class="select-cell">
+            <mat-checkbox
+              [checked]="isAllSelected()"
+              [indeterminate]="isPartiallySelected()"
+              [disabled]="!canEditPlannedRange || dataSource.data.length === 0"
+              (change)="masterToggle()"
+              aria-label="Seleccionar todos los ítems visibles"
+            />
+          </th>
+
+          <td mat-cell *matCellDef="let row" class="select-cell">
+            <mat-checkbox
+              [checked]="selection.isSelected(row)"
+              [disabled]="!canEditPlannedRange"
+              (click)="$event.stopPropagation()"
+              (change)="toggleRowSelection(row)"
+              aria-label="Seleccionar ítem"
+            />
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="meter">
           <th mat-header-cell *matHeaderCellDef>Medidor</th>
 
@@ -194,16 +319,33 @@
               mat-icon-button
               type="button"
               class="row-actions__btn"
-              matTooltip="Ver medidor"
+              matTooltip="Editar rango planificado"
+              [disabled]="!canEditPlannedRange"
+              (click)="onEditRange(row)"
             >
-              <mat-icon>visibility</mat-icon>
+              <mat-icon>edit_calendar</mat-icon>
             </button>
           </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class.items-table__row--selected]="selection.isSelected(row)"
+        ></tr>
       </table>
+
+      <mat-paginator
+        table-footer
+        [length]="totalRecords"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="pageSizeOptions"
+        (page)="onPageChange($event)"
+        showFirstLastButtons
+      />
     </app-table-card>
   } @else {
     <section class="loading-page">
@@ -227,4 +369,19 @@
       />
     </app-drawer-shell>
   }
+}
+
+@if (rangeDrawerOpen()) {
+  <app-drawer-shell
+    [open]="rangeDrawerOpen()"
+    width="720px"
+    (closed)="onRangeDrawerClosed()"
+  >
+    <app-calibration-plan-item-range-drawer
+      [items]="rangeDrawerItems()"
+      [loading]="isSavingRange()"
+      (saved)="onRangeSaved($event)"
+      (closed)="onRangeDrawerClosed()"
+    />
+  </app-drawer-shell>
 }

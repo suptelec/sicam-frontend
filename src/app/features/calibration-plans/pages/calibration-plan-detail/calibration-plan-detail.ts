@@ -1,11 +1,20 @@
+import { SelectionModel } from '@angular/cdk/collections';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatInputModule } from '@angular/material/input';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
@@ -18,6 +27,9 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { CalibrationPlansService } from '../../data-access/calibration-plans.service';
 import { CalibrationPlanItemsService } from '../../data-access/calibration-plan-items.service';
 
+import { PmseCompaniesService } from '../../../pmse-companies/data-access/pmse-companies.service';
+import { PmseCompany } from '../../../pmse-companies/domain/pmse-company.model';
+
 import {
   CalibrationPlan,
   CalibrationPlanItem,
@@ -25,25 +37,35 @@ import {
   CalibrationPlanItemStatusLabels,
   CalibrationPlanStatus,
   CalibrationPlanStatusLabels,
-  CenaceAnnualPlanValidationResponse
+  CenaceAnnualPlanValidationResponse,
+  UpdateCalibrationPlanItemPlannedRangeRequest
 } from '../../domain/calibration-plan.model';
 
 import { CalibrationPlanValidationDrawerComponent } from '../../ui/calibration-plan-validation-drawer/calibration-plan-validation-drawer';
+import { CalibrationPlanItemRangeDrawerComponent } from '../../ui/calibration-plan-item-range-drawer/calibration-plan-item-range-drawer';
 
 @Component({
   selector: 'app-calibration-plan-detail',
   standalone: true,
   imports: [
     MatButtonModule,
-    MatTableModule,
+    MatCheckboxModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
     MatIconModule,
-    MatTooltipModule,
+    MatInputModule,
+    MatNativeDateModule,
+    MatPaginatorModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
+    MatTableModule,
+    MatTooltipModule,
     PageHeaderComponent,
     StatusChipComponent,
     TableCardComponent,
     DrawerShellComponent,
-    CalibrationPlanValidationDrawerComponent
+    CalibrationPlanValidationDrawerComponent,
+    CalibrationPlanItemRangeDrawerComponent
   ],
   templateUrl: './calibration-plan-detail.html',
   styleUrl: './calibration-plan-detail.scss'
@@ -53,6 +75,7 @@ export class CalibrationPlanDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly plansService = inject(CalibrationPlansService);
   private readonly itemsService = inject(CalibrationPlanItemsService);
+  private readonly pmseCompaniesService = inject(PmseCompaniesService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
@@ -62,12 +85,29 @@ export class CalibrationPlanDetailComponent implements OnInit {
   isLoadingPlan = signal(false);
   isLoadingItems = signal(false);
 
+  pmseCompanies = signal<PmseCompany[]>([]);
+  selectedPmseCompanyId = signal<number | null>(null);
+
+  plannedRangeStart = signal<Date | null>(null);
+  plannedRangeEnd = signal<Date | null>(null);
+
   validationDrawerOpen = signal(false);
   validationResult = signal<CenaceAnnualPlanValidationResponse | null>(null);
 
+  rangeDrawerOpen = signal(false);
+  rangeDrawerItems = signal<CalibrationPlanItem[]>([]);
+  isSavingRange = signal(false);
+
   dataSource = new MatTableDataSource<CalibrationPlanItem>([]);
+  selection = new SelectionModel<CalibrationPlanItem>(true, []);
+
+  totalRecords = 0;
+  pageSize = 20;
+  pageIndex = 0;
+  pageSizeOptions = [10, 20, 50, 100];
 
   displayedColumns = [
+    'select',
     'meter',
     'pmse',
     'certificate',
@@ -87,6 +127,7 @@ export class CalibrationPlanDetailComponent implements OnInit {
     }
 
     this.loadPlan(id);
+    this.loadPmseCompanies();
     this.loadItems(id);
   }
 
@@ -100,6 +141,18 @@ export class CalibrationPlanDetailComponent implements OnInit {
 
   get canPublish(): boolean {
     return this.plan()?.planStatus === CalibrationPlanStatus.Draft;
+  }
+
+  get canEditPlannedRange(): boolean {
+    return this.plan()?.planStatus === CalibrationPlanStatus.Draft;
+  }
+
+  get selectedItemsCount(): number {
+    return this.selection.selected.length;
+  }
+
+  get hasPlannedRangeFilter(): boolean {
+    return !!this.plannedRangeStart() || !!this.plannedRangeEnd();
   }
 
   loadPlan(id: number): void {
@@ -125,13 +178,35 @@ export class CalibrationPlanDetailComponent implements OnInit {
     });
   }
 
+  loadPmseCompanies(): void {
+    this.pmseCompaniesService.getAll({
+      page: 1,
+      take: 1000,
+      filter: 'Status eq 1',
+      orderBy: 'Name asc'
+    }).subscribe({
+      next: response => {
+        if (response.succeed) {
+          this.pmseCompanies.set(response.result ?? []);
+          return;
+        }
+
+        this.toast.error(response.message ?? 'No se pudieron cargar las empresas PMSE.');
+      },
+      error: () => {
+        this.toast.error('Error al cargar las empresas PMSE.');
+      }
+    });
+  }
+
   loadItems(planId: number): void {
     this.isLoadingItems.set(true);
+    this.selection.clear();
 
     this.itemsService.getAll({
-      page: 1,
-      take: 500,
-      filter: `CalibrationPlanId eq ${planId}`,
+      page: this.pageIndex + 1,
+      take: this.pageSize,
+      filter: this.buildItemsFilter(planId),
       orderBy: 'PmseCompanyName asc, MeterCode asc'
     }).subscribe({
       next: response => {
@@ -139,15 +214,83 @@ export class CalibrationPlanDetailComponent implements OnInit {
 
         if (response.succeed) {
           this.dataSource.data = response.result ?? [];
+          this.totalRecords = response.totalRecords ?? 0;
         } else {
+          this.dataSource.data = [];
+          this.totalRecords = 0;
           this.toast.error(response.message ?? 'No se pudieron cargar los ítems.');
         }
       },
       error: () => {
         this.isLoadingItems.set(false);
+        this.dataSource.data = [];
+        this.totalRecords = 0;
         this.toast.error('Error al cargar los ítems del plan.');
       }
     });
+  }
+
+  private buildItemsFilter(planId: number): string {
+    const filters = [`CalibrationPlanId eq ${planId}`];
+
+    const pmseCompanyId = this.selectedPmseCompanyId();
+
+    if (pmseCompanyId) {
+      filters.push(`PmseCompanyId eq ${pmseCompanyId}`);
+    }
+
+    const plannedStart = this.plannedRangeStart();
+    const plannedEnd = this.plannedRangeEnd();
+
+    if (plannedStart) {
+      filters.push(`PlannedStartDate ge ${this.formatDateForOData(plannedStart)}`);
+    }
+
+    if (plannedEnd) {
+      filters.push(`PlannedEndDate le ${this.formatDateForOData(plannedEnd)}`);
+    }
+
+    return filters.join(' and ');
+  }
+
+  onPmseCompanyFilterChange(pmseCompanyId: number | null): void {
+    this.selectedPmseCompanyId.set(pmseCompanyId);
+    this.resetPaginationAndLoad();
+  }
+
+  clearPmseCompanyFilter(event?: MouseEvent): void {
+    event?.stopPropagation();
+
+    if (!this.selectedPmseCompanyId()) return;
+
+    this.selectedPmseCompanyId.set(null);
+    this.resetPaginationAndLoad();
+  }
+
+  onPlannedRangeStartChange(value: Date | null): void {
+    this.plannedRangeStart.set(value);
+    this.resetPaginationAndLoad();
+  }
+
+  onPlannedRangeEndChange(value: Date | null): void {
+    this.plannedRangeEnd.set(value);
+    this.resetPaginationAndLoad();
+  }
+
+  clearPlannedRangeFilter(event?: MouseEvent): void {
+    event?.stopPropagation();
+
+    if (!this.hasPlannedRangeFilter) return;
+
+    this.plannedRangeStart.set(null);
+    this.plannedRangeEnd.set(null);
+    this.resetPaginationAndLoad();
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadItems(this.planId);
   }
 
   refresh(): void {
@@ -159,39 +302,143 @@ export class CalibrationPlanDetailComponent implements OnInit {
     this.router.navigate(['/calibration-plans']);
   }
 
-  onGenerateItems(): void {
-    const currentPlan = this.plan();
+  isAllSelected(): boolean {
+    const rows = this.dataSource.data;
 
-    if (!currentPlan) return;
+    return rows.length > 0 && this.selection.selected.length === rows.length;
+  }
 
-    this.confirmDialog.confirm({
-      title: 'Generar ítems del plan',
-      message: `Se generarán ítems para el plan ${currentPlan.year} usando los certificados históricos. ¿Deseas continuar?`,
-      confirmText: 'Generar',
-      cancelText: 'Cancelar',
-      type: 'info'
-    }).subscribe(confirmed => {
-      if (!confirmed) return;
+  isPartiallySelected(): boolean {
+    return this.selection.selected.length > 0 && !this.isAllSelected();
+  }
 
-      this.plansService.generateItems(currentPlan.id).subscribe({
-        next: response => {
-          if (!response.succeed || !response.result) {
-            this.toast.error(response.message ?? 'No se pudieron generar los ítems.');
-            return;
-          }
+  masterToggle(): void {
+    if (!this.canEditPlannedRange) return;
 
-          this.toast.success(
-            `Ítems generados: ${response.result.generatedItemsCount}. Omitidos: ${response.result.skippedExistingItemsCount}.`
-          );
+    if (this.isAllSelected()) {
+      this.selection.clear();
+      return;
+    }
 
-          this.refresh();
-        },
-        error: () => {
-          this.toast.error('Error al generar los ítems del plan.');
+    this.selection.select(...this.dataSource.data);
+  }
+
+  toggleRowSelection(row: CalibrationPlanItem): void {
+    if (!this.canEditPlannedRange) return;
+
+    this.selection.toggle(row);
+  }
+
+  onEditSelectedRanges(): void {
+    if (!this.canEditPlannedRange) {
+      this.toast.warning('Solo se puede editar el rango planificado cuando el plan está en borrador.');
+      return;
+    }
+
+    const selectedItems = this.selection.selected;
+
+    if (selectedItems.length === 0) {
+      this.toast.warning('Selecciona al menos un ítem del plan.');
+      return;
+    }
+
+    this.openRangeDrawer(selectedItems);
+  }
+
+  onEditRange(row: CalibrationPlanItem): void {
+    if (!this.canEditPlannedRange) {
+      this.toast.warning('Solo se puede editar el rango planificado cuando el plan está en borrador.');
+      return;
+    }
+
+    this.openRangeDrawer([row]);
+  }
+
+  onRangeDrawerClosed(): void {
+    if (this.isSavingRange()) return;
+
+    this.rangeDrawerOpen.set(false);
+    this.rangeDrawerItems.set([]);
+  }
+
+  onRangeSaved(dto: UpdateCalibrationPlanItemPlannedRangeRequest): void {
+    const items = this.rangeDrawerItems();
+
+    if (items.length === 0 || this.isSavingRange()) return;
+
+    this.isSavingRange.set(true);
+
+    const requests = items.map(item =>
+      this.itemsService.updatePlannedRange(item.id, dto)
+    );
+
+    forkJoin(requests).subscribe({
+      next: responses => {
+        this.isSavingRange.set(false);
+
+        const hasError = responses.some(response => !response.succeed);
+
+        if (hasError) {
+          this.toast.error('Algunos ítems no pudieron actualizarse.');
+          return;
         }
-      });
+
+        const message = items.length === 1
+          ? 'Rango planificado actualizado correctamente.'
+          : `Rango planificado actualizado en ${items.length} ítems.`;
+
+        this.toast.success(message);
+
+        this.rangeDrawerOpen.set(false);
+        this.rangeDrawerItems.set([]);
+        this.selection.clear();
+        this.refresh();
+      },
+      error: () => {
+        this.isSavingRange.set(false);
+        this.toast.error('Error al actualizar el rango planificado.');
+      }
     });
   }
+
+  private openRangeDrawer(items: CalibrationPlanItem[]): void {
+    this.rangeDrawerItems.set(items);
+    this.rangeDrawerOpen.set(true);
+  }
+
+onGenerateItems(): void {
+  const currentPlan = this.plan();
+
+  if (!currentPlan) return;
+
+  this.confirmDialog.confirm({
+    title: 'Sincronizar ítems del plan',
+    message: `Se sincronizarán los ítems del plan ${currentPlan.year} usando los certificados históricos. Los ítems existentes se conservarán y se completarán los faltantes. ¿Deseas continuar?`,
+    confirmText: 'Sincronizar',
+    cancelText: 'Cancelar',
+    type: 'info'
+  }).subscribe(confirmed => {
+    if (!confirmed) return;
+
+    this.plansService.generateItems(currentPlan.id).subscribe({
+      next: response => {
+        if (!response.succeed || !response.result) {
+          this.toast.error(response.message ?? 'No se pudieron sincronizar las ítems.');
+          return;
+        }
+
+        this.toast.success(
+          `Sincronización completada. Nuevas ítems: ${response.result.generatedItemsCount}. Ya existentes: ${response.result.skippedExistingItemsCount}.`
+        );
+
+        this.refresh();
+      },
+      error: () => {
+        this.toast.error('Error al sincronizar las ítems del plan.');
+      }
+    });
+  });
+}
 
   onValidate(): void {
     const currentPlan = this.plan();
@@ -319,5 +566,18 @@ export class CalibrationPlanDetailComponent implements OnInit {
       default:
         return 'neutral';
     }
+  }
+
+  private resetPaginationAndLoad(): void {
+    this.pageIndex = 0;
+    this.loadItems(this.planId);
+  }
+
+  private formatDateForOData(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

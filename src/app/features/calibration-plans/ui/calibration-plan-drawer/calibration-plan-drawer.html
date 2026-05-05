@@ -4,7 +4,7 @@
       <p class="drawer__eyebrow">PLAN ANUAL</p>
       <h2>Crear plan de calibración</h2>
       <p class="drawer__description">
-        Define el año y rango oficial para generar los ítems del Plan Anual CENACE.
+        Define el año y rango oficial. Al guardar, el sistema generará automáticamente los ítems del Plan Anual CENACE.
       </p>
     </div>
 
@@ -48,23 +48,23 @@
           }
         </mat-form-field>
 
-       <div class="field-row">
-  <app-date-field
-    formControlName="startDate"
-    label="Fecha inicio"
-  />
+        <div class="field-row">
+          <app-date-field
+            formControlName="startDate"
+            label="Fecha inicio"
+          />
 
-  <app-date-field
-    formControlName="endDate"
-    label="Fecha fin"
-  />
-</div>
+          <app-date-field
+            formControlName="endDate"
+            label="Fecha fin"
+          />
+        </div>
 
-@if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
-  <div class="form-error">
-    La fecha fin no puede ser anterior a la fecha inicio.
-  </div>
-}
+        @if (form.hasError('endDateBeforeStartDate') && form.controls.endDate.touched) {
+          <div class="form-error">
+            La fecha fin no puede ser anterior a la fecha inicio.
+          </div>
+        }
 
         <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
           <mat-label>Descripción</mat-label>
@@ -76,7 +76,8 @@
     <app-drawer-actions
       cancelText="Cancelar"
       cancelIcon="close"
-      submitText="Crear plan"
+      submitText="Crear plan y generar ítems"
+      submitIcon="auto_fix_high"
       [loading]="loading"
       [disabled]="saveDisabled"
       (cancelled)="close()"

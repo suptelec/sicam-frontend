@@ -211,7 +211,7 @@ onExportValidationResult(): void {
   onPublish(plan: CalibrationPlan): void {
     this.confirmDialog.confirm({
       title: 'Publicar plan anual',
-      message: `Al publicar el plan ${plan.year}, los PMSE podrán ver sus ítems y trabajar sobre ellos. ¿Deseas continuar?`,
+      message: `Al publicar el plan ${plan.year}, los PMSE podrán ver sus calibraciones y trabajar sobre ellas. ¿Deseas continuar?`,
       confirmText: 'Publicar',
       cancelText: 'Cancelar',
       type: 'warning'

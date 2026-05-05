@@ -1,0 +1,106 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">PLAN ANUAL</p>
+      <h2>{{ title }}</h2>
+      <p class="drawer__description">
+        {{ description }}
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      <section class="form-section">
+        <div class="section-title">Rango oficial planificado</div>
+
+        @if (items.length > 1) {
+          <div class="bulk-warning">
+            <mat-icon>info</mat-icon>
+            <span>
+              Este cambio se aplicará a los {{ items.length }} ítems seleccionados.
+            </span>
+          </div>
+        }
+
+        @if (items.length === 1) {
+          <div class="item-summary">
+            <div>
+              <span>Medidor</span>
+              <strong>{{ items[0].meterCode ?? '—' }}</strong>
+            </div>
+
+            <div>
+              <span>PMSE</span>
+              <strong>{{ items[0].pmseCompanyName ?? '—' }}</strong>
+            </div>
+
+            <div>
+              <span>Certificado</span>
+              <strong>{{ items[0].certificateNumber ?? '—' }}</strong>
+            </div>
+          </div>
+        }
+
+        <div class="field-row">
+          <app-date-field
+            formControlName="plannedStartDate"
+            label="Fecha inicio planificada"
+          />
+
+          <app-date-field
+            formControlName="plannedEndDate"
+            label="Fecha fin planificada"
+          />
+        </div>
+
+        @if (form.controls.plannedStartDate.hasError('required') && form.controls.plannedStartDate.touched) {
+          <div class="form-error">
+            La fecha inicio planificada es obligatoria.
+          </div>
+        }
+
+        @if (form.controls.plannedEndDate.hasError('required') && form.controls.plannedEndDate.touched) {
+          <div class="form-error">
+            La fecha fin planificada es obligatoria.
+          </div>
+        }
+
+        @if (form.hasError('endDateBeforeStartDate') && form.controls.plannedEndDate.touched) {
+          <div class="form-error">
+            La fecha fin no puede ser anterior a la fecha inicio.
+          </div>
+        }
+
+        <div class="form-note">
+          <mat-icon>lock</mat-icon>
+          <span>
+            CENACE solo modifica el rango planificado. La fecha del cronograma corresponde al flujo del PMSE.
+          </span>
+        </div>
+      </section>
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Guardar rango"
+      submitIcon="save"
+      [loading]="loading"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

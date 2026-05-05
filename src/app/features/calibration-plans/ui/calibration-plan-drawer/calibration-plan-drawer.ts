@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   AbstractControl,
   FormBuilder,
@@ -42,6 +43,7 @@ import { DateFieldComponent } from '../../../../shared/components/date-field/dat
 })
 export class CalibrationPlanDrawerComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
   private readonly service = inject(CalibrationPlansService);
   private readonly toast = inject(ToastService);
 
@@ -92,16 +94,13 @@ export class CalibrationPlanDrawerComponent {
 
     this.service.create(dto).subscribe({
       next: response => {
-        this.loading = false;
-
         if (!response.succeed || !response.result) {
+          this.loading = false;
           this.toast.error(response.message ?? 'No se pudo crear el plan.');
           return;
         }
 
-        this.toast.success('Plan creado correctamente.');
-        this.created.emit(response.result);
-        this.reset();
+        this.generateItemsAndNavigate(response.result);
       },
       error: () => {
         this.loading = false;
@@ -115,6 +114,46 @@ export class CalibrationPlanDrawerComponent {
 
     this.reset();
     this.closed.emit();
+  }
+
+  private generateItemsAndNavigate(plan: CalibrationPlan): void {
+    this.service.generateItems(plan.id).subscribe({
+      next: response => {
+        this.loading = false;
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(
+            response.message ??
+            'El plan fue creado, pero no se pudieron generar los ítems automáticamente.'
+          );
+
+          this.navigateToDetail(plan);
+          return;
+        }
+
+        this.toast.success(
+          `Plan creado correctamente. Ítems generados: ${response.result.generatedItemsCount}. Omitidos: ${response.result.skippedExistingItemsCount}.`
+        );
+
+        this.navigateToDetail(plan);
+      },
+      error: () => {
+        this.loading = false;
+
+        this.toast.error(
+          'El plan fue creado, pero ocurrió un error al generar los ítems automáticamente.'
+        );
+
+        this.navigateToDetail(plan);
+      }
+    });
+  }
+
+  private navigateToDetail(plan: CalibrationPlan): void {
+    this.created.emit(plan);
+    this.reset();
+
+    this.router.navigate(['/calibration-plans', plan.id]);
   }
 
   private reset(): void {
