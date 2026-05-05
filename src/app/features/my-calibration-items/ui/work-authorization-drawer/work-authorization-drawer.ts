@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, effect, inject, input } from '@angular/core';
+import { Component, EventEmitter, Output, effect, inject, input, signal  } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -7,6 +7,7 @@ import {
   ValidatorFn,
   Validators
 } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -41,7 +42,7 @@ import { DateFieldComponent } from '../../../../shared/components/date-field/dat
   styleUrl: './work-authorization-drawer.scss'
 })
 export class WorkAuthorizationDrawerComponent {
-  item = input<CalibrationPlanItem | null>(null);
+  items = input<CalibrationPlanItem[]>([]);
 
   @Output() closed = new EventEmitter<void>();
   @Output() created = new EventEmitter<void>();
@@ -49,6 +50,8 @@ export class WorkAuthorizationDrawerComponent {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(WorkAuthorizationsService);
   private readonly toast = inject(ToastService);
+
+  showAllSelectedItems = signal(false);
 
   loading = false;
 
@@ -67,41 +70,91 @@ export class WorkAuthorizationDrawerComponent {
 
   constructor() {
     effect(() => {
-      const currentItem = this.item();
+      const scheduledDate = this.commonScheduledDate;
 
-      if (!currentItem?.scheduledDate) return;
+      if (!scheduledDate) return;
 
       this.form.patchValue(
         {
-          requestedWorkDate: currentItem.scheduledDate
+          requestedWorkDate: scheduledDate
         },
         { emitEvent: false }
       );
     });
   }
 
-  get currentItem(): CalibrationPlanItem | null {
-    return this.item();
+
+get selectedItemsPreviewLimit(): number {
+  return 3;
+}
+
+get visibleSelectedItems(): CalibrationPlanItem[] {
+  return this.showAllSelectedItems()
+    ? this.currentItems
+    : this.currentItems.slice(0, this.selectedItemsPreviewLimit);
+}
+
+get hiddenSelectedItemsCount(): number {
+  return Math.max(this.currentItems.length - this.visibleSelectedItems.length, 0);
+}
+
+toggleSelectedItemsVisibility(): void {
+  this.showAllSelectedItems.update(value => !value);
+}
+
+  get currentItems(): CalibrationPlanItem[] {
+    return this.items() ?? [];
+  }
+
+  get firstItem(): CalibrationPlanItem | null {
+    return this.currentItems[0] ?? null;
+  }
+
+  get isBulkMode(): boolean {
+    return this.currentItems.length > 1;
+  }
+
+  get commonScheduledDate(): string | null {
+    const dates = this.currentItems
+      .map(item => item.scheduledDate)
+      .filter((date): date is string => !!date);
+
+    if (dates.length !== this.currentItems.length || dates.length === 0) {
+      return null;
+    }
+
+    const uniqueDates = new Set(dates);
+
+    return uniqueDates.size === 1
+      ? dates[0]
+      : null;
   }
 
   get scheduledDate(): string | null {
-    return this.currentItem?.scheduledDate ?? null;
+    return this.commonScheduledDate;
+  }
+
+  get hasCommonScheduledDate(): boolean {
+    return !!this.commonScheduledDate;
   }
 
   get saveDisabled(): boolean {
-    return this.loading || this.form.invalid || !this.currentItem || !this.scheduledDate;
+    return this.loading ||
+      this.form.invalid ||
+      this.currentItems.length === 0 ||
+      !this.hasCommonScheduledDate;
   }
 
   submit(): void {
-    const currentItem = this.currentItem;
+    const items = this.currentItems;
 
-    if (!currentItem) {
-      this.toast.error('No se recibió el ítem del plan.');
+    if (items.length === 0) {
+      this.toast.error('No se recibieron ítems del plan.');
       return;
     }
 
-    if (!currentItem.scheduledDate) {
-      this.toast.error('El ítem no tiene fecha aprobada para solicitar autorización.');
+    if (!this.commonScheduledDate) {
+      this.toast.warning('Los ítems seleccionados deben tener la misma fecha aprobada.');
       return;
     }
 
@@ -114,7 +167,7 @@ export class WorkAuthorizationDrawerComponent {
     const raw = this.form.getRawValue();
 
     const dto: CreateCalibrationWorkAuthorizationRequest = {
-      requestedWorkDate: currentItem.scheduledDate,
+      requestedWorkDate: this.commonScheduledDate,
       requestedStartTime: this.normalizeTime(raw.requestedStartTime),
       requestedEndTime: this.normalizeTime(raw.requestedEndTime),
       requestReason: this.normalizeRequired(raw.requestReason),
@@ -123,16 +176,30 @@ export class WorkAuthorizationDrawerComponent {
 
     this.loading = true;
 
-    this.service.createForPlanItem(currentItem.id, dto).subscribe({
-      next: response => {
+    const requests = items.map(item =>
+      this.service.createForPlanItem(item.id, dto)
+    );
+
+    forkJoin(requests).subscribe({
+      next: responses => {
         this.loading = false;
 
-        if (!response.succeed) {
-          this.toast.error(response.message ?? 'No se pudo solicitar la autorización.');
+        const failed = responses.filter(response => !response.succeed);
+
+        if (failed.length > 0) {
+          this.toast.error(
+            items.length === 1
+              ? failed[0].message ?? 'No se pudo solicitar la autorización.'
+              : `No se pudieron solicitar ${failed.length} autorización(es).`
+          );
           return;
         }
 
-        this.toast.success('Solicitud de autorización enviada correctamente.');
+        const message = items.length === 1
+          ? 'Solicitud de autorización enviada correctamente.'
+          : `Solicitudes de autorización enviadas correctamente para ${items.length} ítems.`;
+
+        this.toast.success(message);
         this.created.emit();
         this.reset();
       },
@@ -152,13 +219,14 @@ export class WorkAuthorizationDrawerComponent {
 
   private reset(): void {
     this.form.reset({
-      requestedWorkDate: this.currentItem?.scheduledDate ?? '',
+      requestedWorkDate: this.commonScheduledDate ?? '',
       requestedStartTime: '',
       requestedEndTime: '',
       requestReason: '',
       requestDocumentUrl: ''
     });
 
+    this.showAllSelectedItems.set(false);
     this.loading = false;
   }
 

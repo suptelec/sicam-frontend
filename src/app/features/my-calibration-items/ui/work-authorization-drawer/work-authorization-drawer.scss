@@ -264,6 +264,122 @@
   font-size: 0.82rem;
 }
 
+.selected-items {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.selected-items__header {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+
+  p {
+    margin: -8px 0 0;
+    color: #a8b3c7;
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+}
+
+.selected-items__count {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.selected-items__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &--expanded {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  article {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.56);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  strong {
+    display: block;
+    color: #f9fafb;
+    font-size: 0.94rem;
+    font-weight: 750;
+  }
+
+  span,
+  small {
+    display: block;
+    margin-top: 3px;
+    color: #a8b3c7;
+    font-size: 0.8rem;
+  }
+}
+
+.selected-items__footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  span {
+    color: #a8b3c7;
+    font-size: 0.84rem;
+  }
+}
+
+.selected-items__toggle {
+  flex: 0 0 auto;
+  min-height: 32px;
+  border-radius: 10px !important;
+  color: #93c5fd !important;
+  font-size: 0.82rem;
+  font-weight: 750 !important;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.1) !important;
+  }
+}
+
+.form-error {
+  margin-top: 6px;
+  color: #ffb4b4;
+  font-size: 0.82rem;
+}
+
+.form-error--block {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.22);
+}
+
 @media (max-width: 760px) {
   .field-row {
     grid-template-columns: 1fr;

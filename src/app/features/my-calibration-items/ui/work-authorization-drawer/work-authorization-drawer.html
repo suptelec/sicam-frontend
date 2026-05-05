@@ -5,6 +5,9 @@
       <h2>Solicitar autorización</h2>
       <p class="drawer__description">
         Solicita a CENACE la autorización para iniciar los trabajos de calibración en la fecha aprobada.
+        @if (isBulkMode) {
+          La misma información se aplicará a todos los ítems seleccionados.
+        }
       </p>
     </div>
 
@@ -23,115 +26,181 @@
 
   <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
     <div class="drawer__body">
-      @if (currentItem; as item) {
-        <section class="item-summary">
-          <div class="item-summary__icon">
-            <mat-icon>electric_meter</mat-icon>
-          </div>
+      @if (currentItems.length > 0) {
+        @if (firstItem; as item) {
+          <section class="item-summary">
+            <div class="item-summary__icon">
+              <mat-icon>{{ isBulkMode ? 'checklist' : 'electric_meter' }}</mat-icon>
+            </div>
 
-          <div>
-            <span>Medidor</span>
-            <strong>{{ item.meterCode ?? '—' }}</strong>
-            <small>Serial: {{ item.meterSerial ?? '—' }}</small>
-          </div>
-        </section>
+            <div>
+              <span>{{ isBulkMode ? 'Ítems seleccionados' : 'Medidor' }}</span>
 
-        <section class="approved-date-card">
-          <mat-icon>event_available</mat-icon>
+              @if (isBulkMode) {
+                <strong>{{ currentItems.length }} ítems</strong>
+                <small>Se enviará una solicitud de autorización por cada ítem.</small>
+              } @else {
+                <strong>{{ item.meterCode ?? '—' }}</strong>
+                <small>Serial: {{ item.meterSerial ?? '—' }}</small>
+              }
+            </div>
+          </section>
 
-          <div>
-            <span>Fecha aprobada por CENACE</span>
-            <strong>{{ item.scheduledDate ?? '—' }}</strong>
-            <small>Esta fecha no se puede cambiar en la solicitud.</small>
-          </div>
-        </section>
+@if (isBulkMode) {
+  <section class="selected-items">
+    <div class="selected-items__header">
+      <div>
+        <div class="section-title">Ítems incluidos</div>
+        <p>
+          Se enviará una solicitud de autorización para cada ítem seleccionado.
+        </p>
+      </div>
 
-        <section class="form-section">
-          <div class="section-title">Datos de la autorización</div>
+      <span class="selected-items__count">
+        {{ currentItems.length }} ítems
+      </span>
+    </div>
 
-<div class="drawer__field">
-  <app-date-field
-    formControlName="requestedWorkDate"
-    label="Fecha de trabajo"
-    [readonly]="true"
-    [min]="scheduledDate"
-    [max]="scheduledDate"
-  />
+    <div
+      class="selected-items__list"
+      [class.selected-items__list--expanded]="showAllSelectedItems()"
+    >
+      @for (selected of visibleSelectedItems; track selected.id) {
+        <article>
+          <strong>{{ selected.meterCode ?? '—' }}</strong>
+          <span>Serial: {{ selected.meterSerial ?? '—' }}</span>
+          <small>Fecha aprobada: {{ selected.scheduledDate ?? '—' }}</small>
+        </article>
+      }
+    </div>
 
-  @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
-    <div class="form-error">La fecha de trabajo es obligatoria.</div>
-  }
-</div>
+    @if (hiddenSelectedItemsCount > 0 || showAllSelectedItems()) {
+      <div class="selected-items__footer">
+        @if (!showAllSelectedItems() && hiddenSelectedItemsCount > 0) {
+          <span>
+            +{{ hiddenSelectedItemsCount }} ítem(s) adicionales incluidos.
+          </span>
+        }
 
-          <div class="field-row">
+        <button
+          mat-button
+          type="button"
+          class="selected-items__toggle"
+          (click)="toggleSelectedItemsVisibility()"
+        >
+          <mat-icon>
+            {{ showAllSelectedItems() ? 'expand_less' : 'expand_more' }}
+          </mat-icon>
+
+          {{ showAllSelectedItems() ? 'Mostrar menos' : 'Ver todos' }}
+        </button>
+      </div>
+    }
+  </section>
+}
+          <section class="approved-date-card">
+            <mat-icon>event_available</mat-icon>
+
+            <div>
+              <span>{{ isBulkMode ? 'Fecha aprobada común' : 'Fecha aprobada por CENACE' }}</span>
+              <strong>{{ commonScheduledDate ?? '—' }}</strong>
+              <small>Esta fecha no se puede cambiar en la solicitud.</small>
+            </div>
+          </section>
+
+          @if (!hasCommonScheduledDate) {
+            <div class="form-error form-error--block">
+              Los ítems seleccionados deben tener la misma fecha aprobada para solicitar autorización en lote.
+            </div>
+          }
+
+          <section class="form-section">
+            <div class="section-title">Datos de la autorización</div>
+
+            <div class="drawer__field">
+              <app-date-field
+                formControlName="requestedWorkDate"
+                label="Fecha de trabajo"
+                [readonly]="true"
+                [min]="scheduledDate"
+                [max]="scheduledDate"
+              />
+
+              @if (form.controls.requestedWorkDate.hasError('required') && form.controls.requestedWorkDate.touched) {
+                <div class="form-error">La fecha de trabajo es obligatoria.</div>
+              }
+            </div>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Hora inicio</mat-label>
+
+                <input
+                  matInput
+                  type="time"
+                  formControlName="requestedStartTime"
+                />
+
+                @if (form.controls.requestedStartTime.hasError('required') && form.controls.requestedStartTime.touched) {
+                  <mat-error>La hora inicio es obligatoria.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Hora fin</mat-label>
+
+                <input
+                  matInput
+                  type="time"
+                  formControlName="requestedEndTime"
+                />
+
+                @if (form.controls.requestedEndTime.hasError('required') && form.controls.requestedEndTime.touched) {
+                  <mat-error>La hora fin es obligatoria.</mat-error>
+                }
+
+                @if (form.hasError('endTimeBeforeOrEqualStartTime') && form.controls.requestedEndTime.touched) {
+                  <mat-error>La hora fin debe ser mayor a la hora inicio.</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
             <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Hora inicio</mat-label>
+              <mat-label>URL del documento de solicitud</mat-label>
 
               <input
                 matInput
-                type="time"
-                formControlName="requestedStartTime"
+                formControlName="requestDocumentUrl"
+                autocomplete="off"
+                placeholder="https://..."
               />
 
-              @if (form.controls.requestedStartTime.hasError('required') && form.controls.requestedStartTime.touched) {
-                <mat-error>La hora inicio es obligatoria.</mat-error>
+              @if (form.controls.requestDocumentUrl.hasError('required') && form.controls.requestDocumentUrl.touched) {
+                <mat-error>El documento de solicitud es obligatorio.</mat-error>
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Hora fin</mat-label>
+            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+              <mat-label>Motivo</mat-label>
 
-              <input
+              <textarea
                 matInput
-                type="time"
-                formControlName="requestedEndTime"
-              />
+                rows="5"
+                formControlName="requestReason"
+                placeholder="Ejemplo: Solicitud de autorización para iniciar trabajos de calibración."
+              ></textarea>
 
-              @if (form.controls.requestedEndTime.hasError('required') && form.controls.requestedEndTime.touched) {
-                <mat-error>La hora fin es obligatoria.</mat-error>
-              }
-
-              @if (form.hasError('endTimeBeforeOrEqualStartTime') && form.controls.requestedEndTime.touched) {
-                <mat-error>La hora fin debe ser mayor a la hora inicio.</mat-error>
+              @if (form.controls.requestReason.hasError('required') && form.controls.requestReason.touched) {
+                <mat-error>El motivo es obligatorio.</mat-error>
               }
             </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>URL del documento de solicitud</mat-label>
-
-            <input
-              matInput
-              formControlName="requestDocumentUrl"
-              autocomplete="off"
-              placeholder="https://..."
-            />
-
-            @if (form.controls.requestDocumentUrl.hasError('required') && form.controls.requestDocumentUrl.touched) {
-              <mat-error>El documento de solicitud es obligatorio.</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-            <mat-label>Motivo</mat-label>
-
-            <textarea
-              matInput
-              rows="5"
-              formControlName="requestReason"
-              placeholder="Ejemplo: Solicitud de autorización para iniciar trabajos de calibración."
-            ></textarea>
-
-            @if (form.controls.requestReason.hasError('required') && form.controls.requestReason.touched) {
-              <mat-error>El motivo es obligatorio.</mat-error>
-            }
-          </mat-form-field>
-        </section>
+          </section>
+        }
       } @else {
         <section class="empty-state">
           <mat-icon>warning</mat-icon>
-          <h3>No se recibió el ítem del plan</h3>
-          <p>Cierra este panel y vuelve a seleccionar el ítem desde la tabla.</p>
+          <h3>No se recibieron ítems del plan</h3>
+          <p>Cierra este panel y vuelve a seleccionar los ítems desde la tabla.</p>
         </section>
       }
     </div>

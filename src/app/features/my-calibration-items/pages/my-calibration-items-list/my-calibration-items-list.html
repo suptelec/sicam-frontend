@@ -16,13 +16,8 @@
 
   <section class="bulk-actions">
     <div class="bulk-actions__info">
-      <mat-icon>event_available</mat-icon>
-
-      @if (selectedItemsCount > 0) {
-        <span>{{ selectedItemsCount }} ítem(s) seleccionado(s) para cronograma</span>
-      } @else {
-        <span>Selecciona uno o varios ítems pendientes para proponer el cronograma.</span>
-      }
+      <mat-icon>{{ bulkActionIcon }}</mat-icon>
+      <span>{{ bulkActionDescription }}</span>
     </div>
 
     <button
@@ -30,11 +25,11 @@
       type="button"
       class="bulk-actions__btn"
       [disabled]="selectedItemsCount === 0"
-      matTooltip="Proponer la misma fecha, laboratorio y observaciones para los ítems seleccionados"
-      (click)="onScheduleSelectedClicked()"
+      [matTooltip]="bulkActionText"
+      (click)="onBulkActionClicked()"
     >
-      <mat-icon>event_available</mat-icon>
-      Proponer cronograma
+      <mat-icon>{{ bulkActionIcon }}</mat-icon>
+      {{ bulkActionText }}
 
       @if (selectedItemsCount > 0) {
         <span class="selected-count">{{ selectedItemsCount }}</span>
@@ -61,16 +56,16 @@
           <mat-checkbox
             [checked]="isAllSelected()"
             [indeterminate]="isPartiallySelected()"
-            [disabled]="schedulableRows.length === 0"
+            [disabled]="selectableRows.length === 0"
             (change)="masterToggle()"
-            aria-label="Seleccionar todos los ítems pendientes visibles"
+            aria-label="Seleccionar ítems visibles"
           />
         </th>
 
         <td mat-cell *matCellDef="let row" class="select-cell">
           <mat-checkbox
             [checked]="selection.isSelected(row)"
-            [disabled]="!canAddToSchedule(row)"
+            [disabled]="!canSelectRow(row)"
             (click)="$event.stopPropagation()"
             (change)="toggleRowSelection(row)"
             aria-label="Seleccionar ítem"
@@ -343,19 +338,17 @@
 }
 
 @if (workAuthorizationDrawerOpen()) {
-  @if (selectedWorkAuthorizationItem(); as item) {
-    <app-drawer-shell
-      [open]="workAuthorizationDrawerOpen()"
-      width="620px"
+  <app-drawer-shell
+    [open]="workAuthorizationDrawerOpen()"
+    width="720px"
+    (closed)="onWorkAuthorizationDrawerClosed()"
+  >
+    <app-work-authorization-drawer
+      [items]="selectedWorkAuthorizationItems()"
       (closed)="onWorkAuthorizationDrawerClosed()"
-    >
-      <app-work-authorization-drawer
-        [item]="item"
-        (closed)="onWorkAuthorizationDrawerClosed()"
-        (created)="onWorkAuthorizationCreated()"
-      ></app-work-authorization-drawer>
-    </app-drawer-shell>
-  }
+      (created)="onWorkAuthorizationCreated()"
+    ></app-work-authorization-drawer>
+  </app-drawer-shell>
 }
 
 @if (startProcessDrawerOpen()) {

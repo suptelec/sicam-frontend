@@ -4,12 +4,21 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "info",
-    "pathRewrite": { "^/identity": "" }
+    "pathRewrite": {
+      "^/identity": ""
+    }
   },
   "/api": {
     "target": "https://localhost:7128",
     "secure": false,
     "changeOrigin": true,
+    "logLevel": "info"
+  },
+  "/hubs": {
+    "target": "https://localhost:7128",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
     "logLevel": "info"
   }
 }

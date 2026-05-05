@@ -32,6 +32,8 @@ import { WorkAuthorizationDrawerComponent } from '../../ui/work-authorization-dr
 import { StartCalibrationProcessDrawerComponent } from '../../ui/start-calibration-process-drawer/start-calibration-process-drawer';
 import { CalibrationProcessesService } from '../../data-access/calibration-processes.service';
 
+type BulkActionType = 'schedule' | 'authorization';
+
 @Component({
   selector: 'app-my-calibration-items-list',
   standalone: true,
@@ -65,12 +67,6 @@ export class MyCalibrationItemsListComponent implements OnInit {
 
   readonly CalibrationPlanItemStatus = CalibrationPlanItemStatus;
 
-  workAuthorizationDrawerOpen = signal(false);
-  selectedWorkAuthorizationItem = signal<CalibrationPlanItem | null>(null);
-
-  startProcessDrawerOpen = signal(false);
-  selectedStartProcessItem = signal<CalibrationPlanItem | null>(null);
-
   dataSource = new MatTableDataSource<CalibrationPlanItem>([]);
   selection = new SelectionModel<CalibrationPlanItem>(true, []);
 
@@ -98,6 +94,12 @@ export class MyCalibrationItemsListComponent implements OnInit {
   dateChangeDrawerOpen = signal(false);
   selectedDateChangeItem = signal<CalibrationPlanItem | null>(null);
 
+  workAuthorizationDrawerOpen = signal(false);
+  selectedWorkAuthorizationItems = signal<CalibrationPlanItem[]>([]);
+
+  startProcessDrawerOpen = signal(false);
+  selectedStartProcessItem = signal<CalibrationPlanItem | null>(null);
+
   ngOnInit(): void {
     this.load();
   }
@@ -110,8 +112,88 @@ export class MyCalibrationItemsListComponent implements OnInit {
     return this.selection.selected.length;
   }
 
-  get schedulableRows(): CalibrationPlanItem[] {
-    return this.dataSource.data.filter(item => this.canAddToSchedule(item));
+  get selectedBulkAction(): BulkActionType | null {
+    const selected = this.selection.selected;
+
+    if (selected.length === 0) return null;
+
+    if (selected.every(item => this.canAddToSchedule(item))) {
+      return 'schedule';
+    }
+
+    if (selected.every(item => this.canRequestWorkAuthorization(item))) {
+      return 'authorization';
+    }
+
+    return null;
+  }
+
+  get defaultBulkAction(): BulkActionType | null {
+    if (this.dataSource.data.some(item => this.canAddToSchedule(item))) {
+      return 'schedule';
+    }
+
+    if (this.dataSource.data.some(item => this.canRequestWorkAuthorization(item))) {
+      return 'authorization';
+    }
+
+    return null;
+  }
+
+  get activeBulkAction(): BulkActionType | null {
+    return this.selectedBulkAction ?? this.defaultBulkAction;
+  }
+
+  get selectableRows(): CalibrationPlanItem[] {
+    const action = this.activeBulkAction;
+
+    if (action === 'schedule') {
+      return this.dataSource.data.filter(item => this.canAddToSchedule(item));
+    }
+
+    if (action === 'authorization') {
+      return this.dataSource.data.filter(item => this.canRequestWorkAuthorization(item));
+    }
+
+    return [];
+  }
+
+  get bulkActionText(): string {
+    if (this.selectedBulkAction === 'schedule') {
+      return 'Proponer cronograma';
+    }
+
+    if (this.selectedBulkAction === 'authorization') {
+      return 'Solicitar autorización';
+    }
+
+    return this.defaultBulkAction === 'authorization'
+      ? 'Solicitar autorización'
+      : 'Proponer cronograma';
+  }
+
+  get bulkActionIcon(): string {
+    if (this.selectedBulkAction === 'authorization') {
+      return 'approval';
+    }
+
+    if (this.defaultBulkAction === 'authorization') {
+      return 'approval';
+    }
+
+    return 'event_available';
+  }
+
+  get bulkActionDescription(): string {
+    if (this.selectedItemsCount > 0) {
+      if (this.selectedBulkAction === 'authorization') {
+        return `${this.selectedItemsCount} ítem(s) seleccionado(s) para solicitar autorización de inicio.`;
+      }
+
+      return `${this.selectedItemsCount} ítem(s) seleccionado(s) para proponer cronograma.`;
+    }
+
+    return 'Selecciona ítems pendientes para cronograma o ítems con cronograma aprobado para autorización.';
   }
 
   load(): void {
@@ -146,12 +228,16 @@ export class MyCalibrationItemsListComponent implements OnInit {
           this.dataSource.data = response.result ?? [];
           this.totalRecords = response.totalRecords ?? 0;
         } else {
+          this.dataSource.data = [];
+          this.totalRecords = 0;
           this.toast.error(response.message ?? 'Error al cargar tus ítems del plan.');
         }
 
         this.isLoading.set(false);
       },
       error: () => {
+        this.dataSource.data = [];
+        this.totalRecords = 0;
         this.toast.error('Error al cargar tus ítems del plan.');
         this.isLoading.set(false);
       }
@@ -169,8 +255,39 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.load();
   }
 
+  canRequestDateChange(item: CalibrationPlanItem): boolean {
+    return Number(item.itemStatus) === CalibrationPlanItemStatus.Pending;
+  }
+
+  canAddToSchedule(item: CalibrationPlanItem): boolean {
+    return Number(item.itemStatus) === CalibrationPlanItemStatus.Pending;
+  }
+
+  canRequestWorkAuthorization(item: CalibrationPlanItem): boolean {
+    return Number(item.itemStatus) === CalibrationPlanItemStatus.ScheduleApproved &&
+      !!item.scheduledDate;
+  }
+
+  canSelectRow(item: CalibrationPlanItem): boolean {
+    if (this.selection.isSelected(item)) {
+      return true;
+    }
+
+    const selectedAction = this.selectedBulkAction;
+
+    if (selectedAction === 'schedule') {
+      return this.canAddToSchedule(item);
+    }
+
+    if (selectedAction === 'authorization') {
+      return this.canRequestWorkAuthorization(item);
+    }
+
+    return this.canAddToSchedule(item) || this.canRequestWorkAuthorization(item);
+  }
+
   isAllSelected(): boolean {
-    const rows = this.schedulableRows;
+    const rows = this.selectableRows;
 
     return rows.length > 0 && rows.every(row => this.selection.isSelected(row));
   }
@@ -180,7 +297,7 @@ export class MyCalibrationItemsListComponent implements OnInit {
   }
 
   masterToggle(): void {
-    const rows = this.schedulableRows;
+    const rows = this.selectableRows;
 
     if (rows.length === 0) return;
 
@@ -193,17 +310,37 @@ export class MyCalibrationItemsListComponent implements OnInit {
   }
 
   toggleRowSelection(row: CalibrationPlanItem): void {
-    if (!this.canAddToSchedule(row)) return;
+    if (!this.canSelectRow(row)) return;
+
+    const actionBeforeToggle = this.selectedBulkAction;
+
+    if (!this.selection.isSelected(row) && actionBeforeToggle === 'schedule' && !this.canAddToSchedule(row)) {
+      this.toast.warning('No puedes mezclar ítems pendientes con ítems de otra etapa.');
+      return;
+    }
+
+    if (!this.selection.isSelected(row) && actionBeforeToggle === 'authorization' && !this.canRequestWorkAuthorization(row)) {
+      this.toast.warning('No puedes mezclar ítems con cronograma aprobado con ítems de otra etapa.');
+      return;
+    }
 
     this.selection.toggle(row);
   }
 
-  canRequestDateChange(item: CalibrationPlanItem): boolean {
-    return Number(item.itemStatus) === CalibrationPlanItemStatus.Pending;
-  }
+  onBulkActionClicked(): void {
+    const action = this.selectedBulkAction;
 
-  canAddToSchedule(item: CalibrationPlanItem): boolean {
-    return Number(item.itemStatus) === CalibrationPlanItemStatus.Pending;
+    if (!action || this.selectedItemsCount === 0) {
+      this.toast.warning('Selecciona al menos un ítem accionable.');
+      return;
+    }
+
+    if (action === 'schedule') {
+      this.onScheduleSelectedClicked();
+      return;
+    }
+
+    this.onWorkAuthorizationSelectedClicked();
   }
 
   onDateChangeClicked(item: CalibrationPlanItem): void {
@@ -244,9 +381,7 @@ export class MyCalibrationItemsListComponent implements OnInit {
       return;
     }
 
-    const invalidItems = selectedItems.filter(item => !this.canAddToSchedule(item));
-
-    if (invalidItems.length > 0) {
+    if (!selectedItems.every(item => this.canAddToSchedule(item))) {
       this.toast.warning('Solo puedes proponer cronograma para ítems pendientes.');
       return;
     }
@@ -278,20 +413,53 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.scheduleDrawerOpen.set(true);
   }
 
-  onContinueProcessClicked(item: CalibrationPlanItem): void {
-    this.processesService.findActiveByPlanItem(item.id).subscribe({
-      next: process => {
-        if (!process) {
-          this.toast.warning('No se encontró un proceso activo para este ítem.');
-          return;
-        }
+  onWorkAuthorizationClicked(item: CalibrationPlanItem): void {
+    if (!this.canRequestWorkAuthorization(item)) {
+      this.toast.warning('Solo puedes solicitar autorización cuando el cronograma está aprobado y existe fecha programada.');
+      return;
+    }
 
-        this.router.navigate(['/my-calibration-processes', process.id]);
-      },
-      error: () => {
-        this.toast.error('Error al buscar el proceso de calibración.');
-      }
-    });
+    this.openWorkAuthorizationDrawer([item]);
+  }
+
+  onWorkAuthorizationSelectedClicked(): void {
+    const selectedItems = this.selection.selected;
+
+    if (selectedItems.length === 0) {
+      this.toast.warning('Selecciona al menos un ítem con cronograma aprobado.');
+      return;
+    }
+
+    if (!selectedItems.every(item => this.canRequestWorkAuthorization(item))) {
+      this.toast.warning('Solo puedes solicitar autorización para ítems con cronograma aprobado.');
+      return;
+    }
+
+    const scheduledDates = new Set(selectedItems.map(item => item.scheduledDate));
+
+    if (scheduledDates.size > 1) {
+      this.toast.warning('Selecciona ítems con la misma fecha aprobada para solicitar autorización en lote.');
+      return;
+    }
+
+    this.openWorkAuthorizationDrawer(selectedItems);
+  }
+
+  private openWorkAuthorizationDrawer(items: CalibrationPlanItem[]): void {
+    this.selectedWorkAuthorizationItems.set(items);
+    this.workAuthorizationDrawerOpen.set(true);
+  }
+
+  onWorkAuthorizationDrawerClosed(): void {
+    this.workAuthorizationDrawerOpen.set(false);
+    this.selectedWorkAuthorizationItems.set([]);
+  }
+
+  onWorkAuthorizationCreated(): void {
+    this.workAuthorizationDrawerOpen.set(false);
+    this.selectedWorkAuthorizationItems.set([]);
+    this.selection.clear();
+    this.load();
   }
 
   canStartCalibrationProcess(item: CalibrationPlanItem): boolean {
@@ -322,30 +490,20 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.router.navigate(['/my-calibration-processes', processId]);
   }
 
-  canRequestWorkAuthorization(item: CalibrationPlanItem): boolean {
-    return Number(item.itemStatus) === CalibrationPlanItemStatus.ScheduleApproved &&
-      !!item.scheduledDate;
-  }
+  onContinueProcessClicked(item: CalibrationPlanItem): void {
+    this.processesService.findActiveByPlanItem(item.id).subscribe({
+      next: process => {
+        if (!process) {
+          this.toast.warning('No se encontró un proceso activo para este ítem.');
+          return;
+        }
 
-  onWorkAuthorizationClicked(item: CalibrationPlanItem): void {
-    if (!this.canRequestWorkAuthorization(item)) {
-      this.toast.warning('Solo puedes solicitar autorización cuando el cronograma está aprobado y existe fecha programada.');
-      return;
-    }
-
-    this.selectedWorkAuthorizationItem.set(item);
-    this.workAuthorizationDrawerOpen.set(true);
-  }
-
-  onWorkAuthorizationDrawerClosed(): void {
-    this.workAuthorizationDrawerOpen.set(false);
-    this.selectedWorkAuthorizationItem.set(null);
-  }
-
-  onWorkAuthorizationCreated(): void {
-    this.workAuthorizationDrawerOpen.set(false);
-    this.selectedWorkAuthorizationItem.set(null);
-    this.load();
+        this.router.navigate(['/my-calibration-processes', process.id]);
+      },
+      error: () => {
+        this.toast.error('Error al buscar el proceso de calibración.');
+      }
+    });
   }
 
   getItemStatusLabel(status: CalibrationPlanItemStatus): string {
