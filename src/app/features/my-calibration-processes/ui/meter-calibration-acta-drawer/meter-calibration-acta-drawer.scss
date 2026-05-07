@@ -254,8 +254,17 @@
   gap: 14px;
 }
 
+.field-row--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .drawer__field {
   width: 100%;
+}
+
+app-date-field.drawer__field {
+  display: block;
+  min-width: 0;
 }
 
 .drawer__textarea textarea {

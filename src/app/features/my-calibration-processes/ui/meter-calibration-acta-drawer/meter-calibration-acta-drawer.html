@@ -165,32 +165,19 @@
 
             <div class="field-row">
               <app-date-field
+                class="drawer__field"
                 formControlName="actaDate"
                 label="Fecha del acta"
               />
 
               <app-date-field
-                formControlName="calibrationStartDate"
-                label="Fecha inicio calibración"
+                class="drawer__field"
+                formControlName="calibrationStartDateTime"
+                label="Inicio calibración"
+                [withTime]="true"
+                [minuteStep]="1"
               />
             </div>
-
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Hora inicio calibración</mat-label>
-
-              <input
-                matInput
-                type="text"
-                formControlName="calibrationStartTime"
-                placeholder="HH:mm"
-                maxlength="5"
-                autocomplete="off"
-              />
-
-              @if (form.controls.calibrationStartTime.invalid && form.controls.calibrationStartTime.touched) {
-                <mat-error>Hora inválida. Usa formato HH:mm.</mat-error>
-              }
-            </mat-form-field>
           </section>
 
           <section class="form-section">
@@ -201,28 +188,14 @@
               </div>
             </div>
 
-            <div class="field-row">
+            <div class="field-row field-row--single">
               <app-date-field
-                formControlName="activeEnergyEndDate"
-                label="Fecha fin energía activa"
+                class="drawer__field"
+                formControlName="activeEnergyEndDateTime"
+                label="Fin energía activa"
+                [withTime]="true"
+                [minuteStep]="1"
               />
-
-              <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Hora fin energía activa</mat-label>
-
-                <input
-                  matInput
-                  type="text"
-                  formControlName="activeEnergyEndTime"
-                  placeholder="HH:mm"
-                  maxlength="5"
-                  autocomplete="off"
-                />
-
-                @if (form.controls.activeEnergyEndTime.invalid && form.controls.activeEnergyEndTime.touched) {
-                  <mat-error>Hora inválida. Usa formato HH:mm.</mat-error>
-                }
-              </mat-form-field>
             </div>
 
             <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
@@ -244,28 +217,14 @@
               </div>
             </div>
 
-            <div class="field-row">
+            <div class="field-row field-row--single">
               <app-date-field
-                formControlName="reactiveEnergyEndDate"
-                label="Fecha fin energía reactiva"
+                class="drawer__field"
+                formControlName="reactiveEnergyEndDateTime"
+                label="Fin energía reactiva"
+                [withTime]="true"
+                [minuteStep]="1"
               />
-
-              <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Hora fin energía reactiva</mat-label>
-
-                <input
-                  matInput
-                  type="text"
-                  formControlName="reactiveEnergyEndTime"
-                  placeholder="HH:mm"
-                  maxlength="5"
-                  autocomplete="off"
-                />
-
-                @if (form.controls.reactiveEnergyEndTime.invalid && form.controls.reactiveEnergyEndTime.touched) {
-                  <mat-error>Hora inválida. Usa formato HH:mm.</mat-error>
-                }
-              </mat-form-field>
             </div>
 
             <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
@@ -446,23 +405,13 @@
                     </mat-form-field>
 
                     <app-date-field
-                      formControlName="installedDate"
-                      label="Fecha colocación"
+                      class="drawer__field"
+                      formControlName="installedAt"
+                      label="Fecha y hora colocación"
+                      [withTime]="true"
+                      [minuteStep]="1"
                     />
                   </div>
-
-                  <mat-form-field appearance="outline" class="drawer__field">
-                    <mat-label>Hora colocación</mat-label>
-
-                    <input
-                      matInput
-                      type="text"
-                      formControlName="installedTime"
-                      placeholder="HH:mm"
-                      maxlength="5"
-                      autocomplete="off"
-                    />
-                  </mat-form-field>
 
                   <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
                     <mat-label>Observaciones</mat-label>

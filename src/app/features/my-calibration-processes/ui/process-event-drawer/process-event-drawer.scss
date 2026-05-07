@@ -18,9 +18,11 @@
 
   h2 {
     margin: 4px 0 8px;
+    color: #ffffff;
     font-size: 1.75rem;
-    font-weight: 800;
+    font-weight: 850;
     line-height: 1.15;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -28,12 +30,13 @@
   margin: 0;
   color: #2b8ae2;
   font-size: 0.76rem;
-  font-weight: 800;
+  font-weight: 850;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .drawer__description {
+  max-width: 640px;
   margin: 0;
   color: #c7d2e5;
   font-size: 0.92rem;
@@ -48,10 +51,14 @@
     background-color 0.25s ease,
     color 0.25s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: rotate(90deg);
     background: rgba(255, 255, 255, 0.06);
     color: #ffffff;
+  }
+
+  &:disabled {
+    opacity: 0.55;
   }
 }
 
@@ -67,11 +74,14 @@
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .form-section {
   width: 100%;
-  padding: 18px;
+  padding: 20px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -80,15 +90,115 @@
   gap: 18px;
 }
 
+.section-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  span {
+    color: #ffffff;
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.2;
+  }
+
+  strong {
+    color: #93a4bf;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+}
+
 .drawer__field {
   width: 100%;
   display: block;
+}
+
+.event-date-field {
+  max-width: 620px;
 }
 
 .drawer__textarea textarea {
   min-height: 110px;
   resize: vertical;
 }
+
+.field-error {
+  margin: -12px 0 0;
+  padding: 0 12px;
+  color: #ffb4b4;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.event-summary,
+.info-card {
+  padding: 18px;
+  border-radius: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  span {
+    display: block;
+    color: #8ea0bd;
+    font-size: 0.72rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  strong {
+    display: block;
+    margin-top: 4px;
+    color: #ffffff;
+    font-weight: 850;
+    line-height: 1.25;
+  }
+
+  small,
+  p {
+    display: block;
+    margin: 6px 0 0;
+    color: #a8b3c7;
+    line-height: 1.45;
+  }
+}
+
+.event-summary {
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+.event-summary__icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 16px;
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
+  display: grid;
+  place-items: center;
+
+  mat-icon {
+    width: 25px;
+    height: 25px;
+    font-size: 25px;
+  }
+}
+
+.info-card {
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+
+  mat-icon {
+    color: #fbbf24;
+    flex: 0 0 auto;
+  }
+}
+
+/* Angular Material */
 
 .drawer ::ng-deep .mat-mdc-form-field {
   width: 100%;
@@ -155,65 +265,36 @@
   min-height: 18px;
 }
 
+.drawer ::ng-deep app-date-field.event-date-field {
+  display: block;
+}
+
 .drawer ::ng-deep app-drawer-actions,
 .drawer app-drawer-actions {
   flex-shrink: 0;
 }
 
-.event-summary,
-.info-card {
-  padding: 16px;
-  border-radius: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+/* Responsive */
 
-  span {
-    display: block;
-    color: #8ea0bd;
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+@media (max-width: 760px) {
+  .drawer__header {
+    padding: 20px;
   }
 
-  strong {
-    display: block;
-    margin-top: 4px;
-    color: #ffffff;
-    font-weight: 800;
+  .drawer__body {
+    padding: 18px;
   }
 
-  small,
-  p {
-    display: block;
-    margin: 6px 0 0;
-    color: #a8b3c7;
-    line-height: 1.45;
+  .form-section {
+    padding: 18px;
   }
-}
 
-.event-summary {
-  background: rgba(96, 165, 250, 0.08);
-  border: 1px solid rgba(96, 165, 250, 0.18);
-}
+  .event-summary,
+  .info-card {
+    padding: 16px;
+  }
 
-.event-summary__icon {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border-radius: 14px;
-  background: rgba(96, 165, 250, 0.14);
-  color: #60a5fa;
-  display: grid;
-  place-items: center;
-}
-
-.info-card {
-  background: rgba(245, 158, 11, 0.09);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-
-  mat-icon {
-    color: #fbbf24;
+  .event-date-field {
+    max-width: none;
   }
 }

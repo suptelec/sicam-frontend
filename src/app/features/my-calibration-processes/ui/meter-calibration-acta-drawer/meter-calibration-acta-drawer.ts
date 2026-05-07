@@ -68,7 +68,6 @@ interface GroupedActaCheckSection {
   }[];
 }
 
-const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const PMSE_INITIAL_CHECKS: ActaCheckDefinition[] = [
   {
@@ -289,15 +288,12 @@ export class MeterCalibrationActaDrawerComponent {
     pmsePhone: ['', [Validators.maxLength(50)]],
     actaDate: ['', Validators.required],
 
-    calibrationStartDate: ['', Validators.required],
-    calibrationStartTime: ['', [Validators.required, Validators.pattern(TIME_PATTERN)]],
+    calibrationStartDateTime: ['', Validators.required],
 
-    activeEnergyEndDate: [''],
-    activeEnergyEndTime: ['', [Validators.pattern(TIME_PATTERN)]],
+    activeEnergyEndDateTime: [''],
     activeEnergyEventualities: ['', [Validators.maxLength(1000)]],
 
-    reactiveEnergyEndDate: [''],
-    reactiveEnergyEndTime: ['', [Validators.pattern(TIME_PATTERN)]],
+    reactiveEnergyEndDateTime: [''],
     reactiveEnergyEventualities: ['', [Validators.maxLength(1000)]],
 
     checks: this.fb.array([]),
@@ -434,8 +430,7 @@ export class MeterCalibrationActaDrawerComponent {
         sealType: [MeterSealType.MainMeter, Validators.required],
         sealCode: ['', [Validators.required, Validators.maxLength(120)]],
         sealLocation: ['', [Validators.maxLength(250)]],
-        installedDate: [''],
-        installedTime: ['', [Validators.pattern(TIME_PATTERN)]],
+        installedAt: [''],
         observations: ['', [Validators.maxLength(500)]]
       })
     );
@@ -471,15 +466,12 @@ export class MeterCalibrationActaDrawerComponent {
       pmsePhone: string | null;
       actaDate: string | null;
 
-      calibrationStartDate: string | null;
-      calibrationStartTime: string | null;
+      calibrationStartDateTime: string | null;
 
-      activeEnergyEndDate: string | null;
-      activeEnergyEndTime: string | null;
+      activeEnergyEndDateTime: string | null;
       activeEnergyEventualities: string | null;
 
-      reactiveEnergyEndDate: string | null;
-      reactiveEnergyEndTime: string | null;
+      reactiveEnergyEndDateTime: string | null;
       reactiveEnergyEventualities: string | null;
 
       checks: {
@@ -493,8 +485,7 @@ export class MeterCalibrationActaDrawerComponent {
         sealType: MeterSealType | number | null;
         sealCode: string | null;
         sealLocation: string | null;
-        installedDate: string | null;
-        installedTime: string | null;
+        installedAt: string | null;
         observations: string | null;
       }[];
     };
@@ -502,39 +493,36 @@ export class MeterCalibrationActaDrawerComponent {
     const dto: SaveMeterCalibrationActaRequest = {
       pmseTechnicalDelegateName: this.normalizeRequired(raw.pmseTechnicalDelegateName),
       pmsePhone: this.normalize(raw.pmsePhone),
-      actaDate: this.normalizeRequired(raw.actaDate),
+      actaDate: this.normalizeDateOnlyRequired(raw.actaDate),
 
-      calibrationStartDateTime: this.combineDateTimeRequired(
-        raw.calibrationStartDate,
-        raw.calibrationStartTime
+      calibrationStartDateTime: this.normalizeDateTimeRequired(
+        raw.calibrationStartDateTime
       ),
 
-      activeEnergyEndDateTime: this.combineDateTime(
-        raw.activeEnergyEndDate,
-        raw.activeEnergyEndTime
+      activeEnergyEndDateTime: this.normalizeDateTime(
+        raw.activeEnergyEndDateTime
       ),
       activeEnergyEventualities: this.normalize(raw.activeEnergyEventualities),
 
-      reactiveEnergyEndDateTime: this.combineDateTime(
-        raw.reactiveEnergyEndDate,
-        raw.reactiveEnergyEndTime
+      reactiveEnergyEndDateTime: this.normalizeDateTime(
+        raw.reactiveEnergyEndDateTime
       ),
       reactiveEnergyEventualities: this.normalize(raw.reactiveEnergyEventualities),
 
-checks: raw.checks
-  .filter(check => this.isManualCheckCode(Number(check.checkCode)))
-  .map(check => ({
-    checkCode: Number(check.checkCode),
-    checkResult: Number(check.checkResult) as MeterCalibrationActaCheckResult,
-    observation: this.normalize(check.observation)
-  })),
+      checks: raw.checks
+        .filter(check => this.isManualCheckCode(Number(check.checkCode)))
+        .map(check => ({
+          checkCode: Number(check.checkCode),
+          checkResult: Number(check.checkResult) as MeterCalibrationActaCheckResult,
+          observation: this.normalize(check.observation)
+        })),
 
       seals: raw.seals.map(seal => ({
         id: seal.id ? Number(seal.id) : null,
         sealType: Number(seal.sealType),
         sealCode: this.normalizeRequired(seal.sealCode),
         sealLocation: this.normalize(seal.sealLocation),
-        installedAt: this.combineDateTime(seal.installedDate, seal.installedTime),
+        installedAt: this.normalizeDateTime(seal.installedAt),
         observations: this.normalize(seal.observations)
       }))
     };
@@ -717,17 +705,20 @@ checks: raw.checks
       {
         pmseTechnicalDelegateName: acta?.pmseTechnicalDelegateName ?? '',
         pmsePhone: acta?.pmsePhone ?? '',
-        actaDate: acta?.actaDate ?? suggestedDate,
+        actaDate: this.toDateControlValue(acta?.actaDate ?? suggestedDate),
 
-        calibrationStartDate: this.getDatePart(acta?.calibrationStartDateTime),
-        calibrationStartTime: this.getTimePart(acta?.calibrationStartDateTime),
+        calibrationStartDateTime: this.toDateTimeControlValue(
+          acta?.calibrationStartDateTime
+        ),
 
-        activeEnergyEndDate: this.getDatePart(acta?.activeEnergyEndDateTime),
-        activeEnergyEndTime: this.getTimePart(acta?.activeEnergyEndDateTime),
+        activeEnergyEndDateTime: this.toDateTimeControlValue(
+          acta?.activeEnergyEndDateTime
+        ),
         activeEnergyEventualities: acta?.activeEnergyEventualities ?? '',
 
-        reactiveEnergyEndDate: this.getDatePart(acta?.reactiveEnergyEndDateTime),
-        reactiveEnergyEndTime: this.getTimePart(acta?.reactiveEnergyEndDateTime),
+        reactiveEnergyEndDateTime: this.toDateTimeControlValue(
+          acta?.reactiveEnergyEndDateTime
+        ),
         reactiveEnergyEventualities: acta?.reactiveEnergyEventualities ?? ''
       },
       { emitEvent: false }
@@ -767,8 +758,7 @@ checks: raw.checks
           sealType: [seal.sealType, Validators.required],
           sealCode: [seal.sealCode ?? '', [Validators.required, Validators.maxLength(120)]],
           sealLocation: [seal.sealLocation ?? '', [Validators.maxLength(250)]],
-          installedDate: [this.getDatePart(seal.installedAt)],
-          installedTime: [this.getTimePart(seal.installedAt), [Validators.pattern(TIME_PATTERN)]],
+          installedAt: [this.toDateTimeControlValue(seal.installedAt)],
           observations: [seal.observations ?? '', [Validators.maxLength(500)]]
         })
       );
@@ -814,39 +804,35 @@ checks: raw.checks
     return checks.find(check => Number(check.checkCode) === Number(code));
   }
 
-  private combineDateTimeRequired(
-    date: string | null | undefined,
-    time: string | null | undefined
-  ): string {
-    const normalizedDate = this.normalizeRequired(date);
-    const normalizedTime = this.normalizeRequired(time);
+  private toDateControlValue(value: string | null | undefined): string {
+    const normalized = this.normalize(value);
 
-    return `${normalizedDate}T${normalizedTime}`;
+    return normalized ? normalized.substring(0, 10) : '';
   }
 
-  private combineDateTime(
-    date: string | null | undefined,
-    time: string | null | undefined
-  ): string | null {
-    const normalizedDate = this.normalize(date);
-    const normalizedTime = this.normalize(time);
-
-    if (!normalizedDate && !normalizedTime) return null;
-    if (!normalizedDate || !normalizedTime) return null;
-
-    return `${normalizedDate}T${normalizedTime}`;
+  private toDateTimeControlValue(value: string | null | undefined): string {
+    return this.normalizeDateTime(value) ?? '';
   }
 
-  private getDatePart(value: string | null | undefined): string {
-    if (!value) return '';
+  private normalizeDateOnlyRequired(value: unknown): string {
+    const normalized = this.normalizeRequired(value);
 
-    return value.substring(0, 10);
+    return normalized.substring(0, 10);
   }
 
-  private getTimePart(value: string | null | undefined): string {
-    if (!value || value.length < 16) return '';
+  private normalizeDateTimeRequired(value: unknown): string {
+    return this.normalizeDateTime(value) ?? '';
+  }
 
-    return value.substring(11, 16);
+  private normalizeDateTime(value: unknown): string | null {
+    const normalized = this.normalize(value);
+
+    if (!normalized || normalized.length < 10) return null;
+
+    const datePart = normalized.substring(0, 10);
+    const timePart = normalized.match(/[T\s](\d{2}:\d{2})/)?.[1] ?? '00:00';
+
+    return `${datePart}T${timePart}`;
   }
 
   private normalize(value: unknown): string | null {
@@ -863,8 +849,8 @@ checks: raw.checks
       : '';
   }
 
-private isManualCheckCode(checkCode: number): boolean {
-  return (checkCode >= 1 && checkCode <= 8) ||
-    (checkCode >= 50 && checkCode <= 56);
-}
+  private isManualCheckCode(checkCode: number): boolean {
+    return (checkCode >= 1 && checkCode <= 8) ||
+      (checkCode >= 50 && checkCode <= 56);
+  }
 }

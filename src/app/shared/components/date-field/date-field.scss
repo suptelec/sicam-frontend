@@ -1,9 +1,127 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.date-time-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.date-time-field--with-time {
+  grid-template-columns: minmax(220px, 1fr) 138px;
+  align-items: start;
+}
+
 .date-field {
   width: 100%;
+  min-width: 0;
+}
+
+.time-control {
+  position: relative;
+  height: 56px;
+  min-width: 0;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 18, 38, 0.92);
+  display: flex;
+  align-items: center;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.time-control:hover:not(.time-control--disabled) {
+  border-color: rgba(96, 165, 250, 0.48);
+}
+
+.time-control:focus-within {
+  border-color: #60a5fa;
+}
+
+.time-control--disabled {
+  opacity: 0.58;
+}
+
+.time-control__label {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  z-index: 1;
+  padding: 0 5px;
+  color: #c7d2e5;
+  background: #0b1730;
+  font-size: 0.72rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.time-control:focus-within .time-control__label {
+  color: #60a5fa;
+}
+
+.time-control__content {
+  width: 100%;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-control__content mat-icon {
+  width: 18px;
+  height: 18px;
+  color: #a8b3c7;
+  font-size: 18px;
+  flex: 0 0 auto;
+}
+
+.time-control:focus-within .time-control__content mat-icon {
+  color: #60a5fa;
+}
+
+.time-control__content input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f9fafb;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  text-align: center;
+  color-scheme: dark;
+}
+
+.time-control__content input:disabled {
+  cursor: not-allowed;
+}
+
+.time-control__content input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+  filter: invert(1);
+}
+
+.date-time-hint {
+  margin: -4px 0 0;
+  padding: 0 12px;
+  color: #a8b3c7;
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
 
 :host ::ng-deep .mat-mdc-form-field {
   width: 100%;
+}
+
+:host ::ng-deep .mat-mdc-text-field-wrapper {
+  background: rgba(8, 18, 38, 0.92) !important;
 }
 
 :host ::ng-deep .mat-mdc-form-field-infix {
@@ -16,32 +134,33 @@
   padding: 0 !important;
   color: #f9fafb !important;
   font-size: 0.96rem;
+  caret-color: #60a5fa;
 }
 
 :host ::ng-deep .mdc-floating-label {
-  color: #a8b3c7 !important;
+  color: #c7d2e5 !important;
 }
 
 :host ::ng-deep .mat-focused .mdc-floating-label {
-  color: #2b8ae2 !important;
+  color: #60a5fa !important;
 }
 
 :host ::ng-deep .mdc-notched-outline__leading,
 :host ::ng-deep .mdc-notched-outline__notch,
 :host ::ng-deep .mdc-notched-outline__trailing {
-  border-color: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 :host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__leading,
 :host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__notch,
 :host ::ng-deep .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
-  border-color: rgba(43, 138, 226, 0.45) !important;
+  border-color: rgba(96, 165, 250, 0.48) !important;
 }
 
 :host ::ng-deep .mat-focused .mdc-notched-outline__leading,
 :host ::ng-deep .mat-focused .mdc-notched-outline__notch,
 :host ::ng-deep .mat-focused .mdc-notched-outline__trailing {
-  border-color: #2b8ae2 !important;
+  border-color: #60a5fa !important;
 }
 
 :host ::ng-deep .mat-datepicker-toggle {
@@ -50,4 +169,18 @@
 
 :host ::ng-deep .mat-datepicker-toggle:hover {
   color: #ffffff !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field.mat-form-field-disabled {
+  opacity: 0.58;
+}
+
+@media (max-width: 760px) {
+  .date-time-field--with-time {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .time-control {
+    width: 100%;
+  }
 }

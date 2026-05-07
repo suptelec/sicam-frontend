@@ -1,27 +1,56 @@
-<mat-form-field appearance="outline" class="date-field">
-  <mat-label>{{ label }}</mat-label>
+<div class="date-time-field" [class.date-time-field--with-time]="withTime">
+  <mat-form-field appearance="outline" class="date-field">
+    <mat-label>{{ label }}</mat-label>
 
-  <input
-  matInput
-  [matDatepicker]="picker"
-  [value]="value"
-  [min]="minDate"
-  [max]="maxDate"
-  [readonly]="readonly"
-  [disabled]="disabled"
-  (dateChange)="onDateChange($event.value)"
-  (blur)="markAsTouched()"
-/>
+    <input
+      matInput
+      [matDatepicker]="picker"
+      [value]="value"
+      [min]="minDate"
+      [max]="maxDate"
+      [readonly]="readonly"
+      [disabled]="disabled"
+      (dateChange)="onDateChange($event.value)"
+      (blur)="markAsTouched()"
+    />
 
-  <mat-datepicker-toggle
-    matIconSuffix
-    [for]="picker"
-    [disabled]="disabled"
-  />
+    <mat-datepicker-toggle
+      matIconSuffix
+      [for]="picker"
+      [disabled]="disabled"
+    />
 
-  <mat-datepicker #picker />
+    <mat-datepicker #picker />
 
-  @if (hint) {
-    <mat-hint>{{ hint }}</mat-hint>
+    @if (hint && !withTime) {
+      <mat-hint>{{ hint }}</mat-hint>
+    }
+  </mat-form-field>
+
+  @if (withTime) {
+    <div
+      class="time-control"
+      [class.time-control--disabled]="disabled || !value"
+    >
+      <span class="time-control__label">Hora</span>
+
+      <div class="time-control__content">
+        <mat-icon aria-hidden="true">schedule</mat-icon>
+
+        <input
+          type="time"
+          aria-label="Hora"
+          [value]="timeValue"
+          [step]="timeStepInSeconds"
+          [disabled]="disabled || !value"
+          (input)="onTimeInputChange($event)"
+          (blur)="markAsTouched()"
+        />
+      </div>
+    </div>
   }
-</mat-form-field>
+</div>
+
+@if (hint && withTime) {
+  <p class="date-time-hint">{{ hint }}</p>
+}

@@ -17,6 +17,7 @@ import {
   provideNativeDateAdapter
 } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
 @Component({
@@ -26,7 +27,8 @@ import { MatInputModule } from '@angular/material/input';
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
-    MatDatepickerModule
+    MatDatepickerModule,
+    MatIconModule
   ],
   templateUrl: './date-field.html',
   styleUrl: './date-field.scss',
@@ -44,12 +46,14 @@ import { MatInputModule } from '@angular/material/input';
   ]
 })
 export class DateFieldComponent implements ControlValueAccessor {
-@Input() label = 'Fecha';
-@Input() requiredMessage = 'La fecha es obligatoria.';
-@Input() hint: string | null = null;
-@Input() readonly = true;
-@Input() min: string | Date | null = null;
-@Input() max: string | Date | null = null;
+  @Input() label = 'Fecha';
+  @Input() requiredMessage = 'La fecha es obligatoria.';
+  @Input() hint: string | null = null;
+  @Input() readonly = true;
+  @Input() min: string | Date | null = null;
+  @Input() max: string | Date | null = null;
+  @Input() withTime = false;
+  @Input() minuteStep = 1;
 
   @Output() valueChanged = new EventEmitter<string | null>();
 
@@ -57,12 +61,28 @@ export class DateFieldComponent implements ControlValueAccessor {
   disabled = false;
 
   get minDate(): Date | null {
-  return this.parseDate(this.min);
-}
+    return this.parseDate(this.min);
+  }
 
-get maxDate(): Date | null {
-  return this.parseDate(this.max);
-}
+  get maxDate(): Date | null {
+    return this.parseDate(this.max);
+  }
+
+  get timeValue(): string {
+    if (!this.value || Number.isNaN(this.value.getTime())) {
+      return '';
+    }
+
+    return `${this.formatNumber(this.value.getHours())}:${this.formatNumber(this.value.getMinutes())}`;
+  }
+
+  get timeStepInSeconds(): number {
+    const safeStep = this.minuteStep > 0 && this.minuteStep <= 60
+      ? this.minuteStep
+      : 1;
+
+    return safeStep * 60;
+  }
 
   private onChange: (value: string | null) => void = () => {};
   private onTouched: () => void = () => {};
@@ -83,18 +103,66 @@ get maxDate(): Date | null {
     this.disabled = isDisabled;
   }
 
-onDateChange(value: Date | null): void {
-  this.value = value;
+  onDateChange(value: Date | null): void {
+    if (!value) {
+      this.updateValue(null);
+      return;
+    }
 
-  const formattedValue = this.formatDate(value);
+    const nextValue = new Date(value);
 
-  this.onChange(formattedValue);
-  this.onTouched();
-  this.valueChanged.emit(formattedValue);
-}
+    if (this.withTime && this.value) {
+      nextValue.setHours(this.value.getHours(), this.value.getMinutes(), 0, 0);
+    } else {
+      nextValue.setHours(0, 0, 0, 0);
+    }
+
+    this.updateValue(nextValue);
+  }
+
+  onTimeInputChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const rawTime = input.value;
+
+    if (!rawTime || !this.value) return;
+
+    const [hourValue, minuteValue] = rawTime.split(':');
+    const hour = Number(hourValue);
+    const minute = Number(minuteValue);
+
+    if (
+      Number.isNaN(hour) ||
+      Number.isNaN(minute) ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59
+    ) {
+      return;
+    }
+
+    const nextValue = new Date(this.value);
+    nextValue.setHours(hour, minute, 0, 0);
+
+    this.updateValue(nextValue);
+  }
 
   markAsTouched(): void {
     this.onTouched();
+  }
+
+  formatNumber(value: number): string {
+    return `${value}`.padStart(2, '0');
+  }
+
+  private updateValue(value: Date | null): void {
+    this.value = value;
+
+    const formattedValue = this.formatDate(value);
+
+    this.onChange(formattedValue);
+    this.onTouched();
+    this.valueChanged.emit(formattedValue);
   }
 
   private parseDate(value: string | Date | null | undefined): Date | null {
@@ -104,17 +172,23 @@ onDateChange(value: Date | null): void {
       return Number.isNaN(value.getTime()) ? null : value;
     }
 
-    const parts = value.split('-');
+    const match = value.match(
+      /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/
+    );
 
-    if (parts.length !== 3) return null;
+    if (!match) return null;
 
-    const year = Number(parts[0]);
-    const month = Number(parts[1]);
-    const day = Number(parts[2]);
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const hour = Number(match[4] ?? 0);
+    const minute = Number(match[5] ?? 0);
 
     if (!year || !month || !day) return null;
 
-    return new Date(year, month - 1, day);
+    const parsed = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private formatDate(value: Date | null): string | null {
@@ -123,9 +197,18 @@ onDateChange(value: Date | null): void {
     }
 
     const year = value.getFullYear();
-    const month = `${value.getMonth() + 1}`.padStart(2, '0');
-    const day = `${value.getDate()}`.padStart(2, '0');
+    const month = this.formatNumber(value.getMonth() + 1);
+    const day = this.formatNumber(value.getDate());
 
-    return `${year}-${month}-${day}`;
+    const datePart = `${year}-${month}-${day}`;
+
+    if (!this.withTime) {
+      return datePart;
+    }
+
+    const hour = this.formatNumber(value.getHours());
+    const minute = this.formatNumber(value.getMinutes());
+
+    return `${datePart}T${hour}:${minute}`;
   }
 }

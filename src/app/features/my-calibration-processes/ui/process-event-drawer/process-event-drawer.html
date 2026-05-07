@@ -3,10 +3,10 @@
     <div>
       <p class="drawer__eyebrow">EVENTO TÉCNICO</p>
 
-      <h2>Registrar calibración ejecutada</h2>
+      <h2>{{ title }}</h2>
 
       <p class="drawer__description">
-        Registra el evento que confirma que la calibración fue ejecutada conforme a la autorización de CENACE.
+        {{ description }}
       </p>
     </div>
 
@@ -15,6 +15,7 @@
       type="button"
       class="drawer__close-btn"
       matTooltip="Cerrar"
+      [disabled]="loading"
       (click)="close()"
     >
       <mat-icon>close</mat-icon>
@@ -30,27 +31,31 @@
 
         <div>
           <span>Tipo de evento</span>
-          <strong>Calibración ejecutada</strong>
-          <small>Este evento es obligatorio para enviar el proceso a revisión.</small>
+          <strong>{{ eventLabel }}</strong>
+          <small>{{ eventHelpText }}</small>
         </div>
       </section>
 
       <section class="form-section">
-        <div class="section-title">Datos del evento</div>
+        <div class="section-title">
+          <span>Datos del evento</span>
+          <strong>Información técnica registrada por el PMSE</strong>
+        </div>
 
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>Fecha y hora de ejecución</mat-label>
+        <app-date-field
+          class="drawer__field event-date-field"
+          formControlName="occurredAt"
+          label="Fecha y hora de ejecución"
+          hint="Selecciona la fecha y registra la hora exacta de ejecución."
+          [withTime]="true"
+          [minuteStep]="1"
+          [min]="occurredAtDateLimit"
+          [max]="occurredAtDateLimit"
+        />
 
-          <input
-            matInput
-            type="datetime-local"
-            formControlName="occurredAt"
-          />
-
-          @if (form.controls.occurredAt.hasError('required') && form.controls.occurredAt.touched) {
-            <mat-error>La fecha y hora es obligatoria.</mat-error>
-          }
-        </mat-form-field>
+        @if (form.controls.occurredAt.hasError('required') && form.controls.occurredAt.touched) {
+          <p class="field-error">La fecha y hora es obligatoria.</p>
+        }
 
         <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
           <mat-label>Descripción</mat-label>
@@ -94,7 +99,7 @@
     <app-drawer-actions
       cancelText="Cancelar"
       cancelIcon="close"
-      submitText="Registrar evento"
+      [submitText]="submitText"
       submitIcon="save"
       [loading]="loading"
       [disabled]="saveDisabled"
