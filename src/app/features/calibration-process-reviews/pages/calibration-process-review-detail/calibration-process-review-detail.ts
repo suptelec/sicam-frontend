@@ -98,9 +98,9 @@ export class CalibrationProcessReviewDetailComponent implements OnInit {
   }
 
   get hasAct(): boolean {
-    return this.documents.some(x =>
-      Number(x.documentType) === CalibrationProcessDocumentType.CalibrationAct
-    );
+    const current = this.process();
+
+    return !!current?.calibrationActUrl;
   }
 
   get hasCalibrationExecutedEvent(): boolean {
@@ -116,7 +116,8 @@ export class CalibrationProcessReviewDetailComponent implements OnInit {
       Number(current.processStatus) === CalibrationProcessStatus.Submitted &&
       Number(current.calibrationResult) === CalibrationResult.Approved &&
       this.hasCertificate &&
-      this.hasAct;
+      this.hasAct &&
+      this.hasCalibrationExecutedEvent;
   }
 
   get canReject(): boolean {
@@ -158,13 +159,15 @@ export class CalibrationProcessReviewDetailComponent implements OnInit {
     if (!current) return;
 
     if (!this.canApprove) {
-      this.toast.warning('Para aprobar, el proceso debe estar en revisión, tener resultado aprobado, certificado y acta.');
+      this.toast.warning(
+        'Para aprobar, el proceso debe estar en revisión, tener resultado aprobado, certificado PDF, acta generada y evento de calibración ejecutada.'
+      );
       return;
     }
 
     this.confirmDialog.confirm({
       title: 'Aprobar proceso de calibración',
-      message: 'Se aprobará el proceso final. Esto actualizará el medidor y creará el nuevo certificado histórico. ¿Deseas continuar?',
+      message: 'Se aprobará el proceso final. Esto actualizará el certificado vigente del medidor. ¿Deseas continuar?',
       confirmText: 'Aprobar',
       cancelText: 'Cancelar',
       type: 'info'
@@ -257,6 +260,19 @@ export class CalibrationProcessReviewDetailComponent implements OnInit {
 
       default:
         return 'Evento técnico';
+    }
+  }
+
+  getCalibrationResultLabel(result: CalibrationResult | null | undefined): string {
+    switch (Number(result)) {
+      case CalibrationResult.Approved:
+        return 'Aprobada';
+
+      case CalibrationResult.Rejected:
+        return 'Rechazada';
+
+      default:
+        return 'Pendiente';
     }
   }
 

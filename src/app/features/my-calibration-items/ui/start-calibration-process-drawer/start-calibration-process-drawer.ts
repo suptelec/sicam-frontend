@@ -1,20 +1,26 @@
-import { Component, EventEmitter, Output, effect, inject, input } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  effect,
+  inject,
+  input,
+  signal
+} from '@angular/core';
+
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 import {
-  AbstractControl,
   FormBuilder,
   ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
   Validators
 } from '@angular/forms';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
@@ -22,24 +28,29 @@ import { ToastService } from '../../../../core/services/toast.service';
 
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 
+import { WorkAuthorizationsService } from '../../data-access/work-authorizations.service';
 import { CalibrationProcessesService } from '../../data-access/calibration-processes.service';
+
 import {
-  CalibrationResult,
-  CreateCalibrationProcessRequest
-} from '../../domain/calibration-process.model';
+  AuthorizationMeterSnapshot,
+  AuthorizationMeterSnapshotPhoto,
+  CalibrationWorkAuthorization
+} from '../../domain/work-authorization.model';
+
+import { CreateCalibrationProcessRequest } from '../../domain/calibration-process.model';
 import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
   selector: 'app-start-calibration-process-drawer',
   standalone: true,
   imports: [
+    MatFormFieldModule,
+    MatInputModule,
     ReactiveFormsModule,
     MatButtonModule,
     MatDividerModule,
-    MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
-    MatSelectModule,
+    MatProgressSpinnerModule,
     MatTooltipModule,
     DrawerActionsComponent,
     DateFieldComponent
@@ -55,45 +66,37 @@ export class StartCalibrationProcessDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationProcessesService);
+  private readonly workAuthorizationsService = inject(WorkAuthorizationsService);
   private readonly toast = inject(ToastService);
-
-  readonly CalibrationResult = CalibrationResult;
 
   loading = false;
 
-  readonly form = this.fb.group(
-    {
-      executionDate: ['', Validators.required],
+  readonly isLoadingSnapshot = signal(false);
+  readonly approvedAuthorization = signal<CalibrationWorkAuthorization | null>(null);
+  readonly snapshot = signal<AuthorizationMeterSnapshot | null>(null);
+  readonly snapshotLoadAttempted = signal(false);
 
-      certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
-      certificateIssueDate: ['', Validators.required],
-      certificateValidUntil: ['', Validators.required],
-      calibrationResult: [CalibrationResult.Approved, Validators.required],
-
-      mainMeterSealAfterCalibration: ['', [Validators.maxLength(100)]],
-      terminalBlockSealOneAfterCalibration: ['', [Validators.maxLength(100)]],
-      terminalBlockSealTwoAfterCalibration: ['', [Validators.maxLength(100)]],
-
-      notes: ['', [Validators.maxLength(1000)]]
-    },
-    {
-      validators: [this.validUntilAfterIssueDateValidator()]
-    }
-  );
+  readonly form = this.fb.group({
+    executionDate: ['', Validators.required],
+    notes: ['', [Validators.maxLength(1000)]]
+  });
 
   constructor() {
     effect(() => {
       const currentItem = this.item();
 
-      if (!currentItem?.scheduledDate) return;
+      this.snapshot.set(null);
+      this.approvedAuthorization.set(null);
+      this.snapshotLoadAttempted.set(false);
 
-      this.form.patchValue(
-        {
-          executionDate: currentItem.scheduledDate,
-          certificateIssueDate: currentItem.scheduledDate
-        },
-        { emitEvent: false }
-      );
+      this.form.reset({
+        executionDate: currentItem?.scheduledDate ?? '',
+        notes: ''
+      });
+
+      if (!currentItem) return;
+
+      this.loadAuthorizationSnapshot(currentItem.id);
     });
   }
 
@@ -105,11 +108,26 @@ export class StartCalibrationProcessDrawerComponent {
     return this.currentItem?.scheduledDate ?? null;
   }
 
+  get photos(): AuthorizationMeterSnapshotPhoto[] {
+    return [...(this.snapshot()?.photos ?? [])]
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }
+
+  get hasReferencePhotos(): boolean {
+    return this.photos.length > 0;
+  }
+
+  get canStartProcess(): boolean {
+    return !!this.currentItem &&
+      !!this.scheduledDate &&
+      this.hasReferencePhotos;
+  }
+
   get saveDisabled(): boolean {
     return this.loading ||
+      this.isLoadingSnapshot() ||
       this.form.invalid ||
-      !this.currentItem ||
-      !this.scheduledDate;
+      !this.canStartProcess;
   }
 
   submit(): void {
@@ -120,8 +138,15 @@ export class StartCalibrationProcessDrawerComponent {
       return;
     }
 
-    if (!currentItem.scheduledDate) {
-      this.toast.error('El ítem no tiene fecha aprobada para iniciar calibración.');
+    if (!this.scheduledDate) {
+      this.toast.warning('El ítem no tiene fecha de cronograma aprobada.');
+      return;
+    }
+
+    if (!this.hasReferencePhotos) {
+      this.toast.warning(
+        'No se puede iniciar la calibración porque no se encontraron fotos de referencia enviadas por CENACE.'
+      );
       return;
     }
 
@@ -134,15 +159,8 @@ export class StartCalibrationProcessDrawerComponent {
     const raw = this.form.getRawValue();
 
     const dto: CreateCalibrationProcessRequest = {
-      executionDate: currentItem.scheduledDate,
-      certificateNumber: this.normalizeRequired(raw.certificateNumber),
-      certificateIssueDate: this.normalizeRequired(raw.certificateIssueDate),
-      certificateValidUntil: this.normalizeRequired(raw.certificateValidUntil),
-      calibrationResult: Number(raw.calibrationResult) as CalibrationResult,
-      notes: this.normalize(raw.notes),
-      mainMeterSealAfterCalibration: this.normalize(raw.mainMeterSealAfterCalibration),
-      terminalBlockSealOneAfterCalibration: this.normalize(raw.terminalBlockSealOneAfterCalibration),
-      terminalBlockSealTwoAfterCalibration: this.normalize(raw.terminalBlockSealTwoAfterCalibration)
+      executionDate: this.normalizeRequired(raw.executionDate),
+      notes: this.normalize(raw.notes)
     };
 
     this.loading = true;
@@ -152,7 +170,7 @@ export class StartCalibrationProcessDrawerComponent {
         this.loading = false;
 
         if (!response.succeed || !response.result) {
-          this.toast.error(response.message ?? 'No se pudo iniciar el proceso de calibración.');
+          this.toast.error(response.message ?? 'No se pudo iniciar el proceso.');
           return;
         }
 
@@ -174,20 +192,63 @@ export class StartCalibrationProcessDrawerComponent {
     this.closed.emit();
   }
 
+  private loadAuthorizationSnapshot(calibrationPlanItemId: number): void {
+    this.isLoadingSnapshot.set(true);
+
+    this.workAuthorizationsService
+      .findApprovedByPlanItem(calibrationPlanItemId)
+      .subscribe({
+        next: authorization => {
+          this.approvedAuthorization.set(authorization);
+
+          if (!authorization) {
+            this.snapshot.set(null);
+            this.snapshotLoadAttempted.set(true);
+            this.isLoadingSnapshot.set(false);
+            return;
+          }
+
+          this.workAuthorizationsService
+            .getMeterSnapshot(authorization.id)
+            .subscribe({
+              next: response => {
+                this.isLoadingSnapshot.set(false);
+                this.snapshotLoadAttempted.set(true);
+
+                if (response.succeed) {
+                  this.snapshot.set(response.result ?? null);
+                  return;
+                }
+
+                this.snapshot.set(null);
+              },
+              error: () => {
+                this.isLoadingSnapshot.set(false);
+                this.snapshotLoadAttempted.set(true);
+                this.snapshot.set(null);
+              }
+            });
+        },
+        error: () => {
+          this.isLoadingSnapshot.set(false);
+          this.snapshotLoadAttempted.set(true);
+          this.approvedAuthorization.set(null);
+          this.snapshot.set(null);
+        }
+      });
+  }
+
   private reset(): void {
     this.form.reset({
-      executionDate: this.currentItem?.scheduledDate ?? '',
-      certificateNumber: '',
-      certificateIssueDate: this.currentItem?.scheduledDate ?? '',
-      certificateValidUntil: '',
-      calibrationResult: CalibrationResult.Approved,
-      mainMeterSealAfterCalibration: '',
-      terminalBlockSealOneAfterCalibration: '',
-      terminalBlockSealTwoAfterCalibration: '',
+      executionDate: '',
       notes: ''
     });
 
     this.loading = false;
+    this.isLoadingSnapshot.set(false);
+    this.approvedAuthorization.set(null);
+    this.snapshot.set(null);
+    this.snapshotLoadAttempted.set(false);
   }
 
   private normalize(value: unknown): string | null {
@@ -202,27 +263,5 @@ export class StartCalibrationProcessDrawerComponent {
     return typeof value === 'string'
       ? value.trim()
       : '';
-  }
-
-  private validUntilAfterIssueDateValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const issueDate = control.get('certificateIssueDate')?.value;
-      const validUntil = control.get('certificateValidUntil')?.value;
-
-      if (!issueDate || !validUntil) {
-        return null;
-      }
-
-      const issue = new Date(issueDate);
-      const until = new Date(validUntil);
-
-      if (Number.isNaN(issue.getTime()) || Number.isNaN(until.getTime())) {
-        return null;
-      }
-
-      return until <= issue
-        ? { certificateValidUntilBeforeOrEqualIssueDate: true }
-        : null;
-    };
   }
 }

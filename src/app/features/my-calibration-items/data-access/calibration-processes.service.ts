@@ -3,7 +3,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-import { ApiResult, PaginatedResult } from '../../../shared/models/api-result.model';
+import {
+  ApiResult,
+  EmptyResult,
+  PaginatedResult
+} from '../../../shared/models/api-result.model';
 
 import {
   ApproveCalibrationProcessRequest,
@@ -13,7 +17,12 @@ import {
   CreateCalibrationProcessDocumentRequest,
   CreateCalibrationProcessEventRequest,
   CreateCalibrationProcessRequest,
+  CreateMeterCalibrationActaSealPhotoRequest,
+  MeterCalibrationActa,
+  MeterCalibrationActaFormResponse,
+  MeterCalibrationActaSealPhoto,
   RejectCalibrationProcessRequest,
+  SaveMeterCalibrationActaRequest,
   StartCalibrationProcessCorrectionRequest,
   UpdateCalibrationProcessDataRequest
 } from '../domain/calibration-process.model';
@@ -29,29 +38,29 @@ export class CalibrationProcessesService {
     );
   }
 
-getAll(params: {
-  page: number;
-  take: number;
-  filter?: string;
-  orderBy?: string;
-}): Observable<PaginatedResult<CalibrationProcess>> {
-  let httpParams = new HttpParams()
-    .set('page', params.page)
-    .set('take', params.take);
+  getAll(params: {
+    page: number;
+    take: number;
+    filter?: string;
+    orderBy?: string;
+  }): Observable<PaginatedResult<CalibrationProcess>> {
+    let httpParams = new HttpParams()
+      .set('page', params.page)
+      .set('take', params.take);
 
-  if (params.filter) {
-    httpParams = httpParams.set('$filter', params.filter);
+    if (params.filter) {
+      httpParams = httpParams.set('$filter', params.filter);
+    }
+
+    if (params.orderBy) {
+      httpParams = httpParams.set('$orderby', params.orderBy);
+    }
+
+    return this.http.get<PaginatedResult<CalibrationProcess>>(
+      `${this.apiBaseUrl}/CalibrationProcesses`,
+      { params: httpParams }
+    );
   }
-
-  if (params.orderBy) {
-    httpParams = httpParams.set('$orderby', params.orderBy);
-  }
-
-  return this.http.get<PaginatedResult<CalibrationProcess>>(
-    `${this.apiBaseUrl}/CalibrationProcesses`,
-    { params: httpParams }
-  );
-}
 
   findActiveByPlanItem(
     calibrationPlanItemId: number
@@ -97,61 +106,109 @@ getAll(params: {
   }
 
   addEvent(
-  processId: number,
-  dto: CreateCalibrationProcessEventRequest
-): Observable<ApiResult<CalibrationProcessEvent>> {
-  return this.http.post<ApiResult<CalibrationProcessEvent>>(
-    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/events`,
-    dto
-  );
-}
+    processId: number,
+    dto: CreateCalibrationProcessEventRequest
+  ): Observable<ApiResult<CalibrationProcessEvent>> {
+    return this.http.post<ApiResult<CalibrationProcessEvent>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/events`,
+      dto
+    );
+  }
 
-submit(
-  processId: number
-): Observable<ApiResult<CalibrationProcess>> {
-  return this.http.patch<ApiResult<CalibrationProcess>>(
-    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/submit`,
-    {}
-  );
-}
+  submit(
+    processId: number
+  ): Observable<ApiResult<CalibrationProcess>> {
+    return this.http.patch<ApiResult<CalibrationProcess>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/submit`,
+      {}
+    );
+  }
 
-approve(
-  processId: number,
-  dto: ApproveCalibrationProcessRequest
-): Observable<ApiResult<CalibrationProcess>> {
-  return this.http.patch<ApiResult<CalibrationProcess>>(
-    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/approve`,
-    dto
-  );
-}
+  approve(
+    processId: number,
+    dto: ApproveCalibrationProcessRequest
+  ): Observable<ApiResult<CalibrationProcess>> {
+    return this.http.patch<ApiResult<CalibrationProcess>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/approve`,
+      dto
+    );
+  }
 
-reject(
-  processId: number,
-  dto: RejectCalibrationProcessRequest
-): Observable<ApiResult<CalibrationProcess>> {
-  return this.http.patch<ApiResult<CalibrationProcess>>(
-    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/reject`,
-    dto
-  );
-}
+  reject(
+    processId: number,
+    dto: RejectCalibrationProcessRequest
+  ): Observable<ApiResult<CalibrationProcess>> {
+    return this.http.patch<ApiResult<CalibrationProcess>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/reject`,
+      dto
+    );
+  }
 
-startCorrection(
-  processId: number,
-  dto: StartCalibrationProcessCorrectionRequest
-): Observable<ApiResult<CalibrationProcess>> {
-  return this.http.patch<ApiResult<CalibrationProcess>>(
-    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/start-correction`,
-    dto
-  );
-}
+  startCorrection(
+    processId: number,
+    dto: StartCalibrationProcessCorrectionRequest
+  ): Observable<ApiResult<CalibrationProcess>> {
+    return this.http.patch<ApiResult<CalibrationProcess>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/start-correction`,
+      dto
+    );
+  }
 
-updateData(
-  processId: number,
-  dto: UpdateCalibrationProcessDataRequest
-): Observable<ApiResult<CalibrationProcess>> {
-  return this.http.patch<ApiResult<CalibrationProcess>>(
-    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/data`,
-    dto
-  );
-}
+  updateData(
+    processId: number,
+    dto: UpdateCalibrationProcessDataRequest
+  ): Observable<ApiResult<CalibrationProcess>> {
+    return this.http.patch<ApiResult<CalibrationProcess>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/data`,
+      dto
+    );
+  }
+
+  getActaForm(
+    processId: number
+  ): Observable<ApiResult<MeterCalibrationActaFormResponse>> {
+    return this.http.get<ApiResult<MeterCalibrationActaFormResponse>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/acta/form`
+    );
+  }
+
+  saveActa(
+    processId: number,
+    dto: SaveMeterCalibrationActaRequest
+  ): Observable<ApiResult<MeterCalibrationActa>> {
+    return this.http.put<ApiResult<MeterCalibrationActa>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/acta`,
+      dto
+    );
+  }
+
+  addActaSealPhoto(
+    processId: number,
+    sealId: number,
+    dto: CreateMeterCalibrationActaSealPhotoRequest
+  ): Observable<ApiResult<MeterCalibrationActaSealPhoto>> {
+    return this.http.post<ApiResult<MeterCalibrationActaSealPhoto>>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/acta/seals/${sealId}/photos`,
+      dto
+    );
+  }
+
+  deleteActaSealPhoto(
+    processId: number,
+    sealId: number,
+    photoId: number
+  ): Observable<EmptyResult> {
+    return this.http.delete<EmptyResult>(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/acta/seals/${sealId}/photos/${photoId}`
+    );
+  }
+
+  exportActa(
+    processId: number
+  ): Observable<Blob> {
+    return this.http.get(
+      `${this.apiBaseUrl}/CalibrationProcesses/${processId}/acta/export`,
+      { responseType: 'blob' }
+    );
+  }
 }

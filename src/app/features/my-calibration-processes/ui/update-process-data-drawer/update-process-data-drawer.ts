@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, effect, inject, input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, effect, inject, input } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -17,10 +17,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { DrawerActionsComponent } from '../../../../shared/components/drawer-actions/drawer-actions';
+import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 import { ToastService } from '../../../../core/services/toast.service';
-
-import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
-import { AccreditedLaboratory } from '../../../accredited-laboratories/domain/accredited-laboratory.model';
 
 import { CalibrationProcessesService } from '../../../my-calibration-items/data-access/calibration-processes.service';
 import {
@@ -42,7 +40,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
-    DrawerActionsComponent
+    DrawerActionsComponent,
+    DateFieldComponent
   ],
   templateUrl: './update-process-data-drawer.html',
   styleUrl: './update-process-data-drawer.scss'
@@ -55,64 +54,44 @@ export class UpdateProcessDataDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationProcessesService);
-  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
   private readonly toast = inject(ToastService);
 
   readonly CalibrationResult = CalibrationResult;
 
   loading = false;
-  loadingCatalogs = signal(false);
-  laboratories = signal<AccreditedLaboratory[]>([]);
 
-  readonly form = this.fb.group(
-    {
-      accreditedLaboratoryId: [null as number | null, Validators.required],
-      executionDate: ['', Validators.required],
-      laboratoryName: ['', [Validators.maxLength(250)]],
-
-      certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
-      certificateIssueDate: ['', Validators.required],
-      certificateValidUntil: ['', Validators.required],
-      calibrationResult: [CalibrationResult.Approved, Validators.required],
-
-      mainMeterSealAfterCalibration: ['', [Validators.maxLength(100)]],
-      terminalBlockSealOneAfterCalibration: ['', [Validators.maxLength(100)]],
-      terminalBlockSealTwoAfterCalibration: ['', [Validators.maxLength(100)]],
-
-      notes: ['', [Validators.maxLength(1000)]]
-    },
-    {
-      validators: [this.validUntilAfterIssueDateValidator()]
-    }
-  );
+readonly form = this.fb.group(
+  {
+    certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
+    certificateIssueDate: [this.todayAsIsoDate(), Validators.required],
+    certificateValidUntil: [this.todayAsIsoDate(), Validators.required],
+    calibrationResult: [CalibrationResult.Approved, Validators.required],
+    notes: ['', [Validators.maxLength(1000)]]
+  },
+  {
+    validators: [this.validUntilAfterIssueDateValidator()]
+  }
+);
 
   constructor() {
-    this.loadLaboratories();
-
     effect(() => {
       const current = this.process();
 
-      if (!current) return;
+      if (!current) {
+        this.reset();
+        return;
+      }
 
-      this.form.patchValue(
-        {
-          accreditedLaboratoryId: current.accreditedLaboratoryId ?? null,
-          executionDate: current.executionDate ?? '',
-          laboratoryName: current.laboratoryName ?? '',
-
-          certificateNumber: current.certificateNumber ?? '',
-          certificateIssueDate: current.certificateIssueDate ?? '',
-          certificateValidUntil: current.certificateValidUntil ?? '',
-          calibrationResult: Number(current.calibrationResult) as CalibrationResult,
-
-          mainMeterSealAfterCalibration: current.mainMeterSealAfterCalibration ?? '',
-          terminalBlockSealOneAfterCalibration: current.terminalBlockSealOneAfterCalibration ?? '',
-          terminalBlockSealTwoAfterCalibration: current.terminalBlockSealTwoAfterCalibration ?? '',
-
-          notes: current.notes ?? ''
-        },
-        { emitEvent: false }
-      );
+this.form.patchValue(
+  {
+    certificateNumber: current.certificateNumber ?? '',
+    certificateIssueDate: this.normalizeDateOrToday(current.certificateIssueDate),
+    certificateValidUntil: this.normalizeDateOrToday(current.certificateValidUntil),
+    calibrationResult: current.calibrationResult ?? CalibrationResult.Approved,
+    notes: current.notes ?? ''
+  },
+  { emitEvent: false }
+);
     });
   }
 
@@ -129,18 +108,9 @@ export class UpdateProcessDataDrawerComponent {
 
   get saveDisabled(): boolean {
     return this.loading ||
-      this.loadingCatalogs() ||
       this.form.invalid ||
       !this.currentProcess ||
       !this.canEdit;
-  }
-
-  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
-    const code = laboratory.accreditationCode
-      ? ` · ${laboratory.accreditationCode}`
-      : '';
-
-    return `${laboratory.name}${code}`;
   }
 
   submit(): void {
@@ -152,7 +122,7 @@ export class UpdateProcessDataDrawerComponent {
     }
 
     if (!this.canEdit) {
-      this.toast.warning('Solo puedes editar procesos en estado En proceso o En corrección.');
+      this.toast.warning('Solo puedes actualizar datos finales cuando el proceso está en proceso o en corrección.');
       return;
     }
 
@@ -165,19 +135,11 @@ export class UpdateProcessDataDrawerComponent {
     const raw = this.form.getRawValue();
 
     const dto: UpdateCalibrationProcessDataRequest = {
-      accreditedLaboratoryId: Number(raw.accreditedLaboratoryId),
-      executionDate: this.normalizeRequired(raw.executionDate),
-      laboratoryName: this.normalize(raw.laboratoryName),
-
       certificateNumber: this.normalizeRequired(raw.certificateNumber),
       certificateIssueDate: this.normalizeRequired(raw.certificateIssueDate),
       certificateValidUntil: this.normalizeRequired(raw.certificateValidUntil),
       calibrationResult: Number(raw.calibrationResult) as CalibrationResult,
-
-      notes: this.normalize(raw.notes),
-      mainMeterSealAfterCalibration: this.normalize(raw.mainMeterSealAfterCalibration),
-      terminalBlockSealOneAfterCalibration: this.normalize(raw.terminalBlockSealOneAfterCalibration),
-      terminalBlockSealTwoAfterCalibration: this.normalize(raw.terminalBlockSealTwoAfterCalibration)
+      notes: this.normalize(raw.notes)
     };
 
     this.loading = true;
@@ -187,16 +149,16 @@ export class UpdateProcessDataDrawerComponent {
         this.loading = false;
 
         if (!response.succeed) {
-          this.toast.error(response.message ?? 'No se pudieron actualizar los datos del proceso.');
+          this.toast.error(response.message ?? 'No se pudieron actualizar los datos finales.');
           return;
         }
 
-        this.toast.success('Datos del proceso actualizados correctamente.');
+        this.toast.success('Datos finales de calibración actualizados correctamente.');
         this.updated.emit();
       },
       error: () => {
         this.loading = false;
-        this.toast.error('Error al actualizar los datos del proceso.');
+        this.toast.error('Error al actualizar los datos finales.');
       }
     });
   }
@@ -207,29 +169,17 @@ export class UpdateProcessDataDrawerComponent {
     this.closed.emit();
   }
 
-  private loadLaboratories(): void {
-    this.loadingCatalogs.set(true);
+private reset(): void {
+  this.form.reset({
+    certificateNumber: '',
+    certificateIssueDate: this.todayAsIsoDate(),
+    certificateValidUntil: this.todayAsIsoDate(),
+    calibrationResult: CalibrationResult.Approved,
+    notes: ''
+  });
 
-    this.laboratoriesService.getAll({
-      page: 1,
-      take: 300,
-      orderBy: 'Name asc'
-    }).subscribe({
-      next: response => {
-        this.loadingCatalogs.set(false);
-
-        if (response.succeed) {
-          this.laboratories.set(response.result ?? []);
-        } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios.');
-        }
-      },
-      error: () => {
-        this.loadingCatalogs.set(false);
-        this.toast.warning('No se pudieron cargar los laboratorios.');
-      }
-    });
-  }
+  this.loading = false;
+}
 
   private normalize(value: unknown): string | null {
     if (typeof value !== 'string') return null;
@@ -250,20 +200,50 @@ export class UpdateProcessDataDrawerComponent {
       const issueDate = control.get('certificateIssueDate')?.value;
       const validUntil = control.get('certificateValidUntil')?.value;
 
-      if (!issueDate || !validUntil) {
-        return null;
-      }
+      if (!issueDate || !validUntil) return null;
 
       const issue = new Date(issueDate);
-      const until = new Date(validUntil);
+      const valid = new Date(validUntil);
 
-      if (Number.isNaN(issue.getTime()) || Number.isNaN(until.getTime())) {
+      if (Number.isNaN(issue.getTime()) || Number.isNaN(valid.getTime())) {
         return null;
       }
 
-      return until <= issue
-        ? { certificateValidUntilBeforeOrEqualIssueDate: true }
+      return valid < issue
+        ? { validUntilBeforeIssueDate: true }
         : null;
     };
   }
+private normalizeDateOrToday(value: string | null | undefined): string {
+  if (!value) {
+    return this.todayAsIsoDate();
+  }
+
+  const normalized = value.substring(0, 10);
+
+  if (
+    normalized.startsWith('0001-01-01') ||
+    normalized.startsWith('1901-01-01') ||
+    normalized.startsWith('0001-1-1')
+  ) {
+    return this.todayAsIsoDate();
+  }
+
+  const year = Number(normalized.substring(0, 4));
+
+  if (!year || year < 2000) {
+    return this.todayAsIsoDate();
+  }
+
+  return normalized;
+}
+
+private todayAsIsoDate(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 }

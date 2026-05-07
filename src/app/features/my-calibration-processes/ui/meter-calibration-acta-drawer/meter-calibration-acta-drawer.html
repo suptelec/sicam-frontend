@@ -1,0 +1,651 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">ACTA SICAM</p>
+
+      <h2>Acta de calibración</h2>
+
+      <p class="drawer__description">
+        Completa el acta técnica, registra las validaciones del formato oficial,
+        eventualidades y sellos colocados después de la calibración.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      [disabled]="isSaving() || !!uploadingSealPhotoId()"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <nav class="acta-stepper">
+    <button
+      type="button"
+      class="acta-step"
+      [class.acta-step--active]="currentStep() === 'acta'"
+      [class.acta-step--done]="hasSavedActa"
+      (click)="goToActa()"
+    >
+      <span class="acta-step__index">
+        @if (hasSavedActa) {
+          <mat-icon>check</mat-icon>
+        } @else {
+          1
+        }
+      </span>
+
+      <span>
+        <strong>Acta y sellos</strong>
+        <small>{{ hasSavedActa ? 'Guardada' : 'Pendiente' }}</small>
+      </span>
+    </button>
+
+    <div class="acta-stepper__line"></div>
+
+    <button
+      type="button"
+      class="acta-step"
+      [class.acta-step--active]="currentStep() === 'photos'"
+      [class.acta-step--done]="allSavedSealsHavePhotos"
+      [disabled]="!hasSavedActa"
+      (click)="goToPhotos()"
+    >
+      <span class="acta-step__index">
+        @if (allSavedSealsHavePhotos) {
+          <mat-icon>check</mat-icon>
+        } @else {
+          2
+        }
+      </span>
+
+      <span>
+        <strong>Fotos de sellos</strong>
+        <small>
+          @if (!hasSavedActa) {
+            Guarda el acta primero
+          } @else if (allSavedSealsHavePhotos) {
+            Completas
+          } @else {
+            Pendientes
+          }
+        </small>
+      </span>
+    </button>
+  </nav>
+
+  @if (isLoading()) {
+    <section class="loading-state">
+      <mat-spinner diameter="36" />
+      <span>Cargando formulario del acta...</span>
+    </section>
+  } @else {
+    <form class="drawer__form" [formGroup]="form" (ngSubmit)="submitActaAndContinue()">
+      <div class="drawer__body">
+        @if (currentStep() === 'acta') {
+          @if (formData(); as data) {
+            <section class="summary-grid">
+              <article>
+                <span>PMSE</span>
+                <strong>{{ data.pmseCompanyName ?? '—' }}</strong>
+              </article>
+
+              <article>
+                <span>Medidor</span>
+                <strong>{{ data.meterCode ?? '—' }}</strong>
+                <small>Serial: {{ data.meterSerial ?? '—' }}</small>
+              </article>
+
+              <article>
+                <span>Código externo</span>
+                <strong>{{ data.externalMeasurementPointCode ?? '—' }}</strong>
+              </article>
+
+              <article>
+                <span>Autorización</span>
+                <strong>{{ data.hasAuthorizedWork ? 'Aprobada' : 'Pendiente' }}</strong>
+                <small>{{ data.authorizationReviewedAt ?? '—' }}</small>
+              </article>
+            </section>
+
+            @if (!data.hasAuthorizationMeterSnapshotPhotos) {
+              <section class="warning-card">
+                <mat-icon>warning</mat-icon>
+
+                <div>
+                  <strong>No se encontraron fotos de referencia CENACE</strong>
+                  <p>
+                    El proceso no debería enviarse a revisión sin la referencia técnica
+                    cargada durante la autorización.
+                  </p>
+                </div>
+              </section>
+            }
+          }
+
+          <section class="form-section">
+            <div class="section-heading">
+              <div>
+                <p>Datos generales</p>
+                <h3>Información del acta</h3>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Delegado técnico PMSE</mat-label>
+
+                <input
+                  matInput
+                  formControlName="pmseTechnicalDelegateName"
+                  autocomplete="off"
+                />
+
+                @if (form.controls.pmseTechnicalDelegateName.hasError('required') && form.controls.pmseTechnicalDelegateName.touched) {
+                  <mat-error>El delegado técnico es obligatorio.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Teléfono PMSE</mat-label>
+
+                <input
+                  matInput
+                  formControlName="pmsePhone"
+                  autocomplete="off"
+                />
+              </mat-form-field>
+            </div>
+
+            <div class="field-row">
+              <app-date-field
+                formControlName="actaDate"
+                label="Fecha del acta"
+              />
+
+              <app-date-field
+                formControlName="calibrationStartDate"
+                label="Fecha inicio calibración"
+              />
+            </div>
+
+            <mat-form-field appearance="outline" class="drawer__field">
+              <mat-label>Hora inicio calibración</mat-label>
+
+              <input
+                matInput
+                type="text"
+                formControlName="calibrationStartTime"
+                placeholder="HH:mm"
+                maxlength="5"
+                autocomplete="off"
+              />
+
+              @if (form.controls.calibrationStartTime.invalid && form.controls.calibrationStartTime.touched) {
+                <mat-error>Hora inválida. Usa formato HH:mm.</mat-error>
+              }
+            </mat-form-field>
+          </section>
+
+          <section class="form-section">
+            <div class="section-heading">
+              <div>
+                <p>Eventualidades</p>
+                <h3>Energía activa</h3>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <app-date-field
+                formControlName="activeEnergyEndDate"
+                label="Fecha fin energía activa"
+              />
+
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Hora fin energía activa</mat-label>
+
+                <input
+                  matInput
+                  type="text"
+                  formControlName="activeEnergyEndTime"
+                  placeholder="HH:mm"
+                  maxlength="5"
+                  autocomplete="off"
+                />
+
+                @if (form.controls.activeEnergyEndTime.invalid && form.controls.activeEnergyEndTime.touched) {
+                  <mat-error>Hora inválida. Usa formato HH:mm.</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+              <mat-label>Eventualidades energía activa</mat-label>
+
+              <textarea
+                matInput
+                rows="3"
+                formControlName="activeEnergyEventualities"
+              ></textarea>
+            </mat-form-field>
+          </section>
+
+          <section class="form-section">
+            <div class="section-heading">
+              <div>
+                <p>Eventualidades</p>
+                <h3>Energía reactiva</h3>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <app-date-field
+                formControlName="reactiveEnergyEndDate"
+                label="Fecha fin energía reactiva"
+              />
+
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Hora fin energía reactiva</mat-label>
+
+                <input
+                  matInput
+                  type="text"
+                  formControlName="reactiveEnergyEndTime"
+                  placeholder="HH:mm"
+                  maxlength="5"
+                  autocomplete="off"
+                />
+
+                @if (form.controls.reactiveEnergyEndTime.invalid && form.controls.reactiveEnergyEndTime.touched) {
+                  <mat-error>Hora inválida. Usa formato HH:mm.</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+              <mat-label>Eventualidades energía reactiva</mat-label>
+
+              <textarea
+                matInput
+                rows="3"
+                formControlName="reactiveEnergyEventualities"
+              ></textarea>
+            </mat-form-field>
+          </section>
+
+          <section class="form-section">
+            <div class="section-heading">
+              <div>
+                <p>Checks del acta</p>
+                <h3>Validaciones según formato oficial</h3>
+              </div>
+            </div>
+
+            <div formArrayName="checks" class="check-sections">
+              @for (section of groupedChecks; track section.key) {
+                <section
+                  class="check-section"
+                  [class.check-section--system]="section.source === 'system'"
+                >
+                  <header class="check-section__header">
+                    <div>
+                      <p>{{ section.subtitle }}</p>
+                      <h4>{{ section.title }}</h4>
+                    </div>
+
+                    @if (section.source === 'system') {
+                      <span class="check-section__badge">
+                        <mat-icon>lock</mat-icon>
+                        Calculado por SICAM
+                      </span>
+                    }
+                  </header>
+
+                  <div class="check-rows">
+                    @for (item of section.items; track item.definition.checkCode) {
+                      <article
+                        class="check-row"
+                        [formGroup]="getCheckGroup(item.index)"
+                      >
+                        <div class="check-row__question">
+                          <span>{{ item.order }}.-</span>
+                          <strong>{{ item.definition.label }}</strong>
+                        </div>
+
+                        <mat-form-field
+                          appearance="outline"
+                          class="drawer__field check-row__result"
+                        >
+                          <mat-label>Resultado</mat-label>
+
+                          <mat-select formControlName="checkResult">
+                            <mat-option [value]="MeterCalibrationActaCheckResult.Pending">
+                              Pendiente
+                            </mat-option>
+
+                            <mat-option [value]="MeterCalibrationActaCheckResult.Yes">
+                              Sí
+                            </mat-option>
+
+                            <mat-option [value]="MeterCalibrationActaCheckResult.No">
+                              No
+                            </mat-option>
+
+                            <mat-option [value]="MeterCalibrationActaCheckResult.NotApplicable">
+                              No aplica
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field
+                          appearance="outline"
+                          class="drawer__field drawer__textarea check-row__observation"
+                        >
+                          <mat-label>Observación</mat-label>
+
+                          <textarea
+                            matInput
+                            rows="1"
+                            formControlName="observation"
+                            placeholder="Observación"
+                          ></textarea>
+                        </mat-form-field>
+                      </article>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-heading">
+              <div>
+                <p>Sellos nuevos</p>
+                <h3>Sellos colocados después de la calibración</h3>
+              </div>
+
+              <button
+                mat-stroked-button
+                type="button"
+                class="small-action-btn"
+                [disabled]="isSaving()"
+                (click)="addSeal()"
+              >
+                <mat-icon>add</mat-icon>
+                Agregar sello
+              </button>
+            </div>
+
+            <div formArrayName="seals" class="dynamic-list">
+              @if (sealControls.length === 0) {
+                <div class="empty-inline">
+                  <mat-icon>warning</mat-icon>
+                  <span>Debes registrar al menos un sello.</span>
+                </div>
+              }
+
+              @for (sealGroup of sealControls; track $index; let i = $index) {
+                <article
+                  class="dynamic-card"
+                  [formGroup]="getSealGroup(i)"
+                >
+                  <div class="field-row">
+                    <mat-form-field appearance="outline" class="drawer__field">
+                      <mat-label>Tipo de sello</mat-label>
+
+                      <mat-select formControlName="sealType">
+                        <mat-option [value]="MeterSealType.MainMeter">
+                          Principal medidor
+                        </mat-option>
+
+                        <mat-option [value]="MeterSealType.TerminalBlock">
+                          Bornera
+                        </mat-option>
+
+                        <mat-option [value]="MeterSealType.Cabinet">
+                          Gabinete
+                        </mat-option>
+
+                        <mat-option [value]="MeterSealType.CommunicationModule">
+                          Módulo comunicación
+                        </mat-option>
+
+                        <mat-option [value]="MeterSealType.Other">
+                          Otro
+                        </mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="drawer__field">
+                      <mat-label>Código del sello</mat-label>
+
+                      <input
+                        matInput
+                        formControlName="sealCode"
+                        autocomplete="off"
+                      />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="field-row">
+                    <mat-form-field appearance="outline" class="drawer__field">
+                      <mat-label>Ubicación</mat-label>
+
+                      <input
+                        matInput
+                        formControlName="sealLocation"
+                        autocomplete="off"
+                      />
+                    </mat-form-field>
+
+                    <app-date-field
+                      formControlName="installedDate"
+                      label="Fecha colocación"
+                    />
+                  </div>
+
+                  <mat-form-field appearance="outline" class="drawer__field">
+                    <mat-label>Hora colocación</mat-label>
+
+                    <input
+                      matInput
+                      type="text"
+                      formControlName="installedTime"
+                      placeholder="HH:mm"
+                      maxlength="5"
+                      autocomplete="off"
+                    />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+                    <mat-label>Observaciones</mat-label>
+
+                    <textarea
+                      matInput
+                      rows="2"
+                      formControlName="observations"
+                    ></textarea>
+                  </mat-form-field>
+
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="remove-btn"
+                    matTooltip="Eliminar sello"
+                    [disabled]="isSaving()"
+                    (click)="removeSeal(i)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </article>
+              }
+            </div>
+          </section>
+        }
+
+        @if (currentStep() === 'photos') {
+          <section class="photos-step-card">
+            <div class="section-heading">
+              <div>
+                <p>Paso 2</p>
+                <h3>Fotos de sellos</h3>
+              </div>
+            </div>
+
+            <p class="photos-step-card__description">
+              Sube al menos una foto por cada sello registrado. Este requisito debe completarse
+              antes de enviar el proceso a revisión.
+            </p>
+
+            @if (actaSeals.length === 0) {
+              <div class="empty-inline empty-inline--danger">
+                <mat-icon>warning</mat-icon>
+                <span>No hay sellos guardados en el acta. Vuelve al paso anterior y registra al menos un sello.</span>
+              </div>
+            } @else {
+              <div class="seal-photo-list">
+                @for (seal of actaSeals; track seal.id) {
+                  <article
+                    class="seal-photo-card"
+                    [class.seal-photo-card--complete]="(seal.photos?.length ?? 0) > 0"
+                  >
+                    <header>
+                      <div>
+                        <strong>{{ seal.sealCode }}</strong>
+                        <span>
+                          {{ getSealTypeLabel(seal.sealType) }}
+                          ·
+                          {{ seal.sealLocation ?? 'Sin ubicación' }}
+                        </span>
+                      </div>
+
+                      <label class="upload-photo-btn">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          [disabled]="uploadingSealPhotoId() === seal.id"
+                          (change)="onSealPhotoSelected($event, seal)"
+                        />
+
+                        @if (uploadingSealPhotoId() === seal.id) {
+                          <mat-spinner diameter="18" />
+                        } @else {
+                          <mat-icon>add_photo_alternate</mat-icon>
+                        }
+
+                        Subir foto
+                      </label>
+                    </header>
+
+                    @if ((seal.photos?.length ?? 0) === 0) {
+                      <div class="empty-inline empty-inline--danger">
+                        <mat-icon>warning</mat-icon>
+                        <span>Este sello todavía no tiene fotos.</span>
+                      </div>
+                    } @else {
+                      <div class="photos-grid">
+                        @for (photo of seal.photos; track photo.id) {
+                          <article class="photo-card">
+                            <a
+                              [href]="photo.fileUrl"
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              <img
+                                [src]="photo.fileUrl"
+                                [alt]="photo.caption ?? photo.fileName"
+                              />
+                            </a>
+
+                            <div>
+                              <strong>{{ photo.caption || 'Foto del sello' }}</strong>
+                              <span>{{ photo.fileName }}</span>
+                            </div>
+
+                            <button
+                              mat-icon-button
+                              type="button"
+                              class="photo-delete-btn"
+                              matTooltip="Eliminar foto"
+                              [disabled]="deletingPhotoId() === photo.id"
+                              (click)="deleteSealPhoto(seal, photo)"
+                            >
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </article>
+                        }
+                      </div>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </section>
+        }
+      </div>
+
+      <footer class="drawer-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          class="drawer-actions__cancel"
+          [disabled]="isSaving() || !!uploadingSealPhotoId()"
+          (click)="close()"
+        >
+          <mat-icon>close</mat-icon>
+          Cerrar
+        </button>
+
+        @if (currentStep() === 'photos') {
+          <button
+            mat-stroked-button
+            type="button"
+            class="drawer-actions__secondary"
+            [disabled]="isSaving() || !!uploadingSealPhotoId()"
+            (click)="goToActa()"
+          >
+            <mat-icon>arrow_back</mat-icon>
+            Volver al acta
+          </button>
+        }
+
+        @if (currentStep() === 'acta') {
+          <button
+            mat-flat-button
+            type="submit"
+            class="drawer-actions__submit"
+            [disabled]="isSaving() || form.invalid"
+          >
+            @if (isSaving()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon>arrow_forward</mat-icon>
+            }
+
+            {{ hasSavedActa ? 'Guardar cambios y ver fotos' : 'Guardar acta y continuar a fotos' }}
+          </button>
+        }
+
+        @if (currentStep() === 'photos') {
+          <button
+            mat-flat-button
+            type="button"
+            class="drawer-actions__submit"
+            [disabled]="!!uploadingSealPhotoId() || !!deletingPhotoId()"
+            (click)="close()"
+          >
+            <mat-icon>check_circle</mat-icon>
+            Finalizar
+          </button>
+        }
+      </footer>
+    </form>
+  }
+</section>

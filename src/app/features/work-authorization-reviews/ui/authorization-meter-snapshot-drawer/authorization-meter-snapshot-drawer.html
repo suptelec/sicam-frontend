@@ -1,0 +1,227 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+<p class="drawer__eyebrow">AUTORIZACIÓN CENACE</p>
+<h2>Autorizar inicio de calibración</h2>
+<p class="drawer__description">
+  Antes de autorizar, carga al menos una foto de la configuración actual del medidor.
+  El PMSE verá estas fotos como referencia técnica durante la calibración.
+</p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      [disabled]="isUploading() || isAuthorizing() || isDeleting()"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <section class="drawer__body">
+    <section class="authorization-summary">
+      <article>
+        <span>Medidor</span>
+        <strong>{{ authorization.meterCode ?? 'Ítem #' + authorization.calibrationPlanItemId }}</strong>
+        <small>Serial: {{ authorization.meterSerial ?? '—' }}</small>
+      </article>
+
+      <article>
+        <span>PMSE</span>
+        <strong>{{ authorization.pmseCompanyName ?? '—' }}</strong>
+        <small>Plan: {{ authorization.planName ?? authorization.planYear ?? '—' }}</small>
+      </article>
+
+      <article>
+        <span>Jornada solicitada</span>
+        <strong>{{ authorization.requestedWorkDate }}</strong>
+        <small>{{ authorization.requestedStartTime }} - {{ authorization.requestedEndTime }}</small>
+      </article>
+    </section>
+
+    @if (isLoading()) {
+      <section class="loading-card">
+        <mat-spinner diameter="32" />
+        <span>Cargando fotos de configuración...</span>
+      </section>
+    } @else {
+      <section class="snapshot-card">
+        <div class="section-heading">
+          <div>
+<p>Fotos que recibirá el PMSE</p>
+<h3>Fotos cargadas para esta autorización</h3>
+          </div>
+        </div>
+
+          @if (!isLocked) {
+    <div class="snapshot-note">
+      <mat-icon>info</mat-icon>
+      <span>
+        Puedes agregar o eliminar fotos antes de autorizar. Al autorizar, estas fotos quedarán bloqueadas y serán visibles para el PMSE.
+      </span>
+    </div>
+  }
+        @if (!hasPhotos) {
+          <div class="empty-photos">
+            <mat-icon>add_photo_alternate</mat-icon>
+<strong>Todavía no has cargado fotos</strong>
+<p>
+  Carga al menos una foto de la configuración actual del medidor para habilitar la autorización.
+</p>
+          </div>
+        } @else {
+          <div class="photos-grid">
+            @for (photo of photos; track photo.id) {
+              <article class="photo-card">
+                <a
+                  class="photo-card__image"
+                  [href]="photo.fileUrl"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <img
+                    [src]="photo.fileUrl"
+                    [alt]="photo.caption ?? photo.fileName"
+                  />
+                </a>
+
+                <div class="photo-card__body">
+                  <strong>{{ photo.caption || 'Foto de configuración' }}</strong>
+                  <span>{{ photo.fileName }}</span>
+                </div>
+
+                @if (!isLocked) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="photo-card__delete"
+                    matTooltip="Eliminar foto"
+                    [disabled]="isDeleting()"
+                    (click)="deletePhoto(photo)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      @if (!isLocked) {
+        <section class="upload-card">
+          <div class="section-heading">
+            <div>
+<p>Carga de evidencia</p>
+<h3>Agregar foto de configuración</h3>
+            </div>
+          </div>
+
+          <mat-form-field appearance="outline" class="caption-field">
+            <mat-label>Descripción / caption</mat-label>
+            <input
+              matInput
+              [formControl]="captionControl"
+              autocomplete="off"
+              placeholder="Ej. Configuración general del medidor"
+            />
+          </mat-form-field>
+
+          <label class="upload-zone">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              [disabled]="isUploading()"
+              (change)="onFileSelected($event)"
+            />
+
+            @if (selectedFile()) {
+              <div class="upload-zone__selected">
+                @if (previewUrl()) {
+                  <img [src]="previewUrl()" alt="Vista previa" />
+                }
+
+                <div>
+                  <strong>{{ selectedFile()?.name }}</strong>
+                  <span>{{ selectedFile()?.size ?? 0 }} bytes</span>
+                </div>
+              </div>
+            } @else {
+              <div class="upload-zone__placeholder">
+                <mat-icon>cloud_upload</mat-icon>
+                <strong>Selecciona una imagen</strong>
+                <span>JPG, PNG o WEBP</span>
+              </div>
+            }
+          </label>
+
+          <div class="upload-actions">
+            @if (selectedFile()) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="secondary-btn"
+                [disabled]="isUploading()"
+                (click)="clearSelectedFile()"
+              >
+                <mat-icon>close</mat-icon>
+                Quitar
+              </button>
+            }
+
+            <button
+              mat-flat-button
+              type="button"
+              class="primary-btn"
+              [disabled]="!canUpload"
+              (click)="uploadPhoto()"
+            >
+              @if (isUploading()) {
+                <mat-spinner diameter="18" />
+              } @else {
+                <mat-icon>upload</mat-icon>
+              }
+
+              Subir foto
+            </button>
+          </div>
+        </section>
+      }
+    }
+  </section>
+
+  <footer class="drawer__actions">
+    <button
+      mat-stroked-button
+      type="button"
+      class="drawer__btn drawer__btn--secondary"
+      [disabled]="isUploading() || isAuthorizing() || isDeleting()"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+      Cerrar
+    </button>
+
+    <button
+      mat-flat-button
+      type="button"
+      class="drawer__btn drawer__btn--primary"
+      [disabled]="!canAuthorize"
+      [matTooltip]="hasPhotos ? 'Autorizar inicio de trabajos' : 'Debes cargar al menos una foto antes de autorizar'"
+      (click)="authorize()"
+    >
+      @if (isAuthorizing()) {
+        <mat-spinner diameter="18" />
+      } @else {
+        <mat-icon>check_circle</mat-icon>
+      }
+
+      Autorizar
+    </button>
+  </footer>
+</section>

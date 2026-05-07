@@ -58,3 +58,35 @@ export interface CalibrationWorkAuthorization {
   status: number;
   createdAt: string;
 }
+
+export interface AuthorizationMeterSnapshot {
+  id: number;
+  calibrationWorkAuthorizationId: number;
+  notes?: string | null;
+  isLocked: boolean;
+  lockedAt?: string | null;
+  sentToPmseAt?: string | null;
+  photos: AuthorizationMeterSnapshotPhoto[];
+}
+
+export interface AuthorizationMeterSnapshotPhoto {
+  id: number;
+  authorizationMeterSnapshotId: number;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  storageKey: string;
+  fileUrl: string;
+  caption?: string | null;
+  sortOrder: number;
+}
+
+export interface CreateAuthorizationMeterSnapshotPhotoRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  storageKey: string;
+  fileUrl: string;
+  caption?: string | null;
+  sortOrder: number;
+}

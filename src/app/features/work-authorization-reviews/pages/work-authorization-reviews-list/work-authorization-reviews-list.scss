@@ -96,7 +96,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
 }
 
 .row-actions__btn {
@@ -104,9 +104,20 @@
   height: 34px;
   border-radius: 10px;
   color: #cbd5e1;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   mat-icon {
@@ -117,13 +128,187 @@
 }
 
 .row-actions__btn--success {
-  color: #86efac;
+  color: #93c5fd !important;
+
+  &:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.12) !important;
+    color: #bfdbfe !important;
+  }
 }
 
 .row-actions__btn--danger {
-  color: #fca5a5;
+  color: #fca5a5 !important;
+
+  &:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.12) !important;
+    color: #fecaca !important;
+  }
 }
 
+.filters-panel {
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--color-surface, #111827);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.filters-panel__search {
+  display: block;
+  width: 100%;
+}
+
+.filters-panel__controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-field--company {
+  width: 340px;
+
+  app-searchable-select {
+    display: block;
+    width: 100%;
+  }
+}
+
+.filter-field--date-range {
+  width: 320px;
+}
+
+.filter-field__label {
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.filter-field__control {
+  width: 100%;
+}
+
+.filter-field__clear {
+  width: 30px !important;
+  height: 30px !important;
+  margin-right: 2px;
+  color: #94a3b8 !important;
+
+  &:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  mat-icon {
+    width: 17px;
+    height: 17px;
+    font-size: 17px;
+  }
+}
+
+:host ::ng-deep .filter-field__control {
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.72);
+    padding: 0 8px 0 12px;
+  }
+
+  .mat-mdc-form-field-flex {
+    height: 40px;
+    align-items: center;
+  }
+
+  .mat-mdc-form-field-infix {
+    width: auto;
+    min-height: unset;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .mat-mdc-icon-button.mat-mdc-button-base {
+    padding: 0;
+  }
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: rgba(148, 163, 184, 0.22) !important;
+  }
+
+  .mat-mdc-form-field:hover {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: rgba(148, 163, 184, 0.42) !important;
+    }
+  }
+
+  .mat-mdc-form-field.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #2b77bb !important;
+      border-width: 1px !important;
+    }
+
+    .mat-datepicker-toggle {
+      color: #60a5fa;
+    }
+  }
+}
+
+:host ::ng-deep .date-range-control {
+  .mat-date-range-input {
+    width: 100%;
+    color: var(--color-text, #f9fafb);
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  .mat-date-range-input input {
+    color: #f9fafb !important;
+  }
+
+  .mat-date-range-input input::placeholder {
+    color: #cbd5e1;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+
+  .mat-date-range-input-separator {
+    color: #94a3b8;
+    margin: 0 4px;
+  }
+
+  .mat-datepicker-toggle {
+    color: #cbd5e1;
+  }
+}
+
+@media (max-width: 900px) {
+  .filters-panel__controls,
+  .filter-field,
+  .filter-field--company,
+  .filter-field--date-range {
+    width: 100%;
+  }
+}
 @media (max-width: 900px) {
   .page {
     padding: 16px;

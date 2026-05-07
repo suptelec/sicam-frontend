@@ -100,6 +100,64 @@
   border: 1px solid rgba(96, 165, 250, 0.18);
 }
 
+.process-summary-card {
+  padding: 16px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.process-summary-card__icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #60a5fa;
+  display: grid;
+  place-items: center;
+
+  mat-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+  }
+}
+
+.process-summary-card__content {
+  min-width: 0;
+
+  span {
+    display: block;
+    margin-bottom: 5px;
+    color: #60a5fa;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 850;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  small {
+    display: block;
+    margin-top: 4px;
+    color: #a8b3c7;
+    font-size: 0.82rem;
+  }
+}
+
 .process-summary__icon {
   width: 44px;
   height: 44px;

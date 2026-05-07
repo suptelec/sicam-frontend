@@ -4,24 +4,17 @@ export enum CalibrationProcessStatus {
   Submitted = 3,
   Approved = 4,
   Rejected = 5,
-  Corrected = 6,
+  Corrected = 6
 }
 
 export enum CalibrationResult {
   Approved = 1,
-  Rejected = 2,
+  Rejected = 2
 }
 
 export interface CreateCalibrationProcessRequest {
   executionDate: string;
-  certificateNumber: string;
-  certificateIssueDate: string;
-  certificateValidUntil: string;
-  calibrationResult: CalibrationResult;
   notes?: string | null;
-  mainMeterSealAfterCalibration?: string | null;
-  terminalBlockSealOneAfterCalibration?: string | null;
-  terminalBlockSealTwoAfterCalibration?: string | null;
 }
 
 export interface CalibrationProcess {
@@ -41,21 +34,18 @@ export interface CalibrationProcess {
 
   executionDate: string;
 
-  certificateNumber: string;
-  certificateIssueDate: string;
-  certificateValidUntil: string;
+  certificateNumber?: string | null;
+  certificateIssueDate?: string | null;
+  certificateValidUntil?: string | null;
 
-  calibrationResult: CalibrationResult;
+  calibrationResult?: CalibrationResult | null;
   processStatus: CalibrationProcessStatus;
 
   notes?: string | null;
 
-  mainMeterSealAfterCalibration?: string | null;
-  terminalBlockSealOneAfterCalibration?: string | null;
-  terminalBlockSealTwoAfterCalibration?: string | null;
+  calibrationActUrl?: string | null;
 
   documents?: CalibrationProcessDocument[];
-
   events?: CalibrationProcessEvent[];
 
   status: number;
@@ -123,15 +113,146 @@ export interface StartCalibrationProcessCorrectionRequest {
 }
 
 export interface UpdateCalibrationProcessDataRequest {
-  accreditedLaboratoryId: number;
-  executionDate: string;
-  laboratoryName?: string | null;
   certificateNumber: string;
   certificateIssueDate: string;
   certificateValidUntil: string;
   calibrationResult: CalibrationResult;
   notes?: string | null;
-  mainMeterSealAfterCalibration?: string | null;
-  terminalBlockSealOneAfterCalibration?: string | null;
-  terminalBlockSealTwoAfterCalibration?: string | null;
+}
+
+export enum MeterCalibrationActaCheckResult {
+  Pending = 1,
+  Yes = 2,
+  No = 3,
+  NotApplicable = 4
+}
+
+export enum MeterCalibrationActaCheckSource {
+  Manual = 1,
+  System = 2
+}
+
+export enum MeterSealType {
+  MainMeter = 1,
+  TerminalBlock = 2,
+  Cabinet = 3,
+  CommunicationModule = 4,
+  Other = 99
+}
+
+export interface MeterCalibrationActaFormResponse {
+  calibrationProcessId: number;
+  calibrationPlanItemId: number;
+  calibrationWorkAuthorizationId: number;
+
+  pmseCompanyName?: string | null;
+  meterSerial?: string | null;
+  meterCode?: string | null;
+  externalMeasurementPointCode?: string | null;
+
+  suggestedActaDate?: string | null;
+
+  authorizationStatus?: number | null;
+  authorizationReviewedAt?: string | null;
+  authorizationReviewedBy?: string | null;
+
+  hasAuthorizedWork: boolean;
+  hasAuthorizationMeterSnapshotPhotos: boolean;
+
+  systemChecks: MeterCalibrationActaCheck[];
+
+  existingActa?: MeterCalibrationActa | null;
+}
+
+export interface MeterCalibrationActa {
+  id: number;
+  calibrationProcessId: number;
+
+  pmseTechnicalDelegateName?: string | null;
+  pmsePhone?: string | null;
+
+  actaDate?: string | null;
+  calibrationStartDateTime?: string | null;
+
+  activeEnergyEndDateTime?: string | null;
+  activeEnergyEventualities?: string | null;
+
+  reactiveEnergyEndDateTime?: string | null;
+  reactiveEnergyEventualities?: string | null;
+
+  generatedFileName?: string | null;
+  generatedFileUrl?: string | null;
+
+  checks: MeterCalibrationActaCheck[];
+  seals: MeterCalibrationActaSeal[];
+}
+
+export interface MeterCalibrationActaCheck {
+  id?: number | null;
+  checkCode: number;
+  checkResult: MeterCalibrationActaCheckResult;
+  observation?: string | null;
+  source?: MeterCalibrationActaCheckSource | null;
+  sourceDescription?: string | null;
+  capturedAt?: string | null;
+}
+
+export interface MeterCalibrationActaSeal {
+  id?: number | null;
+  sealType: MeterSealType | number;
+  sealCode: string;
+  sealLocation?: string | null;
+  installedAt?: string | null;
+  observations?: string | null;
+  photos?: MeterCalibrationActaSealPhoto[];
+}
+
+export interface MeterCalibrationActaSealPhoto {
+  id: number;
+  meterCalibrationActaSealId: number;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  storageKey: string;
+  fileUrl: string;
+  caption?: string | null;
+  sortOrder: number;
+}
+
+export interface SaveMeterCalibrationActaRequest {
+  pmseTechnicalDelegateName: string;
+  pmsePhone?: string | null;
+  actaDate: string;
+  calibrationStartDateTime: string;
+  activeEnergyEndDateTime?: string | null;
+  activeEnergyEventualities?: string | null;
+  reactiveEnergyEndDateTime?: string | null;
+  reactiveEnergyEventualities?: string | null;
+  checks: SaveMeterCalibrationActaCheckRequest[];
+  seals: SaveMeterCalibrationActaSealRequest[];
+}
+
+export interface SaveMeterCalibrationActaCheckRequest {
+  checkCode: number;
+  checkResult: MeterCalibrationActaCheckResult;
+  observation?: string | null;
+}
+
+export interface SaveMeterCalibrationActaSealRequest {
+  id?: number | null;
+  sealType: MeterSealType | number;
+  sealCode: string;
+  sealLocation?: string | null;
+  installedAt?: string | null;
+  observations?: string | null;
+}
+
+export interface CreateMeterCalibrationActaSealPhotoRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  storageKey: string;
+  fileUrl: string;
+  caption?: string | null;
+  sortOrder: number;
 }

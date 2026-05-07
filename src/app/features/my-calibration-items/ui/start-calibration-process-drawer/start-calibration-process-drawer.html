@@ -1,10 +1,12 @@
 <section class="drawer">
   <header class="drawer__header">
     <div>
-      <p class="drawer__eyebrow">PROCESO DE CALIBRACIÓN</p>
-      <h2>Iniciar calibración</h2>
+      <p class="drawer__eyebrow">PROCESO PMSE</p>
+
+      <h2>Iniciar proceso de calibración</h2>
+
       <p class="drawer__description">
-        Registra los datos iniciales de la calibración autorizada por CENACE.
+        Revisa la referencia técnica enviada por CENACE y registra el inicio del proceso.
       </p>
     </div>
 
@@ -13,6 +15,7 @@
       type="button"
       class="drawer__close-btn"
       matTooltip="Cerrar"
+      [disabled]="loading"
       (click)="close()"
     >
       <mat-icon>close</mat-icon>
@@ -24,131 +27,106 @@
   <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
     <div class="drawer__body">
       @if (currentItem; as item) {
-        <section class="item-summary">
-          <div class="item-summary__icon">
-            <mat-icon>electric_meter</mat-icon>
-          </div>
+        <section class="summary-card">
+          <mat-icon>electric_meter</mat-icon>
 
           <div>
-            <span>Medidor</span>
-            <strong>{{ item.meterCode ?? '—' }}</strong>
+            <span>Medidor autorizado</span>
+            <strong>{{ item.meterCode ?? 'Ítem #' + item.id }}</strong>
             <small>Serial: {{ item.meterSerial ?? '—' }}</small>
           </div>
         </section>
 
-        <section class="approved-date-card">
-          <mat-icon>event_available</mat-icon>
+        @if (item.suggestedLaboratoryName) {
+          <section class="approved-laboratory-card">
+            <div class="approved-laboratory-card__icon">
+              <mat-icon>science</mat-icon>
+            </div>
 
-          <div>
-            <span>Fecha autorizada</span>
-            <strong>{{ item.scheduledDate ?? '—' }}</strong>
-            <small>La calibración debe iniciar en la fecha aprobada.</small>
+            <div>
+              <span>Laboratorio aprobado</span>
+              <strong>{{ item.suggestedLaboratoryName }}</strong>
+              <small>
+                Código: {{ item.suggestedLaboratoryAccreditationCode ?? '—' }}
+              </small>
+            </div>
+          </section>
+        }
+
+        <section class="reference-card">
+          <div class="section-heading">
+            <div>
+              <p>Referencia CENACE</p>
+              <h3>Configuración del medidor antes de la calibración</h3>
+            </div>
           </div>
-        </section>
 
-<section class="approved-laboratory-card">
-  <div class="approved-laboratory-card__icon">
-    <mat-icon>science</mat-icon>
-  </div>
+          @if (isLoadingSnapshot()) {
+            <div class="reference-loading">
+              <mat-spinner diameter="30" />
+              <span>Cargando fotos enviadas por CENACE...</span>
+            </div>
+          } @else if (hasReferencePhotos) {
+            <div class="reference-note">
+              <mat-icon>info</mat-icon>
+              <span>
+                Estas fotos fueron cargadas por CENACE al autorizar el inicio de trabajos.
+                Úsalas como referencia técnica durante la calibración.
+              </span>
+            </div>
 
-  <div>
-    <span>Laboratorio aprobado</span>
+            <div class="reference-photos-grid">
+              @for (photo of photos; track photo.id) {
+                <article class="reference-photo-card">
+                  <a
+                    class="reference-photo-card__image"
+                    [href]="photo.fileUrl"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <img
+                      [src]="photo.fileUrl"
+                      [alt]="photo.caption ?? photo.fileName"
+                    />
+                  </a>
 
-    <strong>
-      {{ item.suggestedLaboratoryName ?? 'Laboratorio definido por cronograma aprobado' }}
-    </strong>
+                  <div class="reference-photo-card__body">
+                    <strong>{{ photo.caption || 'Foto de configuración' }}</strong>
+                    <span>{{ photo.fileName }}</span>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="reference-missing">
+              <mat-icon>warning</mat-icon>
 
-    @if (item.suggestedLaboratoryAccreditationCode) {
-      <small>Código: {{ item.suggestedLaboratoryAccreditationCode }}</small>
-    } @else {
-      <small>No puede modificarse al iniciar la calibración.</small>
-    }
-  </div>
-</section>
-
-        <section class="form-section">
-          <div class="section-title">Certificado</div>
-
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Número de certificado</mat-label>
-
-            <input
-              matInput
-              formControlName="certificateNumber"
-              autocomplete="off"
-            />
-
-            @if (form.controls.certificateNumber.hasError('required') && form.controls.certificateNumber.touched) {
-              <mat-error>El número de certificado es obligatorio.</mat-error>
-            }
-          </mat-form-field>
-
-<div class="field-row">
-  <div class="drawer__field">
-    <app-date-field
-      formControlName="certificateIssueDate"
-      label="Fecha emisión"
-    />
-
-    @if (form.controls.certificateIssueDate.hasError('required') && form.controls.certificateIssueDate.touched) {
-      <div class="form-error">La fecha de emisión es obligatoria.</div>
-    }
-  </div>
-
-  <div class="drawer__field">
-    <app-date-field
-      formControlName="certificateValidUntil"
-      label="Válido hasta"
-    />
-
-    @if (form.hasError('certificateValidUntilBeforeOrEqualIssueDate') && form.controls.certificateValidUntil.touched) {
-      <div class="form-error">La fecha de vigencia debe ser mayor que la fecha de emisión.</div>
-    }
-  </div>
-</div>
-
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Resultado de calibración</mat-label>
-
-            <mat-select formControlName="calibrationResult">
-              <mat-option [value]="CalibrationResult.Approved">
-                Aprobado
-              </mat-option>
-              <mat-option [value]="CalibrationResult.Rejected">
-                Rechazado
-              </mat-option>              
-            </mat-select>
-          </mat-form-field>
+              <div>
+                <strong>No se encontraron fotos de referencia</strong>
+                <p>
+                  No se puede iniciar el proceso porque no existe referencia técnica enviada por CENACE.
+                </p>
+              </div>
+            </div>
+          }
         </section>
 
         <section class="form-section">
-          <div class="section-title">Sellos posteriores</div>
+          <div class="section-title">Inicio del proceso</div>
 
-          <mat-form-field appearance="outline" class="drawer__field">
-            <mat-label>Sello principal del medidor</mat-label>
-            <input matInput formControlName="mainMeterSealAfterCalibration" autocomplete="off" />
-          </mat-form-field>
-
-          <div class="field-row">
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Sello bornera 1</mat-label>
-              <input matInput formControlName="terminalBlockSealOneAfterCalibration" autocomplete="off" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Sello bornera 2</mat-label>
-              <input matInput formControlName="terminalBlockSealTwoAfterCalibration" autocomplete="off" />
-            </mat-form-field>
-          </div>
+          <app-date-field
+            formControlName="executionDate"
+            label="Fecha de ejecución / inicio"
+          />
 
           <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-            <mat-label>Notas</mat-label>
+            <mat-label>Observaciones</mat-label>
 
             <textarea
               matInput
               rows="4"
               formControlName="notes"
-              placeholder="Observaciones iniciales del proceso de calibración..."
+              placeholder="Observaciones opcionales del inicio del proceso..."
             ></textarea>
           </mat-form-field>
         </section>

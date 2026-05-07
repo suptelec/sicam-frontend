@@ -13,7 +13,7 @@
     <app-page-header
       eyebrow="Proceso de calibración"
       [title]="current.meterCode ?? 'Proceso #' + current.id"
-      description="Carga los documentos requeridos para continuar el proceso de calibración."
+      description="Completa los datos del certificado de calibración, certificado PDF, evento técnico y acta SICAM para enviar el proceso a revisión CENACE."
       [showAction]="false"
     />
 
@@ -37,8 +37,8 @@
 
         <div>
           <span>Fecha de ejecución</span>
-          <strong>{{ current.executionDate }}</strong>
-          <small>Fecha autorizada por CENACE</small>
+          <strong>{{ current.executionDate  }}</strong>
+          <small>Fecha autorizada / registrada</small>
         </div>
       </article>
 
@@ -48,75 +48,179 @@
         </div>
 
         <div>
-          <span>Certificado</span>
-          <strong>{{ current.certificateNumber  }}</strong>
-          <small>Válido hasta {{ current.certificateValidUntil }}</small>
+          <span>Certificado de calibración</span>
+          <strong>{{ current.certificateNumber ?? 'Pendiente' }}</strong>
+          <small>
+            @if (hasFinalData) {
+              Válido hasta {{ current.certificateValidUntil }}
+            } @else {
+              Certificado y resultado pendientes
+            }
+          </small>
         </div>
       </article>
 
-      <article class="summary-card">
-        <div class="summary-card__icon">
-          <mat-icon>engineering</mat-icon>
-        </div>
+<article class="summary-card summary-card--status">
+  <div class="summary-card__icon">
+    <mat-icon>fact_check</mat-icon>
+  </div>
+
+  <div class="summary-card__content">
+    <span>Estado</span>
+
+    <div class="summary-card__status-chip">
+      <app-status-chip
+        [label]="getProcessStatusLabel(current.processStatus)"
+        [tone]="getProcessStatusTone(current.processStatus)"
+        icon="fact_check"
+      />
+    </div>
+  </div>
+</article>
+
+    </section>
+
+    @if (current.processStatus === CalibrationProcessStatus.Approved) {
+      <section class="completion-card">
+        <mat-icon>verified</mat-icon>
 
         <div>
-          <span>Estado</span>
-
-          <app-status-chip
-            [label]="getProcessStatusLabel(current.processStatus)"
-            [tone]="getProcessStatusTone(current.processStatus)"
-            icon="engineering"
-          />
+          <strong>Proceso aprobado</strong>
+          <p>
+            El proceso de calibración fue aprobado. El certificado histórico del medidor
+            fue actualizado y el flujo queda finalizado.
+          </p>
         </div>
-      </article>
-    </section>
-    @if (current.processStatus === CalibrationProcessStatus.Approved) {
-  <section class="completion-card">
-    <div class="completion-card__icon">
+      </section>
+    }
+
+    @if (current.processStatus === CalibrationProcessStatus.Rejected) {
+      <section class="rejection-card">
+        <mat-icon>block</mat-icon>
+
+        <div>
+          <strong>Proceso rechazado por CENACE</strong>
+          <p>
+            Revisa las observaciones, inicia la corrección y vuelve a enviar el proceso cuando esté completo.
+          </p>
+        </div>
+
+        <button
+          mat-flat-button
+          type="button"
+          class="rejection-card__btn"
+          (click)="onStartCorrectionClicked()"
+        >
+          <mat-icon>edit_note</mat-icon>
+          Iniciar corrección
+        </button>
+      </section>
+    }
+
+<section class="process-result-grid">
+  <article class="process-result-card">
+    <div class="process-result-card__icon">
       <mat-icon>verified</mat-icon>
     </div>
 
+    <div class="process-result-card__content">
+      <span>Resultado</span>
+      <strong>{{ getCalibrationResultLabel(current.calibrationResult) }}</strong>
+      <small>Resultado técnico final</small>
+    </div>
+  </article>
+
+  <article class="process-result-card">
+    <div class="process-result-card__icon">
+      <mat-icon>workspace_premium</mat-icon>
+    </div>
+
+    <div class="process-result-card__content">
+      <span>Emisión certificado</span>
+      <strong>{{ current.certificateIssueDate ?? '—' }}</strong>
+      <small>Fecha registrada por PMSE</small>
+    </div>
+  </article>
+
+  <article class="process-result-card">
+    <div class="process-result-card__icon">
+      <mat-icon>assignment_turned_in</mat-icon>
+    </div>
+
+    <div class="process-result-card__content">
+      <span>Acta SICAM</span>
+      <strong>{{ hasActa ? 'Creada' : 'Pendiente' }}</strong>
+      <small>
+        @if (hasGeneratedActaFile) {
+          Archivo oficial generado
+        } @else {
+          Se genera al enviar a revisión
+        }
+      </small>
+    </div>
+  </article>
+
+  <article class="process-result-card">
+    <div class="process-result-card__icon">
+      <mat-icon>lock</mat-icon>
+    </div>
+
+    <div class="process-result-card__content">
+      <span>Sellos del acta</span>
+      <strong>{{ actaSeals.length }}</strong>
+      <small>
+        @if (allActaSealsHavePhotos) {
+          Todos con fotos
+        } @else {
+          Pendiente de fotos
+        }
+      </small>
+    </div>
+  </article>
+</section>
+
+    @if (current.notes) {
+ <section class="process-notes-card">
+    <div class="process-notes-card__icon">
+      <mat-icon>notes</mat-icon>
+    </div>
+
     <div>
-      <span>Flujo finalizado</span>
-      <h3>Proceso de calibración aprobado</h3>
-      <p>
-        La calibración fue aprobada por CENACE. El certificado histórico del medidor
-        fue actualizado y la nueva vigencia queda registrada en el sistema.
-      </p>
-
-      <div class="completion-card__facts">
-        <article>
-          <small>Certificado</small>
-          <strong>{{ current.certificateNumber  }}</strong>
-        </article>
-
-        <article>
-          <small>Emisión</small>
-          <strong>{{ current.certificateIssueDate  }}</strong>
-        </article>
-
-        <article>
-          <small>Vigente hasta</small>
-          <strong>{{ current.certificateValidUntil }}</strong>
-        </article>
-      </div>
+      <span>Observaciones</span>
+      <p>{{ current.notes }}</p>
     </div>
   </section>
-}
+    }
 
     <section class="checklist-section">
       <div class="section-heading">
         <div>
-          <p>Checklist documental</p>
-          <h3>Documentos requeridos</h3>
+          <p>Checklist del proceso</p>
+          <h3>Requisitos para enviar a revisión</h3>
         </div>
 
         <span class="section-heading__hint">
-          Certificado + acta son obligatorios
+          El backend validará nuevamente todos los requisitos.
         </span>
       </div>
 
       <div class="checklist-grid">
+        <article
+          class="checklist-item"
+          [class.checklist-item--done]="hasFinalData"
+        >
+          <div class="checklist-item__icon">
+            <mat-icon>
+              {{ hasFinalData ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+          </div>
+
+          <div>
+            <strong>Certificado de calibración</strong>
+            <span>{{ hasFinalData ? 'Registrado' : 'Pendiente' }}</span>
+          </div>
+        </article>
+
         <article
           class="checklist-item"
           [class.checklist-item--done]="hasCertificate"
@@ -128,26 +232,11 @@
           </div>
 
           <div>
-            <strong>Certificado de calibración</strong>
+            <strong>Certificado PDF</strong>
             <span>{{ hasCertificate ? 'Cargado' : 'Pendiente' }}</span>
           </div>
         </article>
 
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="hasAct"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ hasAct ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
-
-          <div>
-            <strong>Acta de calibración</strong>
-            <span>{{ hasAct ? 'Cargada' : 'Pendiente' }}</span>
-          </div>
-        </article>
         <article
           class="checklist-item"
           [class.checklist-item--done]="hasCalibrationExecutedEvent"
@@ -159,117 +248,176 @@
           </div>
 
           <div>
-            <strong>Evento calibración ejecutada</strong>
+            <strong>Evento ejecutado</strong>
             <span>{{ hasCalibrationExecutedEvent ? 'Registrado' : 'Pendiente' }}</span>
           </div>
         </article>
 
-        @if (process()?.processStatus === CalibrationProcessStatus.Corrected) {
-  <article
-    class="checklist-item"
-    [class.checklist-item--done]="hasCorrectionEvent"
-  >
-    <div class="checklist-item__icon">
-      <mat-icon>
-        {{ hasCorrectionEvent ? 'check_circle' : 'radio_button_unchecked' }}
-      </mat-icon>
-    </div>
+        <article
+          class="checklist-item"
+          [class.checklist-item--done]="hasActa"
+        >
+          <div class="checklist-item__icon">
+            <mat-icon>
+              {{ hasActa ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+          </div>
 
-    <div>
-      <strong>Evento de corrección</strong>
-      <span>{{ hasCorrectionEvent ? 'Registrado' : 'Pendiente' }}</span>
-    </div>
-  </article>
-}
+          <div>
+            <strong>Acta SICAM</strong>
+            <span>{{ hasActa ? 'Creada' : 'Pendiente' }}</span>
+          </div>
+        </article>
 
+        <article
+          class="checklist-item"
+          [class.checklist-item--done]="hasActaSeals"
+        >
+          <div class="checklist-item__icon">
+            <mat-icon>
+              {{ hasActaSeals ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+          </div>
+
+          <div>
+            <strong>Sellos del acta</strong>
+            <span>{{ hasActaSeals ? 'Registrados' : 'Pendientes' }}</span>
+          </div>
+        </article>
+
+        <article
+          class="checklist-item"
+          [class.checklist-item--done]="allActaSealsHavePhotos"
+        >
+          <div class="checklist-item__icon">
+            <mat-icon>
+              {{ allActaSealsHavePhotos ? 'check_circle' : 'radio_button_unchecked' }}
+            </mat-icon>
+          </div>
+
+          <div>
+            <strong>Fotos de sellos</strong>
+            <span>{{ allActaSealsHavePhotos ? 'Completas' : 'Pendientes' }}</span>
+          </div>
+        </article>
+
+        @if (current.processStatus === CalibrationProcessStatus.Corrected) {
+          <article
+            class="checklist-item"
+            [class.checklist-item--done]="hasCorrectionEvent"
+          >
+            <div class="checklist-item__icon">
+              <mat-icon>
+                {{ hasCorrectionEvent ? 'check_circle' : 'radio_button_unchecked' }}
+              </mat-icon>
+            </div>
+
+            <div>
+              <strong>Evento de corrección</strong>
+              <span>{{ hasCorrectionEvent ? 'Registrado' : 'Pendiente' }}</span>
+            </div>
+          </article>
+        }
       </div>
     </section>
 
-  <section class="actions-bar">
+    <section class="actions-bar">
+      @if (canEditProcess) {
+<button
+  mat-stroked-button
+  type="button"
+  class="actions-bar__btn"
+  (click)="onEditDataClicked()"
+>
+  <mat-icon>edit</mat-icon>
+  Registrar certificado de calibración
+</button>
+      }
 
-    @if (canEditProcess) {
-  <button
-    mat-flat-button
-    type="button"
-    class="actions-bar__btn actions-bar__btn--primary"
-    (click)="onAddDocument()"
-  >
-    <mat-icon>upload_file</mat-icon>
-    Cargar documento
-  </button>
-}
+      @if (canEditProcess) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn"
+          (click)="onAddDocument()"
+        >
+          <mat-icon>upload_file</mat-icon>
+          Cargar certificado PDF
+        </button>
+      }
 
-@if (canEditProcess) {
-  <button
-    mat-stroked-button
-    type="button"
-    class="actions-bar__btn"
-    (click)="onAddEvent()"
-  >
-    <mat-icon>event_available</mat-icon>
-    {{ process()?.processStatus === CalibrationProcessStatus.Corrected ? 'Registrar corrección' : 'Registrar evento' }}
-  </button>
-}
+      @if (canEditProcess) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn"
+          (click)="onAddEvent()"
+        >
+          <mat-icon>event_available</mat-icon>
+          {{ current.processStatus === CalibrationProcessStatus.Corrected ? 'Registrar corrección' : 'Registrar evento' }}
+        </button>
+      }
 
-@if (canEditProcess) {
-  <button
-    mat-stroked-button
-    type="button"
-    class="actions-bar__btn"
-    (click)="onEditDataClicked()"
-  >
-    <mat-icon>edit</mat-icon>
-    Editar datos
-  </button>
-}
+      @if (canEditProcess) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn"
+          (click)="onOpenActa()"
+        >
+          <mat-icon>assignment</mat-icon>
+          Crear / editar acta
+        </button>
+      }
 
-  <button
-    mat-flat-button
-    type="button"
-    class="actions-bar__btn actions-bar__btn--success"
-    [disabled]="!canSubmitToReview || isSubmitting()"
-    [matTooltip]="canSubmitToReview ? 'Enviar a revisión CENACE' : 'Falta certificado, acta o evento de calibración ejecutada'"
-    (click)="onSubmitToReview()"
-  >
-    <mat-icon>send</mat-icon>
-    Enviar a revisión
-  </button>
+      @if (actaDownloadUrl) {
+        <a
+          mat-stroked-button
+          class="actions-bar__btn"
+          [href]="actaDownloadUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          <mat-icon>download</mat-icon>
+          Descargar acta
+        </a>
+      }
 
-  <button
-    mat-icon-button
-    type="button"
-    class="actions-bar__refresh"
-    matTooltip="Actualizar"
-    (click)="load()"
-  >
-    <mat-icon>refresh</mat-icon>
-  </button>
+      <button
+        mat-flat-button
+        type="button"
+        class="actions-bar__btn actions-bar__btn--success"
+        [disabled]="!canSubmitToReview || isSubmitting()"
+        [matTooltip]="submitTooltip"
+        (click)="onSubmitToReview()"
+      >
+        <mat-icon>send</mat-icon>
+        Enviar a revisión
+      </button>
 
-  @if (canStartCorrection) {
-  <button
-    mat-flat-button
-    type="button"
-    class="actions-bar__btn actions-bar__btn--warning"
-    (click)="onStartCorrectionClicked()"
-  >
-    <mat-icon>edit</mat-icon>
-    Iniciar corrección
-  </button>
-}
-</section>
+      <button
+        mat-icon-button
+        type="button"
+        class="actions-bar__refresh"
+        matTooltip="Actualizar"
+        (click)="load()"
+      >
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </section>
 
     <app-table-card
       [loading]="isLoading()"
-      [empty]="dataSource.data.length === 0"
+      [empty]="documentsDataSource.data.length === 0"
       loadingText="Cargando documentos..."
       emptyIcon="description"
-      emptyTitle="No hay documentos cargados"
-      emptyDescription="Carga el certificado de calibración y el acta de calibración para continuar."
+      emptyTitle="No hay certificado PDF cargado"
+      emptyDescription="El PDF del certificado de calibración debe cargarse antes de enviar a revisión."
     >
       <table
         table-content
         mat-table
-        [dataSource]="dataSource"
+        [dataSource]="documentsDataSource"
         class="documents-table"
       >
         <ng-container matColumnDef="documentType">
@@ -319,8 +467,75 @@
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <tr mat-header-row *matHeaderRowDef="documentColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: documentColumns"></tr>
+      </table>
+    </app-table-card>
+
+    <app-table-card
+      [loading]="isLoading()"
+      [empty]="eventsDataSource.data.length === 0"
+      loadingText="Cargando eventos..."
+      emptyIcon="event_note"
+      emptyTitle="No hay eventos técnicos"
+      emptyDescription="El PMSE debe registrar el evento de calibración ejecutada antes de enviar a revisión."
+    >
+      <table
+        table-content
+        mat-table
+        [dataSource]="eventsDataSource"
+        class="events-table"
+      >
+        <ng-container matColumnDef="eventType">
+          <th mat-header-cell *matHeaderCellDef>Evento</th>
+
+          <td mat-cell *matCellDef="let row">
+            <div class="event-type">
+              <mat-icon>event_available</mat-icon>
+              <strong>{{ getEventTypeLabel(row.eventType) }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="occurredAt">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ row.occurredAt ?? '—' }}</strong>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+
+          <td mat-cell *matCellDef="let row">
+            <span class="muted">{{ row.description ?? '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="attachment">
+          <th mat-header-cell *matHeaderCellDef>Adjunto</th>
+
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            @if (row.attachmentUrl) {
+              <a
+                mat-icon-button
+                class="row-actions__btn"
+                [href]="row.attachmentUrl"
+                target="_blank"
+                rel="noopener"
+                matTooltip="Ver adjunto"
+              >
+                <mat-icon>open_in_new</mat-icon>
+              </a>
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="eventColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: eventColumns"></tr>
       </table>
     </app-table-card>
   } @else {
@@ -341,7 +556,7 @@
       [processId]="processId"
       (closed)="onDocumentDrawerClosed()"
       (created)="onDocumentCreated()"
-    ></app-process-document-drawer>
+    />
   </app-drawer-shell>
 }
 
@@ -353,40 +568,12 @@
   >
     <app-process-event-drawer
       [processId]="processId"
+[eventType]="process()?.processStatus === CalibrationProcessStatus.Corrected
+  ? CalibrationProcessEventType.CorrectionRegistered
+  : CalibrationProcessEventType.CalibrationExecuted"
       (closed)="onEventDrawerClosed()"
       (created)="onEventCreated()"
-    ></app-process-event-drawer>
-  </app-drawer-shell>
-}
-
-@if (startCorrectionDrawerOpen()) {
-  <app-drawer-shell
-    [open]="startCorrectionDrawerOpen()"
-    width="620px"
-    (closed)="onStartCorrectionDrawerClosed()"
-  >
-    <app-start-correction-drawer
-      [process]="process()"
-      (closed)="onStartCorrectionDrawerClosed()"
-      (corrected)="onCorrectionStarted()"
-    ></app-start-correction-drawer>
-  </app-drawer-shell>
-}
-
-@if (eventDrawerOpen()) {
-  <app-drawer-shell
-    [open]="eventDrawerOpen()"
-    width="620px"
-    (closed)="onEventDrawerClosed()"
-  >
-    <app-process-event-drawer
-      [processId]="processId"
-      [eventType]="process()?.processStatus === CalibrationProcessStatus.Corrected
-        ? CalibrationProcessEventType.CorrectionRegistered
-        : CalibrationProcessEventType.CalibrationExecuted"
-      (closed)="onEventDrawerClosed()"
-      (created)="onEventCreated()"
-    ></app-process-event-drawer>
+    />
   </app-drawer-shell>
 }
 
@@ -400,6 +587,36 @@
       [process]="process()"
       (closed)="onUpdateDataDrawerClosed()"
       (updated)="onProcessDataUpdated()"
-    ></app-update-process-data-drawer>
+    />
+  </app-drawer-shell>
+}
+
+@if (startCorrectionDrawerOpen()) {
+  <app-drawer-shell
+    [open]="startCorrectionDrawerOpen()"
+    width="620px"
+    (closed)="onStartCorrectionDrawerClosed()"
+  >
+    <app-start-correction-drawer
+      [process]="process()"
+      (closed)="onStartCorrectionDrawerClosed()"
+      (started)="onCorrectionStarted()"
+    />
+  </app-drawer-shell>
+}
+
+
+@if (actaDrawerOpen()) {
+  <app-drawer-shell
+    [open]="actaDrawerOpen()"
+    width="920px"
+    (closed)="onActaDrawerClosed()"
+  >
+    <app-meter-calibration-acta-drawer
+      #actaDrawer
+      [processId]="processId"
+      (closed)="onActaDrawerClosed()"
+      (saved)="onActaSaved()"
+    />
   </app-drawer-shell>
 }

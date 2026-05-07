@@ -1,12 +1,12 @@
 <section class="drawer">
   <header class="drawer__header">
     <div>
-      <p class="drawer__eyebrow">DOCUMENTOS</p>
+      <p class="drawer__eyebrow">CERTIFICADO PDF</p>
 
-      <h2>Cargar documento</h2>
+      <h2>Cargar certificado de calibración</h2>
 
       <p class="drawer__description">
-        Registra el certificado, acta u otro documento asociado al proceso de calibración.
+        Adjunta el PDF del certificado emitido por el laboratorio acreditado. El acta de calibración se crea desde SICAM en una sección independiente.
       </p>
     </div>
 
@@ -15,6 +15,7 @@
       type="button"
       class="drawer__close-btn"
       matTooltip="Cerrar"
+      [disabled]="loading"
       (click)="close()"
     >
       <mat-icon>close</mat-icon>
@@ -23,83 +24,56 @@
 
   <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
     <div class="drawer__body">
-      <section class="document-summary">
-        <div class="document-summary__icon">
-          <mat-icon>description</mat-icon>
-        </div>
-
-        <div>
-          <span>Tipo seleccionado</span>
-          <strong>{{ getDocumentTypeLabel(selectedDocumentType) }}</strong>
-          <small>El archivo se registrará como documento activo del proceso.</small>
-        </div>
-      </section>
-
       <section class="form-section">
-        <div class="section-title">Datos del documento</div>
+        <div class="section-title">Archivo del certificado</div>
 
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>Tipo de documento</mat-label>
-
-          <mat-select formControlName="documentType">
-            <mat-option [value]="CalibrationProcessDocumentType.CalibrationCertificate">
-              Certificado de calibración
-            </mat-option>
-
-            <mat-option [value]="CalibrationProcessDocumentType.CalibrationAct">
-              Acta de calibración
-            </mat-option>
-          </mat-select>
-
-          @if (form.controls.documentType.hasError('required') && form.controls.documentType.touched) {
-            <mat-error>El tipo de documento es obligatorio.</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>Nombre del archivo</mat-label>
-
+        <label
+          class="upload-zone"
+          [class.upload-zone--selected]="selectedFile()"
+          [class.upload-zone--disabled]="loading"
+        >
           <input
-            matInput
-            formControlName="fileName"
-            autocomplete="off"
-            placeholder="certificado-calibracion.pdf"
+            type="file"
+            accept="application/pdf,.pdf"
+            [disabled]="loading"
+            (change)="onFileSelected($event)"
           />
 
-          @if (form.controls.fileName.hasError('required') && form.controls.fileName.touched) {
-            <mat-error>El nombre del archivo es obligatorio.</mat-error>
+          @if (selectedFile()) {
+            <div class="upload-zone__selected">
+              <div class="upload-zone__icon">
+                <mat-icon>picture_as_pdf</mat-icon>
+              </div>
+
+              <div class="upload-zone__content">
+                <strong>{{ selectedFileName }}</strong>
+                <span>{{ selectedFileSizeLabel }}</span>
+              </div>
+            </div>
+          } @else {
+            <div class="upload-zone__placeholder">
+              <mat-icon>cloud_upload</mat-icon>
+
+              <strong>Selecciona el PDF del certificado</strong>
+              <span>Formato permitido: PDF</span>
+            </div>
           }
-        </mat-form-field>
+        </label>
 
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>URL del archivo</mat-label>
-
-          <input
-            matInput
-            formControlName="fileUrl"
-            autocomplete="off"
-            placeholder="https://..."
-          />
-
-          @if (form.controls.fileUrl.hasError('required') && form.controls.fileUrl.touched) {
-            <mat-error>La URL del archivo es obligatoria.</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="drawer__field">
-          <mat-label>Content-Type</mat-label>
-
-          <input
-            matInput
-            formControlName="contentType"
-            autocomplete="off"
-            placeholder="application/pdf"
-          />
-
-          @if (form.controls.contentType.hasError('required') && form.controls.contentType.touched) {
-            <mat-error>El content-type es obligatorio.</mat-error>
-          }
-        </mat-form-field>
+        @if (selectedFile()) {
+          <div class="selected-file-actions">
+            <button
+              mat-stroked-button
+              type="button"
+              class="secondary-btn"
+              [disabled]="loading"
+              (click)="removeSelectedFile()"
+            >
+              <mat-icon>close</mat-icon>
+              Quitar archivo
+            </button>
+          </div>
+        }
 
         <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
           <mat-label>Descripción</mat-label>
@@ -110,6 +84,10 @@
             formControlName="description"
             placeholder="Certificado de calibración emitido por laboratorio acreditado."
           ></textarea>
+
+          @if (form.controls.description.hasError('maxlength')) {
+            <mat-error>Máximo 1000 caracteres.</mat-error>
+          }
         </mat-form-field>
       </section>
 
@@ -117,10 +95,10 @@
         <mat-icon>info</mat-icon>
 
         <div>
-          <strong>Checklist requerido</strong>
+          <strong>Documento requerido</strong>
           <p>
-            Para enviar el proceso a revisión CENACE, debes cargar al menos el certificado
-            de calibración y el acta de calibración.
+            Para enviar el proceso a revisión CENACE, este certificado PDF debe estar cargado.
+            El acta no se carga aquí; se genera desde el módulo de Acta SICAM.
           </p>
         </div>
       </section>
@@ -129,7 +107,7 @@
     <app-drawer-actions
       cancelText="Cancelar"
       cancelIcon="close"
-      submitText="Guardar documento"
+      submitText="Guardar certificado"
       submitIcon="save"
       [loading]="loading"
       [disabled]="saveDisabled"

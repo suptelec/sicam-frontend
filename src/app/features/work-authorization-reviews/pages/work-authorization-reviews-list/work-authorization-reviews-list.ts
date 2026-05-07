@@ -1,19 +1,29 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { SearchToolbarComponent } from '../../../../shared/components/search-toolbar/search-toolbar';
 import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
 import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
+import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select';
+import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
 
 import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+
+import { PmseCompaniesService } from '../../../pmse-companies/data-access/pmse-companies.service';
+import { PmseCompany } from '../../../pmse-companies/domain/pmse-company.model';
 
 import { WorkAuthorizationsService } from '../../../my-calibration-items/data-access/work-authorizations.service';
 import {
@@ -21,28 +31,40 @@ import {
   CalibrationWorkAuthorizationStatus
 } from '../../../my-calibration-items/domain/work-authorization.model';
 
+import { AuthorizationMeterSnapshotDrawerComponent } from '../../ui/authorization-meter-snapshot-drawer/authorization-meter-snapshot-drawer';
+
 @Component({
   selector: 'app-work-authorization-reviews-list',
   standalone: true,
   imports: [
+    ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
+    MatNativeDateModule,
     MatTooltipModule,
     PageHeaderComponent,
     SearchToolbarComponent,
     TableCardComponent,
-    StatusChipComponent
+    StatusChipComponent,
+    SearchableSelectComponent,
+    DrawerShellComponent,
+    AuthorizationMeterSnapshotDrawerComponent
   ],
   templateUrl: './work-authorization-reviews-list.html',
   styleUrl: './work-authorization-reviews-list.scss'
 })
-export class WorkAuthorizationReviewsListComponent implements OnInit {
+export class WorkAuthorizationReviewsListComponent implements OnInit, OnDestroy {
   private readonly service = inject(WorkAuthorizationsService);
+  private readonly pmseCompaniesService = inject(PmseCompaniesService);
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
-  private readonly confirmDialog = inject(ConfirmDialogService);
+
+  private readonly subscriptions = new Subscription();
 
   readonly CalibrationWorkAuthorizationStatus = CalibrationWorkAuthorizationStatus;
 
@@ -63,37 +85,47 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
   pageSizeOptions = [10, 20, 50];
 
   searchTerm = '';
+
   isLoading = signal(false);
+  pmseCompanies = signal<PmseCompany[]>([]);
+
+  selectedPmseCompanyId = signal<number | null>(null);
+  pmseCompanyIdControl = new FormControl<number | null>(null);
+
+  requestedWorkDateStart = signal<Date | null>(null);
+  requestedWorkDateEnd = signal<Date | null>(null);
+
+  drawerOpen = signal(false);
+  selectedAuthorization = signal<CalibrationWorkAuthorization | null>(null);
 
   ngOnInit(): void {
+    this.subscriptions.add(
+      this.pmseCompanyIdControl.valueChanges.subscribe(pmseCompanyId => {
+        this.selectedPmseCompanyId.set(pmseCompanyId);
+        this.resetPaginationAndLoad();
+      })
+    );
+
+    this.loadPmseCompanies();
     this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  get hasRequestedWorkDateFilter(): boolean {
+    return !!this.requestedWorkDateStart() || !!this.requestedWorkDateEnd();
   }
 
   load(): void {
     this.isLoading.set(true);
 
-    const searchFilter = this.odata.searchInFields(
-      [
-        'PmseCompanyName',
-        'MeterCode',
-        'MeterSerial',
-        'RequestReason'
-      ],
-      this.searchTerm
-    );
-
-    const requestedFilter = `AuthorizationStatus eq ${CalibrationWorkAuthorizationStatus.Requested}`;
-
-    const filter = [requestedFilter, searchFilter]
-      .filter(Boolean)
-      .map(value => `(${value})`)
-      .join(' and ');
-
     this.service.getAll({
       page: this.pageIndex + 1,
       take: this.pageSize,
-      filter,
-      orderBy: 'CreatedAt desc'
+      filter: this.buildFilter(),
+      orderBy: 'RequestedWorkDate asc, CreatedAt desc'
     }).subscribe({
       next: response => {
         if (response.succeed) {
@@ -112,9 +144,29 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
     });
   }
 
+  loadPmseCompanies(): void {
+    this.pmseCompaniesService.getAll({
+      page: 1,
+      take: 1000,
+      filter: 'Status eq 1',
+      orderBy: 'Name asc'
+    }).subscribe({
+      next: response => {
+        if (response.succeed) {
+          this.pmseCompanies.set(response.result ?? []);
+          return;
+        }
+
+        this.toast.warning(response.message ?? 'No se pudieron cargar las empresas PMSE.');
+      },
+      error: () => {
+        this.toast.warning('No se pudieron cargar las empresas PMSE.');
+      }
+    });
+  }
+
   onSearch(): void {
-    this.pageIndex = 0;
-    this.load();
+    this.resetPaginationAndLoad();
   }
 
   onPageChange(event: PageEvent): void {
@@ -123,34 +175,43 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
     this.load();
   }
 
+  onRequestedWorkDateStartChange(value: Date | null): void {
+    this.requestedWorkDateStart.set(value);
+    this.resetPaginationAndLoad();
+  }
+
+  onRequestedWorkDateEndChange(value: Date | null): void {
+    this.requestedWorkDateEnd.set(value);
+    this.resetPaginationAndLoad();
+  }
+
+  clearRequestedWorkDateFilter(event?: MouseEvent): void {
+    event?.stopPropagation();
+
+    if (!this.hasRequestedWorkDateFilter) return;
+
+    this.requestedWorkDateStart.set(null);
+    this.requestedWorkDateEnd.set(null);
+    this.resetPaginationAndLoad();
+  }
+
+  refresh(): void {
+    this.load();
+  }
+
   onAuthorize(row: CalibrationWorkAuthorization): void {
-    this.confirmDialog.confirm({
-      title: 'Autorizar inicio de trabajos',
-      message: `Se autorizará el inicio de trabajos para el medidor ${row.meterCode ?? row.calibrationPlanItemId}. ¿Deseas continuar?`,
-      confirmText: 'Autorizar',
-      cancelText: 'Cancelar',
-      type: 'info'
-    }).subscribe(confirmed => {
-      if (!confirmed) return;
+    this.selectedAuthorization.set(row);
+    this.drawerOpen.set(true);
+  }
 
-      this.service.authorize(row.id, {
-        authorizationMessage: 'Se autoriza el inicio de trabajos conforme al cronograma aprobado.',
-        authorizationDocumentUrl: row.requestDocumentUrl
-      }).subscribe({
-        next: response => {
-          if (!response.succeed) {
-            this.toast.error(response.message ?? 'No se pudo autorizar la solicitud.');
-            return;
-          }
+  onDrawerClosed(): void {
+    this.drawerOpen.set(false);
+    this.selectedAuthorization.set(null);
+  }
 
-          this.toast.success('Autorización aprobada correctamente.');
-          this.load();
-        },
-        error: () => {
-          this.toast.error('Error al autorizar la solicitud.');
-        }
-      });
-    });
+  onAuthorized(): void {
+    this.onDrawerClosed();
+    this.load();
   }
 
   onReject(row: CalibrationWorkAuthorization): void {
@@ -235,5 +296,59 @@ export class WorkAuthorizationReviewsListComponent implements OnInit {
       default:
         return 'info';
     }
+  }
+
+  private buildFilter(): string {
+    const filters = [
+      `AuthorizationStatus eq ${CalibrationWorkAuthorizationStatus.Requested}`
+    ];
+
+    const searchFilter = this.odata.searchInFields(
+      [
+        'PmseCompanyName',
+        'MeterCode',
+        'MeterSerial',
+      ],
+      this.searchTerm
+    );
+
+    if (searchFilter) {
+      filters.push(searchFilter);
+    }
+
+    const pmseCompanyId = this.selectedPmseCompanyId();
+
+    if (pmseCompanyId) {
+      filters.push(`PmseCompanyId eq ${pmseCompanyId}`);
+    }
+
+    const startDate = this.requestedWorkDateStart();
+    const endDate = this.requestedWorkDateEnd();
+
+    if (startDate) {
+      filters.push(`RequestedWorkDate ge ${this.formatDateForOData(startDate)}`);
+    }
+
+    if (endDate) {
+      filters.push(`RequestedWorkDate le ${this.formatDateForOData(endDate)}`);
+    }
+
+    return filters
+      .filter(Boolean)
+      .map(value => `(${value})`)
+      .join(' and ');
+  }
+
+  private resetPaginationAndLoad(): void {
+    this.pageIndex = 0;
+    this.load();
+  }
+
+  private formatDateForOData(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }
