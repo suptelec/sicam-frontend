@@ -118,6 +118,72 @@
   </button>
 </section>
 
+<section class="officialization-card">
+  <div class="officialization-card__main">
+    <div
+      class="officialization-card__icon"
+      [class.officialization-card__icon--success]="hasOfficializationDocument"
+    >
+      <mat-icon>{{ hasOfficializationDocument ? 'task' : 'picture_as_pdf' }}</mat-icon>
+    </div>
+
+    <div class="officialization-card__content">
+      <p class="officialization-card__eyebrow">Documento opcional</p>
+
+      <div class="officialization-card__title-row">
+        <h3>Documento de oficialización</h3>
+
+        <span
+          class="officialization-card__badge"
+          [class.officialization-card__badge--success]="hasOfficializationDocument"
+        >
+          {{ hasOfficializationDocument ? 'Cargado' : 'Pendiente' }}
+        </span>
+      </div>
+
+      <p class="officialization-card__description">
+        Adjunta el PDF/oficio/acta relacionado con la oficialización del cronograma.
+        Este documento no bloquea el envío ni la revisión del cronograma.
+      </p>
+    </div>
+  </div>
+
+  <div class="officialization-card__actions">
+    <input
+      #officializationDocumentInput
+      type="file"
+      accept="application/pdf"
+      hidden
+      (change)="onOfficializationDocumentSelected($event)"
+    />
+
+    <button
+      mat-stroked-button
+      type="button"
+      class="officialization-card__btn"
+      [disabled]="isUploadingOfficializationDocument()"
+      (click)="officializationDocumentInput.click()"
+    >
+      <mat-icon>
+        {{ isUploadingOfficializationDocument() ? 'hourglass_top' : 'upload_file' }}
+      </mat-icon>
+
+      {{ hasOfficializationDocument ? 'Reemplazar PDF' : 'Subir PDF' }}
+    </button>
+
+    <button
+      mat-stroked-button
+      type="button"
+      class="officialization-card__btn officialization-card__btn--primary"
+      [disabled]="!hasOfficializationDocument || isUploadingOfficializationDocument()"
+      (click)="viewOfficializationDocument()"
+    >
+      <mat-icon>open_in_new</mat-icon>
+      Ver PDF
+    </button>
+  </div>
+</section>
+
     <app-table-card
       [loading]="isLoading()"
       [empty]="dataSource.data.length === 0"
@@ -150,11 +216,11 @@
         </ng-container>
 
         <ng-container matColumnDef="proposedDate">
-          <th mat-header-cell *matHeaderCellDef>Fecha propuesta</th>
+<th mat-header-cell *matHeaderCellDef>Fecha y hora propuesta</th>
 
-          <td mat-cell *matCellDef="let row">
-            <strong>{{ row.proposedCalibrationDate ?? '—' }}</strong>
-          </td>
+<td mat-cell *matCellDef="let row">
+  <strong>{{ formatProposedCalibrationDateTime(row) }}</strong>
+</td>
         </ng-container>
 
         <ng-container matColumnDef="laboratory">

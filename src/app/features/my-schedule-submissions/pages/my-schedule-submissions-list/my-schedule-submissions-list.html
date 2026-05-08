@@ -91,7 +91,7 @@
 
         <td mat-cell *matCellDef="let row">
           <div class="stacked-cell">
-            <strong>{{ row.submittedAt ?? '—' }}</strong>
+{{ formatDateTimeMinute(row.submittedAt) }}
             <span>{{ row.submittedBy ?? 'Sin envío' }}</span>
           </div>
         </td>
@@ -102,7 +102,7 @@
 
         <td mat-cell *matCellDef="let row">
           <div class="stacked-cell">
-            <strong>{{ row.reviewedAt ?? 'Pendiente' }}</strong>
+{{ formatDateTimeMinute(row.reviewedAt) }}
             <span>{{ row.reviewedBy ?? 'Sin revisión' }}</span>
           </div>
         </td>

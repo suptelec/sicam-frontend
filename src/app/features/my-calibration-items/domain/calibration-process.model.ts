@@ -12,6 +12,27 @@ export enum CalibrationResult {
   Rejected = 2
 }
 
+export enum MeterSnapshotReviewStatus {
+  Pending = 1,
+  MatchesReference = 2,
+  DoesNotMatchReference = 3
+}
+
+export interface SaveMeterSnapshotReviewRequest {
+  reviewStatus: MeterSnapshotReviewStatus;
+  notes?: string | null;
+}
+
+export interface MeterSnapshotReview {
+  id: number;
+  calibrationProcessId: number;
+  authorizationMeterSnapshotId: number;
+  reviewStatus: MeterSnapshotReviewStatus;
+  notes?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+}
+
 export interface CreateCalibrationProcessRequest {
   executionDate: string;
   notes?: string | null;
@@ -180,6 +201,8 @@ export interface MeterCalibrationActa {
   reactiveEnergyEndDateTime?: string | null;
   reactiveEnergyEventualities?: string | null;
 
+  meterRestorationEndDateTime?: string | null;
+
   generatedFileName?: string | null;
   generatedFileUrl?: string | null;
 
@@ -228,6 +251,7 @@ export interface SaveMeterCalibrationActaRequest {
   activeEnergyEventualities?: string | null;
   reactiveEnergyEndDateTime?: string | null;
   reactiveEnergyEventualities?: string | null;
+  meterRestorationEndDateTime?: string | null;
   checks: SaveMeterCalibrationActaCheckRequest[];
   seals: SaveMeterCalibrationActaSealRequest[];
 }
@@ -256,3 +280,14 @@ export interface CreateMeterCalibrationActaSealPhotoRequest {
   caption?: string | null;
   sortOrder: number;
 }
+
+export const MeterSealTypeOptions = [
+  {
+    value: MeterSealType.MainMeter,
+    label: 'Medidor'
+  },
+  {
+    value: MeterSealType.TerminalBlock,
+    label: 'Bornera'
+  }
+] as const;

@@ -129,196 +129,300 @@
             }
           }
 
-          <section class="form-section">
-            <div class="section-heading">
-              <div>
-                <p>Datos generales</p>
-                <h3>Información del acta</h3>
-              </div>
-            </div>
+<section class="form-section form-section--general">
+  <div class="section-heading">
+    <div>
+      <p>Datos generales</p>
+      <h3>Información del acta</h3>
+    </div>
+  </div>
 
-            <div class="field-row">
-              <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Delegado técnico PMSE</mat-label>
+  <div class="general-form-grid">
+    <mat-form-field appearance="outline" class="drawer__field">
+      <mat-label>Delegado técnico PMSE</mat-label>
 
-                <input
-                  matInput
-                  formControlName="pmseTechnicalDelegateName"
-                  autocomplete="off"
-                />
+      <input
+        matInput
+        formControlName="pmseTechnicalDelegateName"
+        autocomplete="off"
+      />
 
-                @if (form.controls.pmseTechnicalDelegateName.hasError('required') && form.controls.pmseTechnicalDelegateName.touched) {
-                  <mat-error>El delegado técnico es obligatorio.</mat-error>
-                }
-              </mat-form-field>
+      @if (
+        form.controls.pmseTechnicalDelegateName.hasError('required') &&
+        form.controls.pmseTechnicalDelegateName.touched
+      ) {
+        <mat-error>El delegado técnico es obligatorio.</mat-error>
+      }
+    </mat-form-field>
 
-              <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Teléfono PMSE</mat-label>
+    <mat-form-field appearance="outline" class="drawer__field">
+      <mat-label>Teléfono PMSE</mat-label>
 
-                <input
-                  matInput
-                  formControlName="pmsePhone"
-                  autocomplete="off"
-                />
-              </mat-form-field>
-            </div>
+      <input
+        matInput
+        formControlName="pmsePhone"
+        autocomplete="off"
+      />
 
-            <div class="field-row">
-              <app-date-field
-                class="drawer__field"
-                formControlName="actaDate"
-                label="Fecha del acta"
-              />
+      @if (form.controls.pmsePhone.hasError('maxlength')) {
+        <mat-error>Máximo 50 caracteres.</mat-error>
+      }
+    </mat-form-field>
+  </div>
 
-              <app-date-field
-                class="drawer__field"
-                formControlName="calibrationStartDateTime"
-                label="Inicio calibración"
-                [withTime]="true"
-                [minuteStep]="1"
-              />
-            </div>
-          </section>
 
-          <section class="form-section">
-            <div class="section-heading">
-              <div>
-                <p>Eventualidades</p>
-                <h3>Energía activa</h3>
-              </div>
-            </div>
+  
+<div class="acta-timeline">
+  <article class="timeline-field timeline-field--acta">
+    <div class="timeline-field__header">
+      <span>Acta</span>
+      <strong>Fecha del acta</strong>
+    </div>
 
-            <div class="field-row field-row--single">
-              <app-date-field
-                class="drawer__field"
-                formControlName="activeEnergyEndDateTime"
-                label="Fin energía activa"
-                [withTime]="true"
-                [minuteStep]="1"
-              />
-            </div>
+    <app-date-field
+      class="drawer__field"
+      formControlName="actaDate"
+      label="Fecha del acta"
+    />
+  </article>
 
-            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-              <mat-label>Eventualidades energía activa</mat-label>
+  <article class="timeline-field timeline-field--calibration">
+    <div class="timeline-field__header">
+      <span>Calibración</span>
+      <strong>Inicio y fin de calibración</strong>
+    </div>
 
-              <textarea
-                matInput
-                rows="3"
-                formControlName="activeEnergyEventualities"
-              ></textarea>
-            </mat-form-field>
-          </section>
+    <div class="timeline-field__dates">
+      <app-date-field
+        class="drawer__field"
+        formControlName="calibrationStartDateTime"
+        label="Fecha y hora de inicio"
+        [withTime]="true"
+        [minuteStep]="1"
+      />
 
-          <section class="form-section">
-            <div class="section-heading">
-              <div>
-                <p>Eventualidades</p>
-                <h3>Energía reactiva</h3>
-              </div>
-            </div>
+      <app-date-field
+        class="drawer__field"
+        formControlName="meterRestorationEndDateTime"
+        label="Fecha y hora de fin"
+        [withTime]="true"
+        [minuteStep]="1"
+      />
+    </div>
 
-            <div class="field-row field-row--single">
-              <app-date-field
-                class="drawer__field"
-                formControlName="reactiveEnergyEndDateTime"
-                label="Fin energía reactiva"
-                [withTime]="true"
-                [minuteStep]="1"
-              />
-            </div>
+    @if (
+      form.controls.calibrationStartDateTime.hasError('required') &&
+      form.controls.calibrationStartDateTime.touched
+    ) {
+      <p class="field-error">
+        La fecha y hora de inicio es obligatoria.
+      </p>
+    }
 
-            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-              <mat-label>Eventualidades energía reactiva</mat-label>
+    @if (
+      form.controls.meterRestorationEndDateTime.hasError('required') &&
+      form.controls.meterRestorationEndDateTime.touched
+    ) {
+      <p class="field-error">
+        La fecha y hora de fin es obligatoria.
+      </p>
+    }
+  </article>
+</div>
 
-              <textarea
-                matInput
-                rows="3"
-                formControlName="reactiveEnergyEventualities"
-              ></textarea>
-            </mat-form-field>
-          </section>
+
+</section>
 
           <section class="form-section">
             <div class="section-heading">
               <div>
-                <p>Checks del acta</p>
-                <h3>Validaciones según formato oficial</h3>
+                <p>Formato oficial</p>
+                <h3>Validaciones del acta</h3>
               </div>
             </div>
 
-            <div formArrayName="checks" class="check-sections">
+            <div class="check-sections">
               @for (section of groupedChecks; track section.key) {
-                <section
-                  class="check-section"
-                  [class.check-section--system]="section.source === 'system'"
-                >
+                <section class="check-section">
                   <header class="check-section__header">
                     <div>
                       <p>{{ section.subtitle }}</p>
                       <h4>{{ section.title }}</h4>
                     </div>
-
-                    @if (section.source === 'system') {
-                      <span class="check-section__badge">
-                        <mat-icon>lock</mat-icon>
-                        Calculado por SICAM
-                      </span>
-                    }
                   </header>
 
-                  <div class="check-rows">
+                  <div formArrayName="checks" class="check-rows">
                     @for (item of section.items; track item.definition.checkCode) {
                       <article
                         class="check-row"
-                        [formGroup]="getCheckGroup(item.index)"
+                        [class.check-row--installation]="isInstallationFormCheck(item.definition.checkCode)"
+                        [formGroupName]="item.index"
                       >
                         <div class="check-row__question">
                           <span>{{ item.order }}.-</span>
                           <strong>{{ item.definition.label }}</strong>
                         </div>
 
-                        <mat-form-field
-                          appearance="outline"
-                          class="drawer__field check-row__result"
-                        >
-                          <mat-label>Resultado</mat-label>
+                        @if (isInstallationFormCheck(item.definition.checkCode)) {
+                          <mat-form-field appearance="outline" class="drawer__field check-row__result">
+                            <mat-label>Forma de instalación</mat-label>
 
-                          <mat-select formControlName="checkResult">
-                            <mat-option [value]="MeterCalibrationActaCheckResult.Pending">
-                              Pendiente
-                            </mat-option>
+                            <mat-select
+                              formControlName="installationForm"
+                              (selectionChange)="onInstallationFormSelected(item.index)"
+                            >
+                              @for (option of meterInstallationFormOptions; track option) {
+                                <mat-option [value]="option">{{ option }}</mat-option>
+                              }
+                            </mat-select>
 
-                            <mat-option [value]="MeterCalibrationActaCheckResult.Yes">
-                              Sí
-                            </mat-option>
+                            @if (
+                              getCheckGroup(item.index).controls['installationForm'].hasError('required') &&
+                              getCheckGroup(item.index).controls['installationForm'].touched
+                            ) {
+                              <mat-error>Selecciona 9S o 32S.</mat-error>
+                            }
+                          </mat-form-field>
 
-                            <mat-option [value]="MeterCalibrationActaCheckResult.No">
-                              No
-                            </mat-option>
+                          <mat-form-field
+                            appearance="outline"
+                            class="drawer__field drawer__textarea check-row__observation"
+                          >
+                            <mat-label>Observación</mat-label>
 
-                            <mat-option [value]="MeterCalibrationActaCheckResult.NotApplicable">
-                              No aplica
-                            </mat-option>
-                          </mat-select>
-                        </mat-form-field>
+                            <textarea
+                              matInput
+                              rows="1"
+                              formControlName="observation"
+                              placeholder="Observación"
+                            ></textarea>
 
-                        <mat-form-field
-                          appearance="outline"
-                          class="drawer__field drawer__textarea check-row__observation"
-                        >
-                          <mat-label>Observación</mat-label>
+                            @if (getCheckGroup(item.index).controls['observation'].hasError('maxlength')) {
+                              <mat-error>Máximo 500 caracteres.</mat-error>
+                            }
+                          </mat-form-field>
+                        } @else {
+                          <mat-form-field appearance="outline" class="drawer__field check-row__result">
+                            <mat-label>Resultado</mat-label>
 
-                          <textarea
-                            matInput
-                            rows="1"
-                            formControlName="observation"
-                            placeholder="Observación"
-                          ></textarea>
-                        </mat-form-field>
+                            <mat-select formControlName="checkResult">
+                              <mat-option [value]="MeterCalibrationActaCheckResult.Pending">
+                                Pendiente
+                              </mat-option>
+
+                              <mat-option [value]="MeterCalibrationActaCheckResult.Yes">
+                                Sí
+                              </mat-option>
+
+                              <mat-option [value]="MeterCalibrationActaCheckResult.No">
+                                No
+                              </mat-option>
+
+                              <mat-option [value]="MeterCalibrationActaCheckResult.NotApplicable">
+                                No aplica
+                              </mat-option>
+                            </mat-select>
+
+                            @if (
+                              getCheckGroup(item.index).controls['checkResult'].hasError('required') &&
+                              getCheckGroup(item.index).controls['checkResult'].touched
+                            ) {
+                              <mat-error>El resultado es obligatorio.</mat-error>
+                            }
+                          </mat-form-field>
+
+                          <mat-form-field
+                            appearance="outline"
+                            class="drawer__field drawer__textarea check-row__observation"
+                          >
+                            <mat-label>Observación</mat-label>
+
+                            <textarea
+                              matInput
+                              rows="1"
+                              formControlName="observation"
+                              placeholder="Observación"
+                            ></textarea>
+
+                            @if (getCheckGroup(item.index).controls['observation'].hasError('maxlength')) {
+                              <mat-error>Máximo 500 caracteres.</mat-error>
+                            }
+                          </mat-form-field>
+                        }
                       </article>
                     }
                   </div>
                 </section>
+
+                @if (section.key === 'cenace-activa') {
+                  <section class="check-section check-section--eventuality">
+                    <header class="check-section__header">
+                      <div>
+                        <p>PMSE</p>
+                        <h4>4. Finalización de calibración del medidor - Energía activa</h4>
+                      </div>
+                    </header>
+
+<div class="eventuality-stack">
+  <app-date-field
+    class="drawer__field eventuality-date-field"
+    formControlName="activeEnergyEndDateTime"
+    label="Fin energía activa"
+    [withTime]="true"
+    [minuteStep]="1"
+  />
+
+  <mat-form-field appearance="outline" class="drawer__field drawer__textarea eventuality-observation-field">
+    <mat-label>Eventualidades energía activa</mat-label>
+
+    <textarea
+      matInput
+      rows="3"
+      formControlName="activeEnergyEventualities"
+    ></textarea>
+
+    @if (form.controls.activeEnergyEventualities.hasError('maxlength')) {
+      <mat-error>Máximo 1000 caracteres.</mat-error>
+    }
+  </mat-form-field>
+</div>
+                  </section>
+                }
+
+                @if (section.key === 'cenace-reactiva') {
+                  <section class="check-section check-section--eventuality">
+                    <header class="check-section__header">
+                      <div>
+                        <p>PMSE</p>
+                        <h4>6. Finalización de calibración del medidor - Energía reactiva</h4>
+                      </div>
+                    </header>
+
+<div class="eventuality-stack">
+  <app-date-field
+    class="drawer__field eventuality-date-field"
+    formControlName="reactiveEnergyEndDateTime"
+    label="Fin energía reactiva"
+    [withTime]="true"
+    [minuteStep]="1"
+  />
+
+  <mat-form-field appearance="outline" class="drawer__field drawer__textarea eventuality-observation-field">
+    <mat-label>Eventualidades energía reactiva</mat-label>
+
+    <textarea
+      matInput
+      rows="3"
+      formControlName="reactiveEnergyEventualities"
+    ></textarea>
+
+    @if (form.controls.reactiveEnergyEventualities.hasError('maxlength')) {
+      <mat-error>Máximo 1000 caracteres.</mat-error>
+    }
+  </mat-form-field>
+</div>
+                  </section>
+                }
               }
             </div>
           </section>
@@ -326,7 +430,7 @@
           <section class="form-section">
             <div class="section-heading">
               <div>
-                <p>Sellos nuevos</p>
+                <p>Sellos de seguridad</p>
                 <h3>Sellos colocados después de la calibración</h3>
               </div>
 
@@ -344,7 +448,7 @@
 
             <div formArrayName="seals" class="dynamic-list">
               @if (sealControls.length === 0) {
-                <div class="empty-inline">
+                <div class="empty-inline empty-inline--danger">
                   <mat-icon>warning</mat-icon>
                   <span>Debes registrar al menos un sello.</span>
                 </div>
@@ -352,34 +456,29 @@
 
               @for (sealGroup of sealControls; track $index; let i = $index) {
                 <article
-                  class="dynamic-card"
-                  [formGroup]="getSealGroup(i)"
+                  class="dynamic-card dynamic-card--seal"
+                  [formGroupName]="i"
                 >
-                  <div class="field-row">
+                  <div class="field-row field-row--seal">
                     <mat-form-field appearance="outline" class="drawer__field">
                       <mat-label>Tipo de sello</mat-label>
 
                       <mat-select formControlName="sealType">
                         <mat-option [value]="MeterSealType.MainMeter">
-                          Principal medidor
+                          Medidor
                         </mat-option>
 
                         <mat-option [value]="MeterSealType.TerminalBlock">
                           Bornera
                         </mat-option>
-
-                        <mat-option [value]="MeterSealType.Cabinet">
-                          Gabinete
-                        </mat-option>
-
-                        <mat-option [value]="MeterSealType.CommunicationModule">
-                          Módulo comunicación
-                        </mat-option>
-
-                        <mat-option [value]="MeterSealType.Other">
-                          Otro
-                        </mat-option>
                       </mat-select>
+
+                      @if (
+                        getSealGroup(i).controls['sealType'].hasError('required') &&
+                        getSealGroup(i).controls['sealType'].touched
+                      ) {
+                        <mat-error>El tipo de sello es obligatorio.</mat-error>
+                      }
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="drawer__field">
@@ -390,49 +489,30 @@
                         formControlName="sealCode"
                         autocomplete="off"
                       />
+
+                      @if (
+                        getSealGroup(i).controls['sealCode'].hasError('required') &&
+                        getSealGroup(i).controls['sealCode'].touched
+                      ) {
+                        <mat-error>El código del sello es obligatorio.</mat-error>
+                      }
+
+                      @if (getSealGroup(i).controls['sealCode'].hasError('maxlength')) {
+                        <mat-error>Máximo 120 caracteres.</mat-error>
+                      }
                     </mat-form-field>
+
+                    <button
+                      mat-icon-button
+                      type="button"
+                      class="remove-btn"
+                      matTooltip="Eliminar sello"
+                      [disabled]="isSaving()"
+                      (click)="removeSeal(i)"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
                   </div>
-
-                  <div class="field-row">
-                    <mat-form-field appearance="outline" class="drawer__field">
-                      <mat-label>Ubicación</mat-label>
-
-                      <input
-                        matInput
-                        formControlName="sealLocation"
-                        autocomplete="off"
-                      />
-                    </mat-form-field>
-
-                    <app-date-field
-                      class="drawer__field"
-                      formControlName="installedAt"
-                      label="Fecha y hora colocación"
-                      [withTime]="true"
-                      [minuteStep]="1"
-                    />
-                  </div>
-
-                  <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-                    <mat-label>Observaciones</mat-label>
-
-                    <textarea
-                      matInput
-                      rows="2"
-                      formControlName="observations"
-                    ></textarea>
-                  </mat-form-field>
-
-                  <button
-                    mat-icon-button
-                    type="button"
-                    class="remove-btn"
-                    matTooltip="Eliminar sello"
-                    [disabled]="isSaving()"
-                    (click)="removeSeal(i)"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
                 </article>
               }
             </div>
@@ -468,11 +548,7 @@
                     <header>
                       <div>
                         <strong>{{ seal.sealCode }}</strong>
-                        <span>
-                          {{ getSealTypeLabel(seal.sealType) }}
-                          ·
-                          {{ seal.sealLocation ?? 'Sin ubicación' }}
-                        </span>
+                        <span>{{ getSealTypeLabel(seal.sealType) }}</span>
                       </div>
 
                       <label class="upload-photo-btn">

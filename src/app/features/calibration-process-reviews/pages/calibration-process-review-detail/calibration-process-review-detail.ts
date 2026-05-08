@@ -23,10 +23,12 @@ import {
   CalibrationProcessEvent,
   CalibrationProcessEventType,
   CalibrationProcessStatus,
-  CalibrationResult
+  CalibrationResult,
+  MeterSnapshotReview
 } from '../../../my-calibration-items/domain/calibration-process.model';
 
 import { RejectCalibrationProcessDrawerComponent } from '../../ui/reject-calibration-process-drawer/reject-calibration-process-drawer';
+import { MeterSnapshotReviewDrawerComponent } from '../../ui/meter-snapshot-review-drawer/meter-snapshot-review-drawer';
 
 @Component({
   selector: 'app-calibration-process-review-detail',
@@ -41,7 +43,8 @@ import { RejectCalibrationProcessDrawerComponent } from '../../ui/reject-calibra
     TableCardComponent,
     StatusChipComponent,
     DrawerShellComponent,
-    RejectCalibrationProcessDrawerComponent
+    RejectCalibrationProcessDrawerComponent,
+    MeterSnapshotReviewDrawerComponent,
   ],
   templateUrl: './calibration-process-review-detail.html',
   styleUrl: './calibration-process-review-detail.scss'
@@ -60,6 +63,8 @@ export class CalibrationProcessReviewDetailComponent implements OnInit {
   isApproving = signal(false);
   isRejecting = signal(false);
   rejectDrawerOpen = signal(false);
+  snapshotReviewDrawerOpen = signal(false);
+  meterSnapshotValidationSaved = signal(false);
 
   documentsDataSource = new MatTableDataSource<CalibrationProcessDocument>([]);
   eventsDataSource = new MatTableDataSource<CalibrationProcessEvent>([]);
@@ -319,4 +324,32 @@ export class CalibrationProcessReviewDetailComponent implements OnInit {
         return 'neutral';
     }
   }
+
+onSnapshotReviewClicked(): void {
+  const current = this.process();
+
+  if (!current) return;
+
+  if (Number(current.processStatus) !== CalibrationProcessStatus.Submitted) {
+    this.toast.warning('Solo se puede validar la configuración cuando el proceso está en revisión.');
+    return;
+  }
+
+  this.snapshotReviewDrawerOpen.set(true);
+}
+
+onSnapshotReviewDrawerClosed(): void {
+  this.snapshotReviewDrawerOpen.set(false);
+}
+
+onMeterSnapshotValidated(review: MeterSnapshotReview): void {
+  this.snapshotReviewDrawerOpen.set(false);
+  this.meterSnapshotValidationSaved.set(true);
+
+  if (Number(review.reviewStatus) === 3) {
+    this.toast.warning(
+      'La configuración fue marcada como no coincidente. El proceso no podrá aprobarse hasta corregir la observación.'
+    );
+  }
+}
 }

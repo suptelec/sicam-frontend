@@ -45,7 +45,9 @@ import {
 } from '../../../my-calibration-items/domain/calibration-process.model';
 
 type ActaStep = 'acta' | 'photos';
-type ActaCheckSource = 'system' | 'manual';
+type ActaCheckSource = 'manual';
+
+type InstallationFormOption = '9S' | '32S';
 
 interface ActaCheckDefinition {
   checkCode: number;
@@ -54,6 +56,7 @@ interface ActaCheckDefinition {
   sectionTitle: string;
   sectionSubtitle: string;
   source: ActaCheckSource;
+  inputType?: 'boolean' | 'installationForm';
 }
 
 interface GroupedActaCheckSection {
@@ -68,6 +71,9 @@ interface GroupedActaCheckSection {
   }[];
 }
 
+const CENACE_MANUAL_CHECK_CODES = [22, 31, 40];
+const METER_INSTALLATION_FORM_CODES = [8, 56];
+const METER_INSTALLATION_FORM_OPTIONS: InstallationFormOption[] = ['9S', '32S'];
 
 const PMSE_INITIAL_CHECKS: ActaCheckDefinition[] = [
   {
@@ -132,6 +138,34 @@ const PMSE_INITIAL_CHECKS: ActaCheckDefinition[] = [
     sectionKey: 'pmse-inicial',
     sectionTitle: '2. Actividades previas a la calibración del medidor de energía',
     sectionSubtitle: 'PMSE',
+    source: 'manual',
+    inputType: 'installationForm'
+  }
+];
+
+const CENACE_MANUAL_CHECKS: ActaCheckDefinition[] = [
+  {
+    checkCode: 22,
+    label: 'Puesta en "modo de prueba" a medidor',
+    sectionKey: 'cenace-activa',
+    sectionTitle: '3. Autorización de inicio de calibración - Energía activa',
+    sectionSubtitle: 'CENACE',
+    source: 'manual'
+  },
+  {
+    checkCode: 31,
+    label: 'Puesta en "modo de prueba" a medidor',
+    sectionKey: 'cenace-reactiva',
+    sectionTitle: '5. Autorización de inicio de calibración - Energía reactiva',
+    sectionSubtitle: 'CENACE',
+    source: 'manual'
+  },
+  {
+    checkCode: 40,
+    label: 'Deshabilitación de "modo de prueba" a medidor',
+    sectionKey: 'cenace-restablecimiento',
+    sectionTitle: '7. Restablecimiento de parámetros de medidor',
+    sectionSubtitle: 'CENACE',
     source: 'manual'
   }
 ];
@@ -191,54 +225,10 @@ const PMSE_FINAL_CHECKS: ActaCheckDefinition[] = [
     sectionKey: 'pmse-final',
     sectionTitle: '8. Finalización e implementación de sellos de seguridad',
     sectionSubtitle: 'PMSE',
-    source: 'manual'
+    source: 'manual',
+    inputType: 'installationForm'
   }
 ];
-
-const SYSTEM_CHECK_LABELS: Record<number, Partial<ActaCheckDefinition>> = {
-  20: {
-    label: 'Fotos de configuración adjuntas por CENACE en la autorización',
-    sectionKey: 'cenace-referencia',
-    sectionTitle: 'Referencia técnica de configuración del medidor',
-    sectionSubtitle: 'CENACE',
-    source: 'system'
-  },
-  21: {
-    label: 'Autorización de inicio de calibración para energía activa aprobada por CENACE',
-    sectionKey: 'cenace-activa',
-    sectionTitle: '3. Autorización de inicio de calibración - Energía activa',
-    sectionSubtitle: 'CENACE',
-    source: 'system'
-  },
-  22: {
-    label: 'Puesta en "modo de prueba" a medidor para energía activa',
-    sectionKey: 'cenace-activa',
-    sectionTitle: '3. Autorización de inicio de calibración - Energía activa',
-    sectionSubtitle: 'CENACE',
-    source: 'system'
-  },
-  30: {
-    label: 'Autorización de inicio de calibración para energía reactiva aprobada por CENACE',
-    sectionKey: 'cenace-reactiva',
-    sectionTitle: '5. Autorización de inicio de calibración - Energía reactiva',
-    sectionSubtitle: 'CENACE',
-    source: 'system'
-  },
-  35: {
-    label: 'Deshabilitación de "modo de prueba" a medidor',
-    sectionKey: 'cenace-restablecimiento',
-    sectionTitle: '7. Restablecimiento de parámetros de medidor',
-    sectionSubtitle: 'CENACE',
-    source: 'system'
-  },
-  36: {
-    label: 'Respaldo de información residente en el medidor de energía',
-    sectionKey: 'cenace-restablecimiento',
-    sectionTitle: '7. Restablecimiento de parámetros de medidor',
-    sectionSubtitle: 'CENACE',
-    source: 'system'
-  }
-};
 
 @Component({
   selector: 'app-meter-calibration-acta-drawer',
@@ -272,6 +262,7 @@ export class MeterCalibrationActaDrawerComponent {
 
   readonly MeterCalibrationActaCheckResult = MeterCalibrationActaCheckResult;
   readonly MeterSealType = MeterSealType;
+  readonly meterInstallationFormOptions = METER_INSTALLATION_FORM_OPTIONS;
 
   readonly currentStep = signal<ActaStep>('acta');
   readonly formData = signal<MeterCalibrationActaFormResponse | null>(null);
@@ -289,6 +280,7 @@ export class MeterCalibrationActaDrawerComponent {
     actaDate: ['', Validators.required],
 
     calibrationStartDateTime: ['', Validators.required],
+    meterRestorationEndDateTime: ['', Validators.required],
 
     activeEnergyEndDateTime: [''],
     activeEnergyEventualities: ['', [Validators.maxLength(1000)]],
@@ -371,6 +363,19 @@ export class MeterCalibrationActaDrawerComponent {
     return this.seals.at(index) as FormGroup;
   }
 
+  isInstallationFormCheck(checkCode: number): boolean {
+    return METER_INSTALLATION_FORM_CODES.includes(Number(checkCode));
+  }
+
+  onInstallationFormSelected(index: number): void {
+    this.getCheckGroup(index).patchValue(
+      {
+        checkResult: MeterCalibrationActaCheckResult.Yes
+      },
+      { emitEvent: false }
+    );
+  }
+
   goToActa(): void {
     if (this.isSaving() || this.uploadingSealPhotoId()) return;
 
@@ -429,9 +434,9 @@ export class MeterCalibrationActaDrawerComponent {
         id: [null as number | null],
         sealType: [MeterSealType.MainMeter, Validators.required],
         sealCode: ['', [Validators.required, Validators.maxLength(120)]],
-        sealLocation: ['', [Validators.maxLength(250)]],
-        installedAt: [''],
-        observations: ['', [Validators.maxLength(500)]]
+        sealLocation: [null as string | null],
+        installedAt: [null as string | null],
+        observations: [null as string | null]
       })
     );
   }
@@ -467,6 +472,7 @@ export class MeterCalibrationActaDrawerComponent {
       actaDate: string | null;
 
       calibrationStartDateTime: string | null;
+      meterRestorationEndDateTime: string | null;
 
       activeEnergyEndDateTime: string | null;
       activeEnergyEventualities: string | null;
@@ -477,6 +483,7 @@ export class MeterCalibrationActaDrawerComponent {
       checks: {
         checkCode: number | null;
         checkResult: MeterCalibrationActaCheckResult | number | null;
+        installationForm: InstallationFormOption | string | null;
         observation: string | null;
       }[];
 
@@ -499,6 +506,10 @@ export class MeterCalibrationActaDrawerComponent {
         raw.calibrationStartDateTime
       ),
 
+      meterRestorationEndDateTime: this.normalizeDateTimeRequired(
+        raw.meterRestorationEndDateTime
+      ),
+
       activeEnergyEndDateTime: this.normalizeDateTime(
         raw.activeEnergyEndDateTime
       ),
@@ -514,16 +525,18 @@ export class MeterCalibrationActaDrawerComponent {
         .map(check => ({
           checkCode: Number(check.checkCode),
           checkResult: Number(check.checkResult) as MeterCalibrationActaCheckResult,
-          observation: this.normalize(check.observation)
+          observation: this.isInstallationFormCheck(Number(check.checkCode))
+            ? this.buildInstallationObservation(check.installationForm, check.observation)
+            : this.normalize(check.observation)
         })),
 
       seals: raw.seals.map(seal => ({
         id: seal.id ? Number(seal.id) : null,
         sealType: Number(seal.sealType),
         sealCode: this.normalizeRequired(seal.sealCode),
-        sealLocation: this.normalize(seal.sealLocation),
-        installedAt: this.normalizeDateTime(seal.installedAt),
-        observations: this.normalize(seal.observations)
+        sealLocation: null,
+        installedAt: null,
+        observations: null
       }))
     };
 
@@ -675,19 +688,10 @@ export class MeterCalibrationActaDrawerComponent {
   getSealTypeLabel(type: MeterSealType | number): string {
     switch (Number(type)) {
       case MeterSealType.MainMeter:
-        return 'Sello principal del medidor';
+        return 'Medidor';
 
       case MeterSealType.TerminalBlock:
         return 'Bornera';
-
-      case MeterSealType.Cabinet:
-        return 'Gabinete';
-
-      case MeterSealType.CommunicationModule:
-        return 'Módulo de comunicación';
-
-      case MeterSealType.Other:
-        return 'Otro';
 
       default:
         return '—';
@@ -711,6 +715,10 @@ export class MeterCalibrationActaDrawerComponent {
           acta?.calibrationStartDateTime
         ),
 
+        meterRestorationEndDateTime: this.toDateTimeControlValue(
+          acta?.meterRestorationEndDateTime
+        ),
+
         activeEnergyEndDateTime: this.toDateTimeControlValue(
           acta?.activeEnergyEndDateTime
         ),
@@ -724,77 +732,59 @@ export class MeterCalibrationActaDrawerComponent {
       { emitEvent: false }
     );
 
-    const definitions = this.buildCheckDefinitions(response);
+    const definitions = this.buildCheckDefinitions();
     this.checkDefinitions.set(definitions);
 
     const existingChecks = acta?.checks ?? [];
-    const systemChecks = response.systemChecks ?? [];
 
     for (const definition of definitions) {
-      const existing =
-        this.findCheckByCode(existingChecks, definition.checkCode) ??
-        this.findCheckByCode(systemChecks, definition.checkCode);
+      const existing = this.findCheckByCode(existingChecks, definition.checkCode);
+      const isInstallationForm = this.isInstallationFormCheck(definition.checkCode);
+      const parsedInstallation = this.parseInstallationObservation(existing?.observation);
 
-      const group = this.fb.group({
-        checkCode: [definition.checkCode],
-        checkResult: [
-          existing?.checkResult ?? MeterCalibrationActaCheckResult.Pending,
-          Validators.required
-        ],
-        observation: [existing?.observation ?? '', [Validators.maxLength(500)]]
-      });
-
-      if (definition.source === 'system') {
-        group.disable({ emitEvent: false });
-      }
-
-      this.checks.push(group);
+      this.checks.push(
+        this.fb.group({
+          checkCode: [definition.checkCode],
+          checkResult: [
+            isInstallationForm
+              ? this.resolveInstallationFormCheckResult(existing)
+              : existing?.checkResult ?? MeterCalibrationActaCheckResult.Pending,
+            Validators.required
+          ],
+          installationForm: [
+            isInstallationForm ? parsedInstallation.form : null,
+            isInstallationForm ? Validators.required : []
+          ],
+          observation: [
+            isInstallationForm
+              ? parsedInstallation.observation
+              : existing?.observation ?? '',
+            [Validators.maxLength(500)]
+          ]
+        })
+      );
     }
 
     for (const seal of acta?.seals ?? []) {
       this.seals.push(
         this.fb.group({
           id: [seal.id ?? null],
-          sealType: [seal.sealType, Validators.required],
+          sealType: [this.normalizeSealType(seal.sealType), Validators.required],
           sealCode: [seal.sealCode ?? '', [Validators.required, Validators.maxLength(120)]],
-          sealLocation: [seal.sealLocation ?? '', [Validators.maxLength(250)]],
-          installedAt: [this.toDateTimeControlValue(seal.installedAt)],
-          observations: [seal.observations ?? '', [Validators.maxLength(500)]]
+          sealLocation: [null as string | null],
+          installedAt: [null as string | null],
+          observations: [null as string | null]
         })
       );
     }
   }
 
-  private buildCheckDefinitions(
-    response: MeterCalibrationActaFormResponse
-  ): ActaCheckDefinition[] {
-    const systemDefinitions = (response.systemChecks ?? []).map(check =>
-      this.buildSystemCheckDefinition(check)
-    );
-
+  private buildCheckDefinitions(): ActaCheckDefinition[] {
     return [
       ...PMSE_INITIAL_CHECKS,
-      ...systemDefinitions,
+      ...CENACE_MANUAL_CHECKS,
       ...PMSE_FINAL_CHECKS
     ];
-  }
-
-  private buildSystemCheckDefinition(
-    check: MeterCalibrationActaCheck
-  ): ActaCheckDefinition {
-    const code = Number(check.checkCode);
-    const known = SYSTEM_CHECK_LABELS[code];
-
-    return {
-      checkCode: code,
-      label: known?.label ??
-        check.sourceDescription ??
-        `Validación automática ${code}`,
-      sectionKey: known?.sectionKey ?? 'sicam-automatico',
-      sectionTitle: known?.sectionTitle ?? 'Validaciones automáticas calculadas por SICAM',
-      sectionSubtitle: known?.sectionSubtitle ?? 'SICAM',
-      source: 'system'
-    };
   }
 
   private findCheckByCode(
@@ -802,6 +792,61 @@ export class MeterCalibrationActaDrawerComponent {
     code: number
   ): MeterCalibrationActaCheck | undefined {
     return checks.find(check => Number(check.checkCode) === Number(code));
+  }
+
+  private resolveInstallationFormCheckResult(
+    check: MeterCalibrationActaCheck | undefined
+  ): MeterCalibrationActaCheckResult {
+    if (!check?.observation) {
+      return MeterCalibrationActaCheckResult.Yes;
+    }
+
+    return check.checkResult && Number(check.checkResult) !== MeterCalibrationActaCheckResult.Pending
+      ? check.checkResult
+      : MeterCalibrationActaCheckResult.Yes;
+  }
+
+  private parseInstallationObservation(
+    value: string | null | undefined
+  ): { form: InstallationFormOption | null; observation: string } {
+    const normalized = this.normalize(value);
+
+    if (!normalized) {
+      return { form: null, observation: '' };
+    }
+
+    const form = METER_INSTALLATION_FORM_OPTIONS.find(option =>
+      normalized.toUpperCase().startsWith(option)
+    ) ?? null;
+
+    if (!form) {
+      return { form: null, observation: normalized };
+    }
+
+    const observation = normalized
+      .replace(new RegExp(`^${form}\\s*(\\||-|–|—|:)?\\s*`, 'i'), '')
+      .replace(/^Observación:\s*/i, '')
+      .trim();
+
+    return { form, observation };
+  }
+
+  private buildInstallationObservation(
+    installationForm: unknown,
+    observation: unknown
+  ): string | null {
+    const form = this.normalize(installationForm);
+    const notes = this.normalize(observation);
+
+    if (!form) return notes;
+
+    return notes ? `${form} | ${notes}` : form;
+  }
+
+  private normalizeSealType(type: MeterSealType | number | null | undefined): MeterSealType {
+    return Number(type) === MeterSealType.TerminalBlock
+      ? MeterSealType.TerminalBlock
+      : MeterSealType.MainMeter;
   }
 
   private toDateControlValue(value: string | null | undefined): string {
@@ -851,6 +896,7 @@ export class MeterCalibrationActaDrawerComponent {
 
   private isManualCheckCode(checkCode: number): boolean {
     return (checkCode >= 1 && checkCode <= 8) ||
+      CENACE_MANUAL_CHECK_CODES.includes(checkCode) ||
       (checkCode >= 50 && checkCode <= 56);
   }
 }

@@ -334,17 +334,8 @@
 </button>
       }
 
-      @if (canEditProcess) {
-        <button
-          mat-stroked-button
-          type="button"
-          class="actions-bar__btn"
-          (click)="onAddDocument()"
-        >
-          <mat-icon>upload_file</mat-icon>
-          Cargar certificado PDF
-        </button>
-      }
+
+      
 
       @if (canEditProcess) {
         <button
@@ -546,19 +537,7 @@
   }
 </section>
 
-@if (documentDrawerOpen()) {
-  <app-drawer-shell
-    [open]="documentDrawerOpen()"
-    width="620px"
-    (closed)="onDocumentDrawerClosed()"
-  >
-    <app-process-document-drawer
-      [processId]="processId"
-      (closed)="onDocumentDrawerClosed()"
-      (created)="onDocumentCreated()"
-    />
-  </app-drawer-shell>
-}
+
 
 @if (eventDrawerOpen()) {
   <app-drawer-shell

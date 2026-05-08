@@ -261,7 +261,7 @@ readonly captionControl = new FormControl<string>(
       this.isAuthorizing.set(true);
 
       this.service.authorize(this.authorization.id, {
-        authorizationMessage: 'Se autoriza el inicio de trabajos conforme al cronograma aprobado. Revisar la configuración del medidor enviada por CENACE.',
+        authorizationNotes: 'Se autoriza el inicio de trabajos conforme al cronograma aprobado. Revisar la configuración del medidor enviada por CENACE.',
         authorizationDocumentUrl: this.authorization.requestDocumentUrl
       }).subscribe({
         next: response => {

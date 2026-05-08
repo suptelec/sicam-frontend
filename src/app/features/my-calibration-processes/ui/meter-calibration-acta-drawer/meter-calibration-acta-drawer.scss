@@ -11,7 +11,6 @@
 .drawer__header {
   padding: 24px 24px 18px;
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
@@ -71,11 +70,6 @@
   gap: 12px;
   text-align: left;
   cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    opacity 0.18s ease;
 
   strong {
     display: block;
@@ -139,12 +133,12 @@
 
 .acta-stepper__line {
   height: 2px;
+  border-radius: 999px;
   background: linear-gradient(
     90deg,
     rgba(96, 165, 250, 0.26),
     rgba(34, 197, 94, 0.26)
   );
-  border-radius: 999px;
 }
 
 .drawer__form {
@@ -218,6 +212,10 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.form-section--general {
+  padding: 20px;
+}
+
 .photos-step-card__description {
   margin: -4px 0 16px;
   color: #cbd5e1;
@@ -248,23 +246,82 @@
   }
 }
 
+.general-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.acta-time-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.acta-time-grid__date,
+.acta-time-grid__datetime {
+  min-width: 0;
+}
+
+.acta-time-grid__datetime:last-child {
+  grid-column: 1 / -1;
+  max-width: 650px;
+}
+
+.acta-timeline {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.timeline-field {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.timeline-field__header {
+  display: none;
+}
+
+.timeline-field app-date-field {
+  display: block;
+}
+
+.timeline-field:last-child {
+  grid-column: 1 / -1;
+  max-width: 650px;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.field-row--single {
-  grid-template-columns: minmax(0, 1fr);
+.field-row--seal {
+  grid-template-columns: minmax(180px, 260px) minmax(220px, 1fr) auto;
+  align-items: start;
 }
 
 .drawer__field {
   width: 100%;
+  min-width: 0;
 }
 
 app-date-field.drawer__field {
   display: block;
-  min-width: 0;
+}
+
+.field-error {
+  margin: 8px 0 0;
+  color: #ffb4b4;
+  font-size: 0.82rem;
 }
 
 .drawer__textarea textarea {
@@ -300,11 +357,14 @@ app-date-field.drawer__field {
   line-height: 1.45;
 }
 
-.warning-card {
+.warning-card,
+.empty-inline--danger {
   color: #fbbf24;
   background: rgba(245, 158, 11, 0.09);
   border: 1px solid rgba(245, 158, 11, 0.25);
+}
 
+.warning-card {
   mat-icon {
     color: #fbbf24;
     flex: 0 0 auto;
@@ -337,16 +397,23 @@ app-date-field.drawer__field {
 
 .empty-inline--danger {
   color: #fbbf24;
-  background: rgba(245, 158, 11, 0.09);
-  border-color: rgba(245, 158, 11, 0.25);
 }
 
-/* CHECKS */
-
-.check-sections {
+.check-sections,
+.check-rows,
+.dynamic-list,
+.seal-photo-list {
   display: flex;
   flex-direction: column;
+}
+
+.check-sections {
   gap: 16px;
+}
+
+.dynamic-list,
+.seal-photo-list {
+  gap: 12px;
 }
 
 .check-section {
@@ -356,18 +423,20 @@ app-date-field.drawer__field {
   border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-.check-section--system {
-  border-color: rgba(59, 130, 246, 0.22);
-  background: rgba(59, 130, 246, 0.055);
+.check-section--eventuality {
+  background: rgba(15, 23, 42, 0.34);
+  border-color: rgba(96, 165, 250, 0.18);
 }
 
 .check-section__header {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.14);
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+  background:
+    linear-gradient(90deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.04)),
+    rgba(15, 23, 42, 0.54);
 
   p {
     margin: 0;
@@ -387,38 +456,13 @@ app-date-field.drawer__field {
   }
 }
 
-.check-section__badge {
-  min-height: 30px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.24);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.74rem;
-  font-weight: 800;
-  white-space: nowrap;
-
-  mat-icon {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-  }
-}
-
-.check-rows {
-  display: flex;
-  flex-direction: column;
-}
-
 .check-row {
+  min-height: 82px;
   padding: 14px 16px;
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) 170px minmax(260px, 0.8fr);
+  grid-template-columns: minmax(360px, 0.95fr) minmax(170px, 190px) minmax(340px, 1fr);
   gap: 14px;
-  align-items: center;
+  align-items: start;
   border-bottom: 1px solid rgba(148, 163, 184, 0.1);
 
   &:last-child {
@@ -426,24 +470,30 @@ app-date-field.drawer__field {
   }
 }
 
+.check-row--installation {
+  grid-template-columns: minmax(360px, 0.95fr) minmax(170px, 190px) minmax(340px, 1fr);
+}
+
 .check-row__question {
   min-height: 56px;
+  padding-top: 4px;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 12px;
 
   span {
-    min-width: 30px;
+    min-width: 34px;
     color: #60a5fa;
     font-size: 0.82rem;
     font-weight: 850;
+    line-height: 1.6;
   }
 
   strong {
     color: #f9fafb;
     font-size: 0.92rem;
-    font-weight: 750;
-    line-height: 1.35;
+    font-weight: 700;
+    line-height: 1.38;
   }
 }
 
@@ -452,23 +502,32 @@ app-date-field.drawer__field {
   margin: 0;
 }
 
-.check-section--system {
-  .check-row__question span {
-    color: #93c5fd;
-  }
-
-  .check-row__question strong {
-    color: #dbeafe;
-  }
+.eventuality-stack {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
 }
 
-/* SELLOS */
+.eventuality-date-field {
+  max-width: 560px;
+}
 
-.dynamic-list,
-.seal-photo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.eventuality-observation-field {
+  width: 100%;
+}
+
+.eventuality-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+
+  app-date-field {
+    max-width: 560px;
+  }
 }
 
 .dynamic-card,
@@ -480,19 +539,20 @@ app-date-field.drawer__field {
   border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
-.dynamic-card {
+.dynamic-card--seal {
   padding-right: 52px;
 }
 
 .remove-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   color: #fca5a5 !important;
 
   &:hover:not(:disabled) {
     background: rgba(248, 113, 113, 0.12) !important;
   }
+}
+
+.field-row--seal .remove-btn {
+  margin-top: 8px;
 }
 
 .seal-photo-card {
@@ -613,8 +673,6 @@ app-date-field.drawer__field {
   }
 }
 
-/* FOOTER */
-
 .drawer-actions {
   padding: 16px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -678,7 +736,31 @@ app-date-field.drawer__field {
   }
 }
 
-/* ANGULAR MATERIAL OVERRIDES */
+.drawer ::ng-deep app-date-field .date-time-field--with-time {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+  width: 100%;
+}
+
+.drawer ::ng-deep app-date-field .time-control {
+  height: 56px;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(8, 18, 38, 0.92);
+}
+
+.drawer ::ng-deep app-date-field .time-control__content {
+  padding: 0 10px;
+}
+
+.drawer ::ng-deep app-date-field .time-control__content input {
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.drawer ::ng-deep app-date-field .time-control__label {
+  background: var(--color-surface, #0b1730);
+}
 
 .drawer ::ng-deep .mat-mdc-form-field {
   width: 100%;
@@ -755,12 +837,12 @@ app-date-field.drawer__field {
     margin: 0;
   }
 
-  .mat-mdc-text-field-wrapper {
+  .mat-mdc-text-field-wrapper,
+  .mat-mdc-form-field-flex {
     min-height: 56px;
   }
 
   .mat-mdc-form-field-flex {
-    min-height: 56px;
     align-items: center;
   }
 
@@ -772,42 +854,60 @@ app-date-field.drawer__field {
   }
 }
 
-.drawer ::ng-deep .check-section--system {
-  .mat-mdc-select-disabled .mat-mdc-select-value,
-  .mat-mdc-input-element:disabled {
-    color: #dbeafe !important;
-    -webkit-text-fill-color: #dbeafe !important;
+@media (max-width: 1300px) {
+  .acta-time-grid,
+  .acta-timeline {
+    grid-template-columns: 1fr;
   }
 
-  .mat-mdc-text-field-wrapper {
-    opacity: 0.92;
-    background: rgba(30, 64, 175, 0.12) !important;
-  }
-
-  .mdc-floating-label {
-    color: #bfdbfe !important;
+  .acta-time-grid__datetime:last-child,
+  .timeline-field:last-child {
+    grid-column: auto;
+    max-width: 100%;
   }
 }
 
-/* RESPONSIVE */
-
 @media (max-width: 1200px) {
-  .check-row {
+  .check-row,
+  .check-row--installation {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .check-row {
+    min-height: auto;
   }
 
   .check-row__question {
     min-height: auto;
     padding-top: 0;
   }
+
+  .eventuality-date-field,
+  .eventuality-grid app-date-field {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 1000px) {
   .summary-grid,
   .field-row,
+  .general-form-grid,
   .photos-grid {
     grid-template-columns: 1fr;
+  }
+
+  .field-row--seal {
+    grid-template-columns: 1fr;
+  }
+
+  .field-row--seal .remove-btn {
+    margin-top: 0;
+    justify-self: flex-start;
+  }
+
+  .dynamic-card--seal {
+    padding-right: 14px;
   }
 
   .seal-photo-card header {
@@ -844,15 +944,6 @@ app-date-field.drawer__field {
   .check-section__header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .check-section__badge {
-    width: fit-content;
-  }
-
-  .dynamic-card {
-    padding-right: 14px;
-    padding-top: 48px;
   }
 
   .drawer-actions {

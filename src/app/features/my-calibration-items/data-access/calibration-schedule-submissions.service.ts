@@ -77,6 +77,19 @@ generateOfficialDocument(
   );
 }
 
+uploadOfficializationDocument(
+  submissionId: number,
+  file: File
+): Observable<ApiResult<CalibrationScheduleSubmission>> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return this.http.post<ApiResult<CalibrationScheduleSubmission>>(
+    `${this.baseUrl}/${submissionId}/officialization-document`,
+    formData
+  );
+}
+
   submit(submissionId: number): Observable<ApiResult<CalibrationScheduleSubmission>> {
     return this.http.patch<ApiResult<CalibrationScheduleSubmission>>(
       `${this.baseUrl}/${submissionId}/submit`,

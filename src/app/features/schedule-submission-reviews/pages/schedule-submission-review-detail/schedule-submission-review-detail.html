@@ -57,6 +57,47 @@
       </article>
     </section>
 
+<section class="officialization-review-card">
+  <div class="officialization-review-card__main">
+    <div
+      class="officialization-review-card__icon"
+      [class.officialization-review-card__icon--success]="hasOfficializationDocument"
+    >
+      <mat-icon>{{ hasOfficializationDocument ? 'task' : 'picture_as_pdf' }}</mat-icon>
+    </div>
+
+    <div class="officialization-review-card__content">
+      <p class="officialization-review-card__eyebrow">Documento adjunto por PMSE</p>
+
+      <div class="officialization-review-card__title-row">
+        <h3>Documento de oficialización</h3>
+
+        <span
+          class="officialization-review-card__badge"
+          [class.officialization-review-card__badge--success]="hasOfficializationDocument"
+        >
+          {{ hasOfficializationDocument ? 'Cargado' : 'No adjuntado' }}
+        </span>
+      </div>
+
+      <p class="officialization-review-card__description">
+        PDF/oficio/acta adjuntado por el PMSE como respaldo de la oficialización del cronograma.
+      </p>
+    </div>
+  </div>
+
+  <button
+    mat-stroked-button
+    type="button"
+    class="officialization-review-card__btn"
+    [disabled]="!hasOfficializationDocument"
+    (click)="viewOfficializationDocument()"
+  >
+    <mat-icon>open_in_new</mat-icon>
+    Ver PDF
+  </button>
+</section>
+
     @if (current.rejectionReason) {
       <section class="rejection-card">
         <mat-icon>error</mat-icon>
@@ -135,14 +176,16 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="proposedDate">
-          <th mat-header-cell *matHeaderCellDef>Fecha propuesta</th>
+<ng-container matColumnDef="proposedDate">
+  <th mat-header-cell *matHeaderCellDef>Fecha y hora propuesta</th>
 
-          <td mat-cell *matCellDef="let row">
-            <strong>{{ row.proposedCalibrationDate ?? '—' }}</strong>
-          </td>
-        </ng-container>
-
+  <td mat-cell *matCellDef="let row">
+    <div class="stacked-cell">
+      <strong>{{ formatProposedCalibrationDateTime(row) }}</strong>
+      <span>Inicio programado</span>
+    </div>
+  </td>
+</ng-container>
         <ng-container matColumnDef="laboratory">
           <th mat-header-cell *matHeaderCellDef>Laboratorio</th>
 

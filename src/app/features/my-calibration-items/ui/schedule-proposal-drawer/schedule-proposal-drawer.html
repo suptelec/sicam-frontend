@@ -106,22 +106,29 @@
               </div>
             }
 
-            <div class="drawer__field">
-              <app-date-field
-                formControlName="scheduledDate"
-                label="Fecha propuesta"
-                [min]="minDate"
-                [max]="maxDate"
-              />
+<div class="drawer__field">
+  <app-date-field
+    formControlName="scheduledDate"
+    label="Fecha y hora propuesta"
+    hint="Selecciona la fecha y registra la hora de inicio programada."
+    [min]="minDate"
+    [max]="maxDate"
+    [withTime]="true"
+    [minuteStep]="1"
+  />
 
-              @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
-                <div class="form-error">La fecha propuesta es obligatoria.</div>
-              }
+  @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La fecha y hora propuesta es obligatoria.</div>
+  }
 
-              @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
-                <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
-              }
-            </div>
+  @if (form.hasError('scheduledTimeRequired') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La hora propuesta es obligatoria.</div>
+  }
+
+  @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+    <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
+  }
+</div>
 
             <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Laboratorio acreditado</mat-label>

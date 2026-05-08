@@ -265,4 +265,41 @@ export class ScheduleSubmissionReviewDetailComponent implements OnInit {
         return 'info';
     }
   }
+
+formatProposedCalibrationDateTime(row: CalibrationScheduleSubmissionItem): string {
+  if (row.proposedCalibrationDateTime) {
+    return this.formatDateTimeText(row.proposedCalibrationDateTime);
+  }
+
+  if (row.proposedCalibrationDate && row.proposedCalibrationTime) {
+    return `${row.proposedCalibrationDate} ${row.proposedCalibrationTime.slice(0, 5)}`;
+  }
+
+  return row.proposedCalibrationDate ?? '—';
+}
+
+private formatDateTimeText(value: string): string {
+  const normalized = value.replace('T', ' ');
+  const [date, time] = normalized.split(' ');
+
+  return time
+    ? `${date} ${time.slice(0, 5)}`
+    : date;
+}
+
+get hasOfficializationDocument(): boolean {
+  return !!this.submission()?.officializationDocumentUrl;
+}
+
+viewOfficializationDocument(): void {
+  const url = this.submission()?.officializationDocumentUrl;
+
+  if (!url) {
+    this.toast.warning('El PMSE no ha adjuntado el documento de oficialización.');
+    return;
+  }
+
+  window.open(url, '_blank', 'noopener');
+}
+
 }

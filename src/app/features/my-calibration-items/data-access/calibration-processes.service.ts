@@ -24,7 +24,9 @@ import {
   RejectCalibrationProcessRequest,
   SaveMeterCalibrationActaRequest,
   StartCalibrationProcessCorrectionRequest,
-  UpdateCalibrationProcessDataRequest
+  UpdateCalibrationProcessDataRequest,
+  MeterSnapshotReview,
+  SaveMeterSnapshotReviewRequest,
 } from '../domain/calibration-process.model';
 
 @Injectable({ providedIn: 'root' })
@@ -211,4 +213,14 @@ export class CalibrationProcessesService {
       { responseType: 'blob' }
     );
   }
+
+saveMeterSnapshotReview(
+  processId: number,
+  dto: SaveMeterSnapshotReviewRequest
+): Observable<ApiResult<MeterSnapshotReview>> {
+  return this.http.patch<ApiResult<MeterSnapshotReview>>(
+    `${this.apiBaseUrl}/CalibrationProcesses/${processId}/meter-snapshot-review`,
+    dto
+  );
+}
 }

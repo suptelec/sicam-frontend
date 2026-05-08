@@ -29,7 +29,6 @@ import {
   MeterCalibrationActaSeal
 } from '../../../my-calibration-items/domain/calibration-process.model';
 
-import { ProcessDocumentDrawerComponent } from '../../ui/process-document-drawer/process-document-drawer';
 import { ProcessEventDrawerComponent } from '../../ui/process-event-drawer/process-event-drawer';
 import { StartCorrectionDrawerComponent } from '../../ui/start-correction-drawer/start-correction-drawer';
 import { UpdateProcessDataDrawerComponent } from '../../ui/update-process-data-drawer/update-process-data-drawer';
@@ -48,7 +47,6 @@ import { MeterCalibrationActaDrawerComponent } from '../../ui/meter-calibration-
     TableCardComponent,
     StatusChipComponent,
     DrawerShellComponent,
-    ProcessDocumentDrawerComponent,
     ProcessEventDrawerComponent,
     StartCorrectionDrawerComponent,
     UpdateProcessDataDrawerComponent,
@@ -76,7 +74,6 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
   isLoadingActa = signal(false);
   isSubmitting = signal(false);
 
-  documentDrawerOpen = signal(false);
   eventDrawerOpen = signal(false);
   startCorrectionDrawerOpen = signal(false);
   updateDataDrawerOpen = signal(false);
@@ -272,23 +269,7 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
     this.router.navigate(['/my-calibration-items']);
   }
 
-  onAddDocument(): void {
-    if (!this.canEditProcess) {
-      this.toast.warning('Solo puedes cargar certificado cuando el proceso está en proceso o en corrección.');
-      return;
-    }
 
-    this.documentDrawerOpen.set(true);
-  }
-
-  onDocumentDrawerClosed(): void {
-    this.documentDrawerOpen.set(false);
-  }
-
-  onDocumentCreated(): void {
-    this.documentDrawerOpen.set(false);
-    this.load(this.processId);
-  }
 
   onAddEvent(): void {
     if (!this.canEditProcess) {

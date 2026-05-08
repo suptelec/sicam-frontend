@@ -46,6 +46,9 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
 
   readonly CalibrationScheduleSubmissionStatus = CalibrationScheduleSubmissionStatus;
 
+  
+  readonly isUploadingOfficializationDocument = signal(false);
+
   submission = signal<CalibrationScheduleSubmission | null>(null);
   isLoading = signal(false);
   isSubmitting = signal(false);
@@ -312,4 +315,114 @@ downloadOfficialDocument(): void {
         return 'info';
     }
   }
+
+get hasOfficializationDocument(): boolean {
+  return !!this.submission()?.officializationDocumentUrl;
+}
+
+onOfficializationDocumentSelected(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+
+  input.value = '';
+
+  if (!file) return;
+
+  const current = this.submission();
+
+  if (!current) return;
+
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    this.toast.warning('Solo se permite cargar un archivo PDF.');
+    return;
+  }
+
+  const maxSizeBytes = 10 * 1024 * 1024;
+
+  if (file.size > maxSizeBytes) {
+    this.toast.warning('El documento no puede superar los 10 MB.');
+    return;
+  }
+
+  this.confirmDialog.confirm({
+    title: current.officializationDocumentUrl
+      ? 'Reemplazar documento de oficialización'
+      : 'Subir documento de oficialización',
+    message: current.officializationDocumentUrl
+      ? 'Se reemplazará el PDF de oficialización asociado al cronograma. ¿Deseas continuar?'
+      : 'Se cargará el PDF de oficialización asociado al cronograma. ¿Deseas continuar?',
+    confirmText: current.officializationDocumentUrl ? 'Reemplazar' : 'Subir',
+    cancelText: 'Cancelar',
+    type: 'info'
+  }).subscribe(confirmed => {
+    if (!confirmed) return;
+
+    this.isUploadingOfficializationDocument.set(true);
+
+    this.service.uploadOfficializationDocument(current.id, file).subscribe({
+      next: response => {
+        this.isUploadingOfficializationDocument.set(false);
+
+        if (!response.succeed || !response.result) {
+          this.toast.error(
+            response.message ??
+            'No se pudo subir el documento de oficialización.'
+          );
+          return;
+        }
+
+        const updated = response.result;
+        const currentItems = current.items ?? [];
+
+        this.submission.set({
+          ...current,
+          ...updated,
+          items: updated.items?.length ? updated.items : currentItems
+        });
+
+        this.dataSource.data = updated.items?.length
+          ? updated.items
+          : currentItems;
+
+        this.toast.success('Documento de oficialización cargado correctamente.');
+      },
+      error: () => {
+        this.isUploadingOfficializationDocument.set(false);
+        this.toast.error('Error al subir el documento de oficialización.');
+      }
+    });
+  });
+}
+
+viewOfficializationDocument(): void {
+  const url = this.submission()?.officializationDocumentUrl;
+
+  if (!url) {
+    this.toast.warning('No existe documento de oficialización cargado.');
+    return;
+  }
+
+  window.open(url, '_blank', 'noopener');
+}
+
+formatProposedCalibrationDateTime(row: CalibrationScheduleSubmissionItem): string {
+  if (row.proposedCalibrationDateTime) {
+    return this.formatDateTimeText(row.proposedCalibrationDateTime);
+  }
+
+  if (row.proposedCalibrationDate && row.proposedCalibrationTime) {
+    return `${row.proposedCalibrationDate} ${row.proposedCalibrationTime.slice(0, 5)}`;
+  }
+
+  return row.proposedCalibrationDate ?? '—';
+}
+
+private formatDateTimeText(value: string): string {
+  const normalized = value.replace('T', ' ');
+  const [date, time] = normalized.split(' ');
+
+  return time
+    ? `${date} ${time.slice(0, 5)}`
+    : date;
+}
 }

@@ -55,18 +55,17 @@ export class WorkAuthorizationDrawerComponent {
 
   loading = false;
 
-  readonly form = this.fb.group(
-    {
-      requestedWorkDate: ['', Validators.required],
-      requestedStartTime: ['', Validators.required],
-      requestedEndTime: ['', Validators.required],
-      requestReason: ['', [Validators.required, Validators.maxLength(1000)]],
-      requestDocumentUrl: ['', [Validators.required, Validators.maxLength(1000)]]
-    },
-    {
-      validators: [this.endTimeAfterStartTimeValidator()]
-    }
-  );
+readonly form = this.fb.group(
+  {
+    requestedWorkDate: ['', Validators.required],
+    requestedStartTime: ['', Validators.required],
+    requestedEndTime: ['', Validators.required],
+    requestReason: ['', [Validators.maxLength(1000)]]
+  },
+  {
+    validators: [this.endTimeAfterStartTimeValidator()]
+  }
+);
 
   constructor() {
     effect(() => {
@@ -164,15 +163,15 @@ toggleSelectedItemsVisibility(): void {
       return;
     }
 
-    const raw = this.form.getRawValue();
+const raw = this.form.getRawValue();
 
-    const dto: CreateCalibrationWorkAuthorizationRequest = {
-      requestedWorkDate: this.commonScheduledDate,
-      requestedStartTime: this.normalizeTime(raw.requestedStartTime),
-      requestedEndTime: this.normalizeTime(raw.requestedEndTime),
-      requestReason: this.normalizeRequired(raw.requestReason),
-      requestDocumentUrl: this.normalizeRequired(raw.requestDocumentUrl)
-    };
+const dto: CreateCalibrationWorkAuthorizationRequest = {
+  requestedWorkDate: this.normalizeRequired(raw.requestedWorkDate),
+  requestedStartTime: this.normalizeTime(raw.requestedStartTime),
+  requestedEndTime: this.normalizeTime(raw.requestedEndTime),
+  requestReason: this.normalizeOptional(raw.requestReason),
+  requestDocumentUrl: null
+};
 
     this.loading = true;
 
@@ -223,7 +222,6 @@ toggleSelectedItemsVisibility(): void {
       requestedStartTime: '',
       requestedEndTime: '',
       requestReason: '',
-      requestDocumentUrl: ''
     });
 
     this.showAllSelectedItems.set(false);
@@ -260,4 +258,12 @@ toggleSelectedItemsVisibility(): void {
         : null;
     };
   }
+
+private normalizeOptional(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim();
+
+  return normalized ? normalized : null;
+}
 }

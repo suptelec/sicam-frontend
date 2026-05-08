@@ -1,0 +1,213 @@
+<section class="drawer">
+  <header class="drawer__header">
+    <div>
+      <p class="drawer__eyebrow">VALIDACIÓN CENACE</p>
+      <h2>Validar configuración del medidor</h2>
+      <p class="drawer__description">
+        Revisa las fotos de referencia registradas antes de autorizar la calibración.
+        Luego valida si la configuración final coincide con lo revisado por CENACE en su sistema externo.
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="drawer__close-btn"
+      matTooltip="Cerrar"
+      [disabled]="isSaving()"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <mat-divider />
+
+  <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="drawer__body">
+      @if (currentProcess; as current) {
+        <section class="summary-grid">
+          <article>
+            <span>Medidor</span>
+            <strong>{{ current.meterCode ?? 'Proceso #' + current.id }}</strong>
+            <small>Serial: {{ current.meterSerial ?? '—' }}</small>
+          </article>
+
+          <article>
+            <span>PMSE</span>
+            <strong>{{ current.pmseCompanyName ?? '—' }}</strong>
+            <small>Responsable del proceso</small>
+          </article>
+
+          <article>
+            <span>Laboratorio</span>
+            <strong>{{ current.accreditedLaboratoryName ?? current.laboratoryName ?? '—' }}</strong>
+            <small>Laboratorio registrado</small>
+          </article>
+        </section>
+      }
+
+      <section class="external-validation-note">
+        <mat-icon>info</mat-icon>
+
+        <div>
+          <strong>Validación contra sistema externo</strong>
+          <p>
+            SICAM solo muestra la referencia inicial. La configuración final debe ser revisada por CENACE
+            en el sistema externo correspondiente. Luego registra aquí si coincide o no coincide.
+          </p>
+        </div>
+      </section>
+
+      @if (isLoading()) {
+        <section class="loading-card">
+          <mat-spinner diameter="32" />
+          <span>Cargando fotos de referencia...</span>
+        </section>
+      } @else {
+        @if (loadError()) {
+          <section class="warning-card">
+            <mat-icon>warning</mat-icon>
+
+            <div>
+              <strong>No se pudo completar la carga</strong>
+              <p>{{ loadError() }}</p>
+            </div>
+
+            <button
+              mat-stroked-button
+              type="button"
+              class="secondary-btn"
+              (click)="loadReferencePhotos()"
+            >
+              <mat-icon>refresh</mat-icon>
+              Reintentar
+            </button>
+          </section>
+        }
+
+        <section class="snapshot-card">
+          <div class="section-heading">
+            <div>
+              <p>Referencia inicial</p>
+              <h3>Fotos registradas antes de la calibración</h3>
+            </div>
+
+            @if (currentActaForm; as form) {
+              <span class="snapshot-card__meta">
+                Autorización #{{ form.calibrationWorkAuthorizationId }}
+              </span>
+            }
+          </div>
+
+          @if (!hasPhotos) {
+            <div class="empty-photos">
+              <mat-icon>image_not_supported</mat-icon>
+              <strong>No existen fotos de referencia</strong>
+              <p>
+                Para validar la configuración, la autorización debe tener fotos iniciales registradas y bloqueadas.
+              </p>
+            </div>
+          } @else {
+            <div class="photos-grid">
+              @for (photo of photos; track photo.id) {
+                <article class="photo-card">
+                  <a
+                    class="photo-card__image"
+                    [href]="photo.fileUrl"
+                    target="_blank"
+                    rel="noopener"
+                    matTooltip="Abrir imagen"
+                  >
+                    <img
+                      [src]="photo.fileUrl"
+                      [alt]="photo.caption ?? photo.fileName"
+                    />
+                  </a>
+
+                  <div class="photo-card__body">
+                    <strong>{{ photo.caption || 'Foto de configuración' }}</strong>
+                    <span>{{ photo.fileName }}</span>
+                  </div>
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        <section class="decision-card">
+          <div class="section-heading">
+            <div>
+              <p>Decisión CENACE</p>
+              <h3>Resultado de la validación</h3>
+            </div>
+          </div>
+
+          <mat-radio-group
+            class="decision-grid"
+            formControlName="reviewStatus"
+          >
+            <mat-radio-button
+              class="decision-option decision-option--success"
+              [value]="MeterSnapshotReviewStatus.MatchesReference"
+            >
+              <div>
+                <strong>Sí coincide con la referencia</strong>
+                <span>
+                  La configuración final revisada por CENACE coincide con las fotos iniciales.
+                </span>
+              </div>
+            </mat-radio-button>
+
+            <mat-radio-button
+              class="decision-option decision-option--danger"
+              [value]="MeterSnapshotReviewStatus.DoesNotMatchReference"
+            >
+              <div>
+                <strong>No coincide con la referencia</strong>
+                <span>
+                  La configuración final revisada por CENACE presenta diferencias.
+                </span>
+              </div>
+            </mat-radio-button>
+          </mat-radio-group>
+
+          @if (form.controls.reviewStatus.hasError('required') && form.controls.reviewStatus.touched) {
+            <p class="field-error">
+              Debes seleccionar si la configuración coincide o no coincide.
+            </p>
+          }
+
+          <mat-form-field appearance="outline" class="notes-field">
+            <mat-label>Observaciones CENACE</mat-label>
+
+            <textarea
+              matInput
+              rows="5"
+              formControlName="notes"
+              placeholder="Ej. Configuración final revisada en sistema externo. Coincide con la referencia registrada antes de la calibración."
+            ></textarea>
+
+            @if (form.controls.notes.hasError('required') && form.controls.notes.touched) {
+              <mat-error>Las observaciones son obligatorias cuando no coincide.</mat-error>
+            }
+
+            @if (form.controls.notes.hasError('maxlength')) {
+              <mat-error>Las observaciones no pueden superar los 1000 caracteres.</mat-error>
+            }
+          </mat-form-field>
+        </section>
+      }
+    </div>
+
+    <app-drawer-actions
+      cancelText="Cancelar"
+      cancelIcon="close"
+      submitText="Guardar validación"
+      submitIcon="verified"
+      [loading]="isSaving()"
+      [disabled]="saveDisabled"
+      (cancelled)="close()"
+    />
+  </form>
+</section>

@@ -15,6 +15,7 @@ export interface AddCalibrationScheduleSubmissionItemRequest {
   calibrationPlanItemId: number;
   accreditedLaboratoryId: number;
   proposedCalibrationDate: string;
+  proposedCalibrationTime?: string | null;
   notes?: string | null;
 }
 
@@ -29,6 +30,8 @@ export interface CalibrationScheduleSubmission {
   pmseCompanyName?: string | null;
 
   documentUrl?: string | null;
+  officializationDocumentUrl?: string | null;
+  
   notes?: string | null;
 
   submissionStatus: CalibrationScheduleSubmissionStatus;
@@ -61,6 +64,9 @@ export interface CalibrationScheduleSubmissionItem {
   accreditedLaboratoryName?: string | null;
 
   proposedCalibrationDate: string;
+  proposedCalibrationTime?: string | null;
+  proposedCalibrationDateTime?: string | null;
+
   laboratoryName?: string | null;
   notes?: string | null;
 

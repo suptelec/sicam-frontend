@@ -9,13 +9,13 @@ export interface CreateCalibrationWorkAuthorizationRequest {
   requestedWorkDate: string;
   requestedStartTime: string;
   requestedEndTime: string;
-  requestReason: string;
-  requestDocumentUrl: string;
+  requestReason?: string | null;
+  requestDocumentUrl?: string | null;
 }
 
 export interface AuthorizeCalibrationWorkAuthorizationRequest {
-  authorizationMessage: string;
-  authorizationDocumentUrl: string;
+  authorizationDocumentUrl?: string | null;
+  authorizationNotes?: string | null;
 }
 
 export interface RejectCalibrationWorkAuthorizationRequest {
@@ -41,8 +41,8 @@ export interface CalibrationWorkAuthorization {
   requestedStartTime: string;
   requestedEndTime: string;
 
-  requestReason: string;
-  requestDocumentUrl: string;
+requestReason?: string | null;
+requestDocumentUrl?: string | null;
 
   authorizationStatus: CalibrationWorkAuthorizationStatus;
 

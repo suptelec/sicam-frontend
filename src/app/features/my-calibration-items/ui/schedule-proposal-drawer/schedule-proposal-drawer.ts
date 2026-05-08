@@ -69,16 +69,19 @@ export class ScheduleProposalDrawerComponent {
   loadingCatalogs = signal(false);
   laboratories = signal<PmseLaboratory[]>([]);
 
-  readonly form = this.fb.group(
-    {
-      scheduledDate: ['', Validators.required],
-      accreditedLaboratoryId: [null as number | null, Validators.required],
-      notes: ['', [Validators.maxLength(1000)]]
-    },
-    {
-      validators: [this.scheduledDateInsidePlannedRangeValidator()]
-    }
-  );
+readonly form = this.fb.group(
+  {
+    scheduledDate: ['', Validators.required],
+    accreditedLaboratoryId: [null as number | null, Validators.required],
+    notes: ['', [Validators.maxLength(1000)]]
+  },
+  {
+    validators: [
+      this.scheduledDateTimeRequiredValidator(),
+      this.scheduledDateInsidePlannedRangeValidator()
+    ]
+  }
+);
 
   constructor() {
     this.loadLaboratories();
@@ -190,10 +193,17 @@ export class ScheduleProposalDrawerComponent {
       return;
     }
 
-    const raw = this.form.getRawValue();
-    const notes = this.normalize(raw.notes);
-    const proposedCalibrationDate = this.normalizeDateValue(raw.scheduledDate);
-    const accreditedLaboratoryId = Number(raw.accreditedLaboratoryId);
+const raw = this.form.getRawValue();
+const notes = this.normalize(raw.notes);
+const proposedCalibrationDate = this.normalizeDateValue(raw.scheduledDate);
+const proposedCalibrationTime = this.normalizeTimeValue(raw.scheduledDate);
+const accreditedLaboratoryId = Number(raw.accreditedLaboratoryId);
+
+if (!proposedCalibrationDate || !proposedCalibrationTime || proposedCalibrationTime === '00:00:00') {
+  this.form.markAllAsTouched();
+  this.toast.warning('Selecciona la fecha y hora propuesta.');
+  return;
+}
 
     const calibrationPlanId = items[0].calibrationPlanId;
 
@@ -206,12 +216,13 @@ export class ScheduleProposalDrawerComponent {
     ).pipe(
       switchMap(submission => {
         const requests = items.map(item => {
-          const dto: AddCalibrationScheduleSubmissionItemRequest = {
-            calibrationPlanItemId: item.id,
-            accreditedLaboratoryId,
-            proposedCalibrationDate,
-            notes
-          };
+const dto: AddCalibrationScheduleSubmissionItemRequest = {
+  calibrationPlanItemId: item.id,
+  accreditedLaboratoryId,
+  proposedCalibrationDate,
+  proposedCalibrationTime,
+  notes
+};
 
           return this.service.addItem(submission.id, dto);
         });
@@ -309,15 +320,85 @@ export class ScheduleProposalDrawerComponent {
     return normalized ? normalized : null;
   }
 
-  private normalizeDateValue(value: unknown): string {
-    if (value instanceof Date) {
-      return this.formatDate(value);
+private normalizeDateValue(value: unknown): string {
+  if (value instanceof Date) {
+    return this.formatDate(value);
+  }
+
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return '';
+  }
+
+  const isoDateMatch = /^(\d{4}-\d{2}-\d{2})/.exec(normalized);
+
+  if (isoDateMatch?.[1]) {
+    return isoDateMatch[1];
+  }
+
+  const parsed = new Date(normalized);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return this.formatDate(parsed);
+}
+
+private normalizeTimeValue(value: unknown): string | null {
+  if (value instanceof Date) {
+    return this.formatTime(value);
+  }
+
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const timeMatch = /(?:T|\s)(\d{2}):(\d{2})(?::(\d{2}))?/.exec(normalized);
+
+  if (timeMatch) {
+    const hours = timeMatch[1];
+    const minutes = timeMatch[2];
+    const seconds = timeMatch[3] ?? '00';
+
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  const parsed = new Date(normalized);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return this.formatTime(parsed);
+}
+
+private scheduledDateTimeRequiredValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const scheduledDate = control.get('scheduledDate')?.value;
+
+    if (!scheduledDate) {
+      return null;
     }
 
-    return typeof value === 'string'
-      ? value.trim()
-      : '';
-  }
+    const proposedTime = this.normalizeTimeValue(scheduledDate);
+
+    return !proposedTime || proposedTime === '00:00:00'
+      ? { scheduledTimeRequired: true }
+      : null;
+  };
+}
 
   private getOrCreateDraftSubmission(
     calibrationPlanId: number,
@@ -346,47 +427,49 @@ export class ScheduleProposalDrawerComponent {
     );
   }
 
-  private scheduledDateInsidePlannedRangeValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const scheduledDate = control.get('scheduledDate')?.value;
-      const items = this.currentItems;
+private scheduledDateInsidePlannedRangeValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const scheduledDate = control.get('scheduledDate')?.value;
+    const items = this.currentItems;
 
-      if (!scheduledDate || items.length === 0) {
-        return null;
+    if (!scheduledDate || items.length === 0) {
+      return null;
+    }
+
+    const scheduledDateOnly = this.normalizeDateValue(scheduledDate);
+
+    if (!scheduledDateOnly) {
+      return null;
+    }
+
+    const isOutsideAnyRange = items.some(item => {
+      if (!item.plannedStartDate || !item.plannedEndDate) {
+        return false;
       }
 
-      const scheduled = new Date(this.normalizeDateValue(scheduledDate));
+      return scheduledDateOnly < item.plannedStartDate ||
+             scheduledDateOnly > item.plannedEndDate;
+    });
 
-      if (Number.isNaN(scheduled.getTime())) {
-        return null;
-      }
+    return isOutsideAnyRange
+      ? { scheduledDateOutsideRange: true }
+      : null;
+  };
+}
 
-      const isOutsideAnyRange = items.some(item => {
-        if (!item.plannedStartDate || !item.plannedEndDate) {
-          return false;
-        }
+private formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
 
-        const start = new Date(item.plannedStartDate);
-        const end = new Date(item.plannedEndDate);
+  return `${year}-${month}-${day}`;
+}
 
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-          return false;
-        }
+private formatTime(date: Date): string {
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
 
-        return scheduled < start || scheduled > end;
-      });
-
-      return isOutsideAnyRange
-        ? { scheduledDateOutsideRange: true }
-        : null;
-    };
-  }
-
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-
-    return `${year}-${month}-${day}`;
-  }
+  return `${hours}:${minutes}:00`;
+}
+  
 }

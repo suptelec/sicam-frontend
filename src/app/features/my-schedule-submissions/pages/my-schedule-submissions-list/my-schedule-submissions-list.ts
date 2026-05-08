@@ -308,4 +308,32 @@ onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
         return 'info';
     }
   }
+
+formatDateTimeMinute(value?: string | null): string {
+  if (!value) {
+    return '—';
+  }
+
+  const normalized = value.replace('T', ' ').trim();
+
+  const match = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})/.exec(normalized);
+
+  if (match) {
+    return `${match[1]} ${match[2]}:${match[3]}`;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const year = parsed.getFullYear();
+  const month = `${parsed.getMonth() + 1}`.padStart(2, '0');
+  const day = `${parsed.getDate()}`.padStart(2, '0');
+  const hours = `${parsed.getHours()}`.padStart(2, '0');
+  const minutes = `${parsed.getMinutes()}`.padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
 }

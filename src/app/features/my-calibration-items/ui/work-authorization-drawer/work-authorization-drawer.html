@@ -165,35 +165,22 @@
               </mat-form-field>
             </div>
 
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>URL del documento de solicitud</mat-label>
+<mat-form-field appearance="outline" class="drawer__field drawer__textarea">
+  <mat-label>Observación</mat-label>
 
-              <input
-                matInput
-                formControlName="requestDocumentUrl"
-                autocomplete="off"
-                placeholder="https://..."
-              />
+  <textarea
+    matInput
+    rows="5"
+    formControlName="requestReason"
+    placeholder="Agrega una observación para CENACE, si aplica."
+  ></textarea>
 
-              @if (form.controls.requestDocumentUrl.hasError('required') && form.controls.requestDocumentUrl.touched) {
-                <mat-error>El documento de solicitud es obligatorio.</mat-error>
-              }
-            </mat-form-field>
+  @if (form.controls.requestReason.hasError('maxlength')) {
+    <mat-error>La observación no puede superar los 1000 caracteres.</mat-error>
+  }
+</mat-form-field>
 
-            <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
-              <mat-label>Motivo</mat-label>
-
-              <textarea
-                matInput
-                rows="5"
-                formControlName="requestReason"
-                placeholder="Ejemplo: Solicitud de autorización para iniciar trabajos de calibración."
-              ></textarea>
-
-              @if (form.controls.requestReason.hasError('required') && form.controls.requestReason.touched) {
-                <mat-error>El motivo es obligatorio.</mat-error>
-              }
-            </mat-form-field>
+            
           </section>
         }
       } @else {

@@ -169,6 +169,19 @@
     }
 
     <section class="actions-bar">
+
+<button
+  mat-stroked-button
+  type="button"
+  class="actions-bar__btn actions-bar__btn--info"
+  [disabled]="!canReject || isApproving() || isRejecting()"
+  [matTooltip]="canReject ? 'Validar configuración del medidor' : 'Solo se puede validar en procesos enviados a revisión'"
+  (click)="onSnapshotReviewClicked()"
+>
+  <mat-icon>{{ meterSnapshotValidationSaved() ? 'verified' : 'manage_search' }}</mat-icon>
+  {{ meterSnapshotValidationSaved() ? 'Configuración validada' : 'Validar configuración' }}
+</button>
+
       <button
         mat-flat-button
         type="button"
@@ -237,6 +250,18 @@
           <span>{{ hasCalibrationExecutedEvent ? 'Registrado' : 'Pendiente' }}</span>
         </div>
       </article>
+
+<article [class.checklist-card__item--done]="meterSnapshotValidationSaved()">
+  <mat-icon>
+    {{ meterSnapshotValidationSaved() ? 'check_circle' : 'radio_button_unchecked' }}
+  </mat-icon>
+
+  <div>
+    <strong>Configuración del medidor</strong>
+    <span>{{ meterSnapshotValidationSaved() ? 'Validada en esta sesión' : 'Pendiente de validación CENACE' }}</span>
+  </div>
+</article>
+
     </section>
 
     <app-table-card
@@ -389,6 +414,20 @@
       [process]="process()"
       (closed)="onRejectDrawerClosed()"
       (rejected)="onRejectConfirmed($event)"
+    />
+  </app-drawer-shell>
+}
+
+@if (snapshotReviewDrawerOpen()) {
+  <app-drawer-shell
+    [open]="snapshotReviewDrawerOpen()"
+    width="820px"
+    (closed)="onSnapshotReviewDrawerClosed()"
+  >
+    <app-meter-snapshot-review-drawer
+      [process]="process()"
+      (closed)="onSnapshotReviewDrawerClosed()"
+      (validated)="onMeterSnapshotValidated($event)"
     />
   </app-drawer-shell>
 }
