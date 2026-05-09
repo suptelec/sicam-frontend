@@ -1,0 +1,456 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Configuración"
+    title="Parámetros regulatorios"
+    description="Administra los plazos regulatorios de calibración y los parámetros de reportes ARCERNNR"
+    actionText="Recargar"
+    actionIcon="refresh"
+    (actionClicked)="load()"
+  />
+
+  @if (isLoading()) {
+    <section class="loading-card">
+      <mat-spinner diameter="36" />
+      <strong>Cargando configuración regulatoria...</strong>
+    </section>
+  } @else {
+    <section class="settings-grid">
+      <form
+        class="settings-card"
+        [formGroup]="rulesForm"
+        (ngSubmit)="saveRules()"
+      >
+        <header class="settings-card__header">
+          <div class="settings-card__icon">
+            <mat-icon>rule</mat-icon>
+          </div>
+
+          <div>
+            <span>Reglas regulatorias</span>
+            <strong>Control de plazos regulatorios configurables</strong>
+            <p>
+              Define si SICAM debe bloquear cronogramas y entregas de certificados fuera de plazo.
+            </p>
+          </div>
+        </header>
+
+        <mat-divider />
+
+        <div class="settings-section">
+          <div class="toggle-row">
+            <div>
+              <strong>Validar tiempo mínimo de anticipación</strong>
+              <span>
+                Bloquea el envío del cronograma si la fecha propuesta no cumple los días mínimos configurados.
+              </span>
+            </div>
+
+            <label class="switch-control">
+              <input
+                type="checkbox"
+                formControlName="enforceScheduleSubmissionLeadDays"
+              />
+
+              <span
+                class="state-pill"
+                [class.state-pill--active]="rulesForm.controls.enforceScheduleSubmissionLeadDays.value"
+                [class.state-pill--inactive]="!rulesForm.controls.enforceScheduleSubmissionLeadDays.value"
+              >
+                {{ rulesForm.controls.enforceScheduleSubmissionLeadDays.value ? 'Activo' : 'Inactivo' }}
+              </span>
+
+              <span
+                class="switch-track"
+                [class.switch-track--active]="rulesForm.controls.enforceScheduleSubmissionLeadDays.value"
+              >
+                <span></span>
+              </span>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Días mínimos de anticipación para enviar cronograma</span>
+
+            <input
+              type="number"
+              min="1"
+              max="365"
+              formControlName="scheduleSubmissionLeadDays"
+            />
+
+            @if (getControlError('rules', 'scheduleSubmissionLeadDays')) {
+              <small class="field-error">
+                {{ getControlError('rules', 'scheduleSubmissionLeadDays') }}
+              </small>
+            }
+          </label>
+        </div>
+
+        <div class="settings-section">
+          <div class="toggle-row">
+            <div>
+              <strong>Validar entrega de certificado</strong>
+              <span>
+                Evalúa si el PMSE entregó el certificado dentro del plazo regulatorio posterior a la ejecución.
+              </span>
+            </div>
+
+            <label class="switch-control">
+              <input
+                type="checkbox"
+                formControlName="enforceCertificateDeliveryDays"
+              />
+
+              <span
+                class="state-pill"
+                [class.state-pill--active]="rulesForm.controls.enforceCertificateDeliveryDays.value"
+                [class.state-pill--inactive]="!rulesForm.controls.enforceCertificateDeliveryDays.value"
+              >
+                {{ rulesForm.controls.enforceCertificateDeliveryDays.value ? 'Activo' : 'Inactivo' }}
+              </span>
+
+              <span
+                class="switch-track"
+                [class.switch-track--active]="rulesForm.controls.enforceCertificateDeliveryDays.value"
+              >
+                <span></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="field-grid field-grid--two">
+            <label class="field">
+              <span>Días nueva instalación</span>
+
+              <input
+                type="number"
+                min="1"
+                max="365"
+                formControlName="certificateDeliveryDaysNewInstallation"
+              />
+
+              @if (getControlError('rules', 'certificateDeliveryDaysNewInstallation')) {
+                <small class="field-error">
+                  {{ getControlError('rules', 'certificateDeliveryDaysNewInstallation') }}
+                </small>
+              }
+            </label>
+
+            <label class="field">
+              <span>Días instalación en operación</span>
+
+              <input
+                type="number"
+                min="1"
+                max="365"
+                formControlName="certificateDeliveryDaysInOperation"
+              />
+
+              @if (getControlError('rules', 'certificateDeliveryDaysInOperation')) {
+                <small class="field-error">
+                  {{ getControlError('rules', 'certificateDeliveryDaysInOperation') }}
+                </small>
+              }
+            </label>
+          </div>
+        </div>
+
+        <footer class="settings-card__actions">
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="isSavingRules()"
+            (click)="resetRules()"
+          >
+            Restaurar
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            [disabled]="rulesForm.invalid || isSavingRules()"
+          >
+            @if (isSavingRules()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon>save</mat-icon>
+            }
+
+            Guardar reglas
+          </button>
+        </footer>
+      </form>
+
+      <form
+        class="settings-card"
+        [formGroup]="reportsForm"
+        (ngSubmit)="saveReports()"
+      >
+        <header class="settings-card__header">
+          <div class="settings-card__icon settings-card__icon--reports">
+            <mat-icon>outgoing_mail</mat-icon>
+          </div>
+
+          <div>
+            <span>Reportes ARCERNNR</span>
+            <strong>Envío automático mensual y anual</strong>
+            <p>
+              Configura destinatarios, periodicidad y formato para los reportes regulatorios.
+            </p>
+          </div>
+        </header>
+
+        <mat-divider />
+
+        <div class="settings-section">
+          <div class="toggle-row">
+            <div>
+              <strong>Enviar reporte mensual automáticamente</strong>
+              <span>
+                Genera el reporte del mes anterior y lo envía a ARCERNNR.
+              </span>
+            </div>
+
+            <label class="switch-control">
+              <input
+                type="checkbox"
+                formControlName="monthlyComplianceReportEnabled"
+              />
+
+              <span
+                class="state-pill"
+                [class.state-pill--active]="reportsForm.controls.monthlyComplianceReportEnabled.value"
+                [class.state-pill--inactive]="!reportsForm.controls.monthlyComplianceReportEnabled.value"
+              >
+                {{ reportsForm.controls.monthlyComplianceReportEnabled.value ? 'Activo' : 'Inactivo' }}
+              </span>
+
+              <span
+                class="switch-track"
+                [class.switch-track--active]="reportsForm.controls.monthlyComplianceReportEnabled.value"
+              >
+                <span></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="field-grid field-grid--two">
+            <label class="field">
+              <span>Día de envío mensual</span>
+
+              <input
+                type="number"
+                min="1"
+                max="28"
+                formControlName="monthlyReportDay"
+              />
+
+              @if (getControlError('reports', 'monthlyReportDay')) {
+                <small class="field-error">
+                  {{ getControlError('reports', 'monthlyReportDay') }}
+                </small>
+              }
+            </label>
+
+            <label class="field">
+              <span>Hora de envío mensual</span>
+
+              <input
+                type="time"
+                formControlName="monthlyReportHour"
+              />
+
+              @if (getControlError('reports', 'monthlyReportHour')) {
+                <small class="field-error">
+                  {{ getControlError('reports', 'monthlyReportHour') }}
+                </small>
+              }
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="toggle-row">
+            <div>
+              <strong>Enviar reporte anual automáticamente</strong>
+              <span>
+                Genera el consolidado anual y lo envía a ARCERNNR.
+              </span>
+            </div>
+
+            <label class="switch-control">
+              <input
+                type="checkbox"
+                formControlName="annualComplianceReportEnabled"
+              />
+
+              <span
+                class="state-pill"
+                [class.state-pill--active]="reportsForm.controls.annualComplianceReportEnabled.value"
+                [class.state-pill--inactive]="!reportsForm.controls.annualComplianceReportEnabled.value"
+              >
+                {{ reportsForm.controls.annualComplianceReportEnabled.value ? 'Activo' : 'Inactivo' }}
+              </span>
+
+              <span
+                class="switch-track"
+                [class.switch-track--active]="reportsForm.controls.annualComplianceReportEnabled.value"
+              >
+                <span></span>
+              </span>
+            </label>
+          </div>
+
+          <div class="field-grid field-grid--three">
+            <label class="field">
+              <span>Mes de envío anual</span>
+
+              <select formControlName="annualReportMonth">
+                @for (month of months; track month.value) {
+                  <option [ngValue]="month.value">
+                    {{ month.label }}
+                  </option>
+                }
+              </select>
+
+              @if (getControlError('reports', 'annualReportMonth')) {
+                <small class="field-error">
+                  {{ getControlError('reports', 'annualReportMonth') }}
+                </small>
+              }
+            </label>
+
+            <label class="field">
+              <span>Día de envío anual</span>
+
+              <input
+                type="number"
+                min="1"
+                max="31"
+                formControlName="annualReportDay"
+              />
+
+              @if (getControlError('reports', 'annualReportDay')) {
+                <small class="field-error">
+                  {{ getControlError('reports', 'annualReportDay') }}
+                </small>
+              }
+            </label>
+
+            <label class="field">
+              <span>Hora de envío anual</span>
+
+              <input
+                type="time"
+                formControlName="annualReportHour"
+              />
+
+              @if (getControlError('reports', 'annualReportHour')) {
+                <small class="field-error">
+                  {{ getControlError('reports', 'annualReportHour') }}
+                </small>
+              }
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="field-grid field-grid--two">
+            <label class="field">
+              <span>Formato por defecto</span>
+
+              <select formControlName="reportFormat">
+                @for (format of reportFormats; track format.value) {
+                  <option [value]="format.value">
+                    {{ format.label }}
+                  </option>
+                }
+              </select>
+
+              @if (getControlError('reports', 'reportFormat')) {
+                <small class="field-error">
+                  {{ getControlError('reports', 'reportFormat') }}
+                </small>
+              }
+            </label>
+
+            <div class="field field--hint">
+              <span>Zona horaria</span>
+              <strong>America/Guayaquil</strong>
+<small>Los envíos automáticos se programan con la zona horaria de Ecuador.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <label class="field">
+            <span>Destinatarios principales ARCERNNR</span>
+
+            <textarea
+              rows="4"
+              formControlName="arcernnrToRecipientsText"
+              placeholder="correo1@arcernnr.gob.ec&#10;correo2@arcernnr.gob.ec"
+            ></textarea>
+
+            <small class="field-help">
+              Puedes separar correos por salto de línea, coma o punto y coma.
+            </small>
+
+            @if (getControlError('reports', 'arcernnrToRecipientsText')) {
+              <small class="field-error">
+                {{ getControlError('reports', 'arcernnrToRecipientsText') }}
+              </small>
+            }
+          </label>
+
+          <label class="field">
+            <span>Destinatarios en copia</span>
+
+            <textarea
+              rows="4"
+              formControlName="arcernnrCcRecipientsText"
+              placeholder="copia1@empresa.gob.ec&#10;copia2@empresa.gob.ec"
+            ></textarea>
+
+            <small class="field-help">
+              Opcional. Se enviarán como copia del reporte automático.
+            </small>
+
+            @if (getControlError('reports', 'arcernnrCcRecipientsText')) {
+              <small class="field-error">
+                {{ getControlError('reports', 'arcernnrCcRecipientsText') }}
+              </small>
+            }
+          </label>
+        </div>
+
+        <footer class="settings-card__actions">
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="isSavingReports()"
+            (click)="resetReports()"
+          >
+            Restaurar
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            [disabled]="reportsForm.invalid || isSavingReports()"
+          >
+            @if (isSavingReports()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon>save</mat-icon>
+            }
+
+            Guardar reportes
+          </button>
+        </footer>
+      </form>
+    </section>
+  }
+</section>

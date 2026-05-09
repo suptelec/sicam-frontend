@@ -12,6 +12,11 @@ export enum CalibrationResult {
   Rejected = 2
 }
 
+export enum CalibrationInstallationCondition {
+  InOperation = 1,
+  NewInstallation = 2
+}
+
 export enum MeterSnapshotReviewStatus {
   Pending = 1,
   MatchesReference = 2,
@@ -54,6 +59,7 @@ export interface CalibrationProcess {
   laboratoryName?: string | null;
 
   executionDate: string;
+  installationCondition: CalibrationInstallationCondition;
 
   certificateNumber?: string | null;
   certificateIssueDate?: string | null;
@@ -74,6 +80,9 @@ export interface CalibrationProcess {
 
   status: number;
   createdAt: string;
+  startedAt?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
 }
 
 export enum CalibrationProcessDocumentType {

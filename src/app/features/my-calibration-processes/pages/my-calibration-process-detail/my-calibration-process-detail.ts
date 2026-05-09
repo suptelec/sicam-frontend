@@ -1,6 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
+import { CertificateDeliveryDeadlinePanelComponent } from '../../ui/certificate-delivery-deadline-panel/certificate-delivery-deadline-panel';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
@@ -48,7 +50,8 @@ import { ProcessDocumentDrawerComponent } from '../../ui/process-document-drawer
     StartCorrectionDrawerComponent,
     UpdateProcessDataDrawerComponent,
     MeterCalibrationActaDrawerComponent,
-    ProcessDocumentDrawerComponent
+    ProcessDocumentDrawerComponent,
+    CertificateDeliveryDeadlinePanelComponent
   ],
   templateUrl: './my-calibration-process-detail.html',
   styleUrl: './my-calibration-process-detail.scss'

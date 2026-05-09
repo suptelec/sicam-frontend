@@ -1,0 +1,292 @@
+<section class="page">
+  <app-page-header
+    eyebrow="Reportes regulatorios"
+    title="Cumplimiento ARCERNNR"
+    description="Consulta el cumplimiento mensual o anual del plan de calibración y descarga el Excel oficial para revisión o envío."
+    actionText="Descargar Excel"
+    actionIcon="download"
+    (actionClicked)="exportExcel()"
+  />
+
+  <section class="filters-card">
+    <div class="filters-card__header">
+      <div>
+        <span>Periodo del reporte</span>
+        <strong>{{ reportTitle }}</strong>
+      </div>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="filters-card__refresh"
+        [disabled]="isLoading()"
+        (click)="load()"
+      >
+        <mat-icon>refresh</mat-icon>
+        Actualizar
+      </button>
+    </div>
+
+    <div class="filters-grid">
+      <label class="field">
+        <span>Tipo de reporte</span>
+
+        <select
+          [ngModel]="mode"
+          (ngModelChange)="onModeChange($event)"
+        >
+          <option value="annual">Anual</option>
+          <option value="monthly">Mensual</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Año</span>
+
+        <input
+          type="number"
+          min="2000"
+          max="2100"
+          [(ngModel)]="year"
+          (change)="load()"
+        />
+      </label>
+
+      @if (mode === 'monthly') {
+        <label class="field">
+          <span>Mes</span>
+
+          <select
+            [(ngModel)]="month"
+            (change)="load()"
+          >
+            @for (item of months; track item.value) {
+              <option [ngValue]="item.value">{{ item.label }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <div class="field field--readonly">
+        <span>Rango evaluado</span>
+        <strong>{{ rangeLabel }}</strong>
+      </div>
+    </div>
+  </section>
+
+  @if (summary()) {
+    <section class="summary-grid">
+      <article class="summary-card summary-card--total">
+        <span>Total ítems</span>
+        <strong>{{ summary()?.totalItems }}</strong>
+        <small>Plan anual incluido en el periodo</small>
+      </article>
+
+      <article class="summary-card summary-card--due">
+        <span>Ítems exigibles</span>
+        <strong>{{ summary()?.dueItems }}</strong>
+        <small>No incluye pendientes futuros</small>
+      </article>
+
+      <article class="summary-card summary-card--success">
+        <span>Cumplidos</span>
+        <strong>{{ (summary()?.onTimeItems ?? 0) + (summary()?.lateItems ?? 0) }}</strong>
+        <small>{{ summary()?.completionPercentage | number: '1.2-2' }}% cumplimiento</small>
+      </article>
+
+      <article class="summary-card summary-card--danger">
+        <span>No cumplidos</span>
+        <strong>{{ summary()?.notCompletedItems }}</strong>
+        <small>Ítems vencidos sin cumplimiento</small>
+      </article>
+
+      <article class="summary-card summary-card--future">
+        <span>Pendientes por ejecutar</span>
+        <strong>{{ summary()?.notDueItems }}</strong>
+        <small>Fechas futuras no vencidas</small>
+      </article>
+    </section>
+
+    <section class="meta-card">
+      <div>
+        <span>Generado</span>
+        <strong>{{ generatedAtLabel }}</strong>
+      </div>
+
+      <div>
+        <span>Regla certificado</span>
+        <strong>{{ certificateRuleLabel }}</strong>
+      </div>
+    </section>
+  }
+
+  @if (pmseSummaries().length > 0) {
+    <section class="pmse-summary">
+      <header>
+        <div>
+          <span>Resumen por PMSE</span>
+          <strong>Vista rápida de cumplimiento</strong>
+        </div>
+      </header>
+
+      <div class="pmse-summary__grid">
+        @for (item of pmseSummaries(); track item.pmseCompanyId) {
+          <article class="pmse-mini-card">
+            <strong>{{ item.pmseCompanyName }}</strong>
+
+            <div class="pmse-mini-card__numbers">
+              <span>Total: {{ item.totalItems }}</span>
+              <span>Exigibles: {{ item.dueItems }}</span>
+              <span>Pendientes: {{ item.notDueItems }}</span>
+            </div>
+
+            <div class="pmse-mini-card__bar">
+              <span [style.width.%]="item.completionPercentage"></span>
+            </div>
+
+            <small>{{ item.completionPercentage | number: '1.2-2' }}% cumplimiento</small>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  <app-search-toolbar
+    [(value)]="searchTerm"
+    placeholder="Buscar por PMSE, medidor, serial, certificado, laboratorio o estado..."
+    [loading]="isLoading()"
+    (valueChange)="onSearchValueChange($event)"
+    (search)="onSearch()"
+    (refresh)="load()"
+  />
+
+  <app-table-card
+    [loading]="isLoading()"
+    [empty]="dataSource.data.length === 0"
+    loadingText="Cargando reporte regulatorio..."
+    emptyIcon="analytics"
+    emptyTitle="No hay datos para el periodo"
+    emptyDescription="Ajusta el año, mes o tipo de reporte para consultar información."
+    [showEmptyAction]="false"
+  >
+    <table
+      table-content
+      mat-table
+      [dataSource]="dataSource"
+      class="compliance-table"
+    >
+      <ng-container matColumnDef="pmse">
+        <th mat-header-cell *matHeaderCellDef>PMSE</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.pmseCompanyName }}</strong>
+            <span>ID: {{ row.pmseCompanyId }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="meter">
+        <th mat-header-cell *matHeaderCellDef>Medidor</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="meter-cell">
+            <div class="meter-cell__icon">
+              <mat-icon>speed</mat-icon>
+            </div>
+
+            <div>
+              <strong>{{ row.meterCode }}</strong>
+              <span>Serial: {{ row.meterSerial }}</span>
+              <small>{{ row.meterTplCode || row.meterCenaceCode || 'Sin código externo' }}</small>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="planned">
+        <th mat-header-cell *matHeaderCellDef>Planificación</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ formatDate(row.plannedStartDate) }} - {{ formatDate(row.plannedEndDate) }}</strong>
+            <span>Programada: {{ formatDate(row.scheduledDate) }}</span>
+            <small>{{ getInstallationConditionLabel(row.installationCondition) }}</small>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="execution">
+        <th mat-header-cell *matHeaderCellDef>Ejecución</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ formatDate(row.executionDate) }}</strong>
+            <span>Inicio proceso: {{ formatDateTime(row.startedAt) }}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="certificate">
+        <th mat-header-cell *matHeaderCellDef>Certificado</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ row.certificateNumber || 'Sin certificado' }}</strong>
+            <span>Entrega: {{ formatDate(row.certificateDeliveryDate) }}</span>
+            <span>Límite: {{ formatDate(row.certificateDeadlineDate) }}</span>
+
+            @if (row.differenceDays !== null && row.differenceDays !== undefined) {
+              <small [class.late-text]="row.isCertificateDeliveryLate">
+                Diferencia: {{ row.differenceDays }} día(s)
+              </small>
+            }
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="compliance">
+        <th mat-header-cell *matHeaderCellDef>Cumplimiento</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell stacked-cell--wide">
+            <app-status-chip
+              [label]="row.complianceStatusLabel"
+              [tone]="getComplianceTone(row.complianceStatus)"
+              [icon]="getComplianceIcon(row.complianceStatus)"
+              [compact]="true"
+            />
+
+            <span class="detail-text">
+              {{ row.complianceDetail || 'Sin detalle' }}
+            </span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="process">
+        <th mat-header-cell *matHeaderCellDef>Proceso</th>
+
+        <td mat-cell *matCellDef="let row">
+          <div class="stacked-cell">
+            <strong>{{ getPlanItemStatusLabel(row.planItemStatus) }}</strong>
+            <span>{{ getProcessStatusLabel(row.calibrationProcessStatus) }}</span>
+            <small>{{ row.laboratoryName || 'Sin laboratorio' }}</small>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      table-footer
+      [length]="dataSource.filteredData.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+    />
+  </app-table-card>
+</section>

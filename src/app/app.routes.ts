@@ -94,6 +94,12 @@ export const routes: Routes = [
             .then(m => m.CALIBRATION_PROCESS_REVIEWS_ROUTES)
       },
       {
+        path: 'reportes',
+        loadChildren: () =>
+          import('./features/compliance-reports/compliance-reports.routes')
+            .then(m => m.COMPLIANCE_REPORTS_ROUTES)
+      },
+      {
         path: 'accredited-laboratories',
         loadChildren: () =>
           import('./features/accredited-laboratories/accredited-laboratories.routes')
@@ -104,6 +110,13 @@ export const routes: Routes = [
         redirectTo: 'accredited-laboratories',
         pathMatch: 'full'
       },
+      {
+        path: 'configuracion',
+        loadChildren: () =>
+          import('./features/system-settings/system-settings.routes')
+            .then(m => m.SYSTEM_SETTINGS_ROUTES)
+      },
+
       
     ]
   },

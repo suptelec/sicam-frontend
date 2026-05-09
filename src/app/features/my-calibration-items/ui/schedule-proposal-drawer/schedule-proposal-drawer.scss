@@ -215,13 +215,48 @@
   font-weight: 750;
 }
 
-.bulk-note {
+.date-rules-panel {
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
+  article {
+    min-height: 82px;
+    padding: 13px 14px;
+    border-radius: 15px;
+    background: rgba(15, 23, 42, 0.58);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  span {
+    display: block;
+    color: #8ea0bd;
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    margin-top: 8px;
+    color: #f8fafc;
+    font-size: 0.92rem;
+    font-weight: 850;
+    line-height: 1.3;
+  }
+
+  .no-range {
+    color: #fca5a5;
+  }
+}
+
+.bulk-note,
+.regulatory-note {
   margin-bottom: 16px;
   padding: 12px 14px;
   border-radius: 14px;
-  color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.22);
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -236,12 +271,68 @@
   }
 }
 
+.bulk-note {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+
+.regulatory-note {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+}
+
+.proposal-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.schedule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-helper {
+  margin: -2px 0 0;
+  padding: 0 2px;
+  color: #a8b3c7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+
+  mat-icon {
+    width: 15px;
+    height: 15px;
+    min-width: 15px;
+    font-size: 15px;
+    color: #60a5fa;
+    opacity: 0.9;
+  }
+
+  span {
+    display: block;
+  }
+}
+
+.schedule-field .form-error {
+  margin-top: 4px;
+}
+
 .drawer__field {
   width: 100%;
 }
 
-.drawer__textarea textarea {
-  resize: vertical;
+.drawer__textarea {
+  margin-top: 18px;
+
+  textarea {
+    resize: vertical;
+  }
 }
 
 /* Material dark inputs */
@@ -321,48 +412,9 @@
   }
 }
 
-.proposal-field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.schedule-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.field-helper {
-  margin: -2px 0 0;
-  padding: 0 2px;
-  color: #a8b3c7;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  line-height: 1.35;
-
-  mat-icon {
-    width: 15px;
-    height: 15px;
-    min-width: 15px;
-    font-size: 15px;
-    color: #60a5fa;
-    opacity: 0.9;
-  }
-
-  span {
-    display: block;
-  }
-}
-
-.schedule-field .form-error {
-  margin-top: 4px;
-}
-
 @media (max-width: 760px) {
-  .detail-grid {
+  .detail-grid,
+  .date-rules-panel {
     grid-template-columns: 1fr;
   }
 }

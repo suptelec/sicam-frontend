@@ -13,7 +13,7 @@
     <app-page-header
       eyebrow="Proceso de calibración"
       [title]="current.meterCode ?? 'Proceso #' + current.id"
-      description="Primero crea el acta, descarga el Excel generado, sube el acta firmada en PDF y completa los certificados para enviar el proceso a revisión CENACE."
+      description="Completa el acta, sube los respaldos y verifica el plazo de entrega del certificado antes de enviar el proceso a revisión CENACE."
       [showAction]="false"
     />
 
@@ -80,6 +80,9 @@
       </article>
     </section>
 
+    <app-certificate-delivery-deadline-panel
+      [process]="current"
+    />
     @if (current.processStatus === CalibrationProcessStatus.Approved) {
       <section class="completion-card">
         <mat-icon>verified</mat-icon>

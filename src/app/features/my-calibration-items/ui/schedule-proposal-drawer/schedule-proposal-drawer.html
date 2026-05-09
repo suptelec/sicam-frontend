@@ -4,7 +4,7 @@
       <p class="drawer__eyebrow">CRONOGRAMA PMSE</p>
       <h2>Proponer cronograma</h2>
       <p class="drawer__description">
-        Selecciona la fecha propuesta y el laboratorio acreditado activo del catálogo global administrado por CENACE.
+        Selecciona la fecha y hora propuesta, junto con el laboratorio acreditado que ejecutará la calibración.
         @if (isBulkMode) {
           La misma información se aplicará a los ítems seleccionados.
         }
@@ -56,7 +56,7 @@
                     <strong>{{ selected.meterCode ?? '—' }}</strong>
                     <span>Serial: {{ selected.meterSerial ?? '—' }}</span>
                     <small>
-                      Rango: {{ selected.plannedStartDate ?? '—' }} - {{ selected.plannedEndDate ?? '—' }}
+                      Rango: {{ formatDisplayDate(selected.plannedStartDate) }} - {{ formatDisplayDate(selected.plannedEndDate) }}
                     </small>
                   </article>
                 }
@@ -71,13 +71,13 @@
 
               <article>
                 <span>Vigente hasta</span>
-                <strong>{{ item.lastCertificateValidUntil ?? '—' }}</strong>
+                <strong>{{ formatDisplayDate(item.lastCertificateValidUntil) }}</strong>
               </article>
 
               <article>
-                <span>Rango planificado</span>
-                <strong>{{ item.plannedStartDate ?? '—' }}</strong>
-                <small>Hasta {{ item.plannedEndDate ?? '—' }}</small>
+                <span>Rango planificado CENACE</span>
+                <strong>{{ formatDisplayDate(item.plannedStartDate) }}</strong>
+                <small>Hasta {{ formatDisplayDate(item.plannedEndDate) }}</small>
               </article>
 
               <article>
@@ -90,13 +90,39 @@
           <section class="form-section">
             <div class="section-title">Propuesta de calibración</div>
 
+            <section class="date-rules-panel">
+              <article>
+                <span>Rango planificado por CENACE</span>
+                <strong>{{ plannedRangeLabel }}</strong>
+              </article>
+
+              <article>
+                <span>Primera fecha por anticipación</span>
+                <strong>{{ minimumAllowedScheduleDateLabel }}</strong>
+              </article>
+
+              <article>
+                <span>Fechas válidas para proponer</span>
+                <strong [class.no-range]="hasRegulatoryRangeConflict">
+                  {{ validProposalRangeLabel }}
+                </strong>
+              </article>
+            </section>
+
             @if (isBulkMode) {
               <div class="bulk-note">
                 <mat-icon>info</mat-icon>
                 <span>
-                  La fecha propuesta debe estar dentro del rango planificado de todos los ítems seleccionados.
-                  Rango común: {{ commonStartDate ?? '—' }} - {{ commonEndDate ?? '—' }}.
+                  La fecha propuesta debe estar dentro del rango planificado común de todos los ítems seleccionados.
+                  Rango común: {{ plannedRangeLabel }}.
                 </span>
+              </div>
+            }
+
+            @if (regulatoryHelpText) {
+              <div class="regulatory-note">
+                <mat-icon>gavel</mat-icon>
+                <span>{{ regulatoryHelpText }}</span>
               </div>
             }
 
@@ -106,61 +132,74 @@
               </div>
             }
 
-          <div class="proposal-field-group">
-            <div class="schedule-field">
-              <app-date-field
-                formControlName="scheduledDate"
-                label="Fecha y hora propuesta"
-                [min]="minDate"
-                [max]="maxDate"
-                [withTime]="true"
-                [minuteStep]="1"
-              />
+            @if (hasRegulatoryRangeConflict) {
+              <div class="form-error form-error--block">
+                El rango planificado termina antes de la primera fecha disponible según la anticipación regulatoria.
+                Debes solicitar un cambio de fecha o esperar una reprogramación.
+              </div>
+            }
 
-              <div class="field-helper">
-                <mat-icon>schedule</mat-icon>
-                <span>Selecciona la fecha y registra la hora de inicio programada.</span>
+            <div class="proposal-field-group">
+              <div class="schedule-field">
+                <app-date-field
+                  formControlName="scheduledDate"
+                  label="Fecha y hora propuesta"
+                  [min]="minDate"
+                  [max]="maxDate"
+                  [withTime]="true"
+                  [minuteStep]="1"
+                />
+
+                <div class="field-helper">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Selecciona la fecha válida y registra la hora de inicio programada.</span>
+                </div>
+
+                @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+                  <div class="form-error">La fecha y hora propuesta es obligatoria.</div>
+                }
+
+                @if (form.hasError('scheduledTimeRequired') && form.controls.scheduledDate.touched) {
+                  <div class="form-error">La hora propuesta es obligatoria.</div>
+                }
+
+                @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+                  <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
+                }
+
+                @if (form.hasError('scheduledDateBeforeRegulatoryLeadDays') && form.controls.scheduledDate.touched) {
+                  <div class="form-error">
+                    La fecha seleccionada no cumple el tiempo mínimo de anticipación regulatoria.
+                  </div>
+                }
               </div>
 
-              @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
-                <div class="form-error">La fecha y hora propuesta es obligatoria.</div>
-              }
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Laboratorio acreditado</mat-label>
 
-              @if (form.hasError('scheduledTimeRequired') && form.controls.scheduledDate.touched) {
-                <div class="form-error">La hora propuesta es obligatoria.</div>
-              }
-
-              @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
-                <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
-              }
-            </div>
-
-            <mat-form-field appearance="outline" class="drawer__field">
-              <mat-label>Laboratorio acreditado</mat-label>
-
-              <mat-select formControlName="accreditedLaboratoryId">
-                @if (loadingCatalogs()) {
-                  <mat-option disabled>
-                    Cargando laboratorios acreditados...
-                  </mat-option>
-                } @else if (laboratories().length === 0) {
-                  <mat-option disabled>
-                    No hay laboratorios acreditados activos
-                  </mat-option>
-                } @else {
-                  @for (laboratory of laboratories(); track laboratory.id) {
-                    <mat-option [value]="laboratory.id">
-                      {{ getLaboratoryLabel(laboratory) }}
+                <mat-select formControlName="accreditedLaboratoryId">
+                  @if (loadingCatalogs()) {
+                    <mat-option disabled>
+                      Cargando laboratorios acreditados...
                     </mat-option>
+                  } @else if (laboratories().length === 0) {
+                    <mat-option disabled>
+                      No hay laboratorios acreditados activos
+                    </mat-option>
+                  } @else {
+                    @for (laboratory of laboratories(); track laboratory.id) {
+                      <mat-option [value]="laboratory.id">
+                        {{ getLaboratoryLabel(laboratory) }}
+                      </mat-option>
+                    }
                   }
-                }
-              </mat-select>
+                </mat-select>
 
-              @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
-                <mat-error>El laboratorio es obligatorio.</mat-error>
-              }
-            </mat-form-field>
-      </div> 
+                @if (form.controls.accreditedLaboratoryId.hasError('required') && form.controls.accreditedLaboratoryId.touched) {
+                  <mat-error>El laboratorio es obligatorio.</mat-error>
+                }
+              </mat-form-field>
+            </div>
 
             <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
               <mat-label>Observaciones</mat-label>

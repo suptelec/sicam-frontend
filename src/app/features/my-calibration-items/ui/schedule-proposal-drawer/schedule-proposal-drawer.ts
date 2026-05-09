@@ -1,4 +1,12 @@
-import { Component, EventEmitter, Output, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  effect,
+  inject,
+  input,
+  signal
+} from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -39,6 +47,9 @@ import {
 
 import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
+import { SystemSettingsService } from '../../../system-settings/data-access/system-settings.service';
+import { RegulatoryRulesSettings } from '../../../system-settings/domain/system-settings.model';
+
 @Component({
   selector: 'app-schedule-proposal-drawer',
   standalone: true,
@@ -66,12 +77,17 @@ export class ScheduleProposalDrawerComponent {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationScheduleSubmissionsService);
   private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
+  private readonly systemSettingsService = inject(SystemSettingsService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
   loading = false;
+
   loadingCatalogs = signal(false);
+  loadingRegulatoryRules = signal(false);
+
   laboratories = signal<AccreditedLaboratory[]>([]);
+  regulatoryRules = signal<RegulatoryRulesSettings | null>(null);
 
   readonly form = this.fb.group(
     {
@@ -82,13 +98,24 @@ export class ScheduleProposalDrawerComponent {
     {
       validators: [
         this.scheduledDateTimeRequiredValidator(),
-        this.scheduledDateInsidePlannedRangeValidator()
+        this.scheduledDateInsidePlannedRangeValidator(),
+        this.scheduledDateRegulatoryLeadDaysValidator()
       ]
     }
   );
 
   constructor() {
     this.loadLaboratories();
+    this.loadRegulatoryRules();
+
+    effect(() => {
+      this.items();
+      this.regulatoryRules();
+
+      this.form.updateValueAndValidity({
+        emitEvent: false
+      });
+    });
   }
 
   get currentItems(): CalibrationPlanItem[] {
@@ -106,14 +133,19 @@ export class ScheduleProposalDrawerComponent {
   get saveDisabled(): boolean {
     return this.loading ||
       this.loadingCatalogs() ||
+      this.loadingRegulatoryRules() ||
       this.form.invalid ||
       this.currentItems.length === 0 ||
       !this.hasCommonRange ||
+      this.hasRegulatoryRangeConflict ||
       this.laboratories().length === 0;
   }
 
   get minDate(): string | null {
-    return this.commonStartDate;
+    return this.maxDateValue(
+      this.commonStartDate,
+      this.minimumAllowedScheduleDate
+    );
   }
 
   get maxDate(): string | null {
@@ -155,6 +187,69 @@ export class ScheduleProposalDrawerComponent {
     return !!start && !!end && start <= end;
   }
 
+  get regulatoryLeadDaysEnabled(): boolean {
+    return !!this.regulatoryRules()?.enforceScheduleSubmissionLeadDays;
+  }
+
+  get regulatoryLeadDays(): number {
+    return this.regulatoryRules()?.scheduleSubmissionLeadDays ?? 8;
+  }
+
+  get minimumAllowedScheduleDate(): string | null {
+    if (!this.regulatoryLeadDaysEnabled) {
+      return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    today.setDate(today.getDate() + this.regulatoryLeadDays);
+
+    return this.formatDate(today);
+  }
+
+  get hasRegulatoryRangeConflict(): boolean {
+    const minimumAllowed = this.minimumAllowedScheduleDate;
+    const commonEnd = this.commonEndDate;
+
+    return !!minimumAllowed && !!commonEnd && minimumAllowed > commonEnd;
+  }
+
+  get plannedRangeLabel(): string {
+    if (!this.hasCommonRange) {
+      return 'No disponible';
+    }
+
+    return `${this.formatDisplayDate(this.commonStartDate)} - ${this.formatDisplayDate(this.commonEndDate)}`;
+  }
+
+  get minimumAllowedScheduleDateLabel(): string {
+    if (!this.regulatoryLeadDaysEnabled || !this.minimumAllowedScheduleDate) {
+      return 'No aplica';
+    }
+
+    return this.formatDisplayDate(this.minimumAllowedScheduleDate);
+  }
+
+  get validProposalRangeLabel(): string {
+    if (!this.hasCommonRange) {
+      return 'No disponible';
+    }
+
+    if (this.hasRegulatoryRangeConflict) {
+      return 'Sin fechas disponibles';
+    }
+
+    return `${this.formatDisplayDate(this.minDate)} - ${this.formatDisplayDate(this.maxDate)}`;
+  }
+
+  get regulatoryHelpText(): string | null {
+    if (!this.regulatoryLeadDaysEnabled || !this.minimumAllowedScheduleDate) {
+      return null;
+    }
+
+    return `La fecha propuesta debe ser igual o posterior a ${this.minimumAllowedScheduleDateLabel}, porque el cronograma debe enviarse con ${this.regulatoryLeadDays} día(s) de anticipación.`;
+  }
+
   getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
     const name = laboratory.name?.trim() || 'Laboratorio';
 
@@ -178,7 +273,14 @@ export class ScheduleProposalDrawerComponent {
       return;
     }
 
-    if (this.form.invalid || this.loading || this.loadingCatalogs()) {
+    if (this.hasRegulatoryRangeConflict) {
+      this.toast.warning(
+        'El rango planificado termina antes de la primera fecha disponible según la anticipación regulatoria.'
+      );
+      return;
+    }
+
+    if (this.form.invalid || this.loading || this.loadingCatalogs() || this.loadingRegulatoryRules()) {
       this.form.markAllAsTouched();
       this.toast.warning('Revisa los campos obligatorios antes de guardar.');
       return;
@@ -188,6 +290,13 @@ export class ScheduleProposalDrawerComponent {
 
     if (!pmseCompanyId) {
       this.toast.error('No se pudo resolver la empresa PMSE del usuario.');
+      return;
+    }
+
+    const planIds = new Set(items.map(item => item.calibrationPlanId));
+
+    if (planIds.size > 1) {
+      this.toast.warning('Los ítems seleccionados deben pertenecer al mismo plan anual.');
       return;
     }
 
@@ -269,6 +378,24 @@ export class ScheduleProposalDrawerComponent {
     this.closed.emit();
   }
 
+  formatDisplayDate(value: string | null | undefined): string {
+    if (!value) {
+      return '—';
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString('es-EC', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  }
+
   private loadLaboratories(): void {
     this.loadingCatalogs.set(true);
 
@@ -291,6 +418,30 @@ export class ScheduleProposalDrawerComponent {
       error: () => {
         this.loadingCatalogs.set(false);
         this.toast.warning('No se pudieron cargar los laboratorios acreditados.');
+      }
+    });
+  }
+
+  private loadRegulatoryRules(): void {
+    this.loadingRegulatoryRules.set(true);
+
+    this.systemSettingsService.getRegulatoryRules().subscribe({
+      next: response => {
+        this.loadingRegulatoryRules.set(false);
+
+        if (!response.succeed || !response.result) {
+          this.toast.warning(
+            response.message ?? 'No se pudieron cargar las reglas regulatorias.'
+          );
+          return;
+        }
+
+        this.regulatoryRules.set(response.result);
+        this.form.updateValueAndValidity();
+      },
+      error: () => {
+        this.loadingRegulatoryRules.set(false);
+        this.toast.warning('No se pudieron cargar las reglas regulatorias.');
       }
     });
   }
@@ -403,30 +554,68 @@ export class ScheduleProposalDrawerComponent {
   private scheduledDateInsidePlannedRangeValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const scheduledDate = control.get('scheduledDate')?.value;
-      const items = this.currentItems;
 
-      if (!scheduledDate || items.length === 0) {
+      if (!scheduledDate) {
         return null;
       }
 
-      const normalizedDate = this.extractDateValue(scheduledDate);
+      const date = this.extractDateValue(scheduledDate);
 
-      if (!normalizedDate) {
+      if (!date) {
         return null;
       }
 
-      const isOutsideAnyRange = items.some(item => {
-        if (!item.plannedStartDate || !item.plannedEndDate) {
-          return false;
-        }
+      const start = this.commonStartDate;
+      const end = this.commonEndDate;
 
-        return normalizedDate < item.plannedStartDate ||
-          normalizedDate > item.plannedEndDate;
-      });
+      if (!start || !end) {
+        return null;
+      }
 
-      return isOutsideAnyRange
+      return date < start || date > end
         ? { scheduledDateOutsideRange: true }
         : null;
     };
+  }
+
+  private scheduledDateRegulatoryLeadDaysValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const scheduledDate = control.get('scheduledDate')?.value;
+
+      if (!scheduledDate || !this.regulatoryLeadDaysEnabled) {
+        return null;
+      }
+
+      const minimumAllowedDate = this.minimumAllowedScheduleDate;
+
+      if (!minimumAllowedDate) {
+        return null;
+      }
+
+      const date = this.extractDateValue(scheduledDate);
+
+      if (!date) {
+        return null;
+      }
+
+      return date < minimumAllowedDate
+        ? { scheduledDateBeforeRegulatoryLeadDays: true }
+        : null;
+    };
+  }
+
+  private maxDateValue(
+    first: string | null,
+    second: string | null
+  ): string | null {
+    if (!first) {
+      return second;
+    }
+
+    if (!second) {
+      return first;
+    }
+
+    return first > second ? first : second;
   }
 }

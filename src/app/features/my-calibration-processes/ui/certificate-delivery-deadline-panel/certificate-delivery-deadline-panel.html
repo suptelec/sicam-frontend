@@ -1,0 +1,60 @@
+<section
+  class="deadline-panel"
+  [class]="toneClass"
+>
+  <div class="deadline-panel__icon">
+    @if (isLoading()) {
+      <mat-spinner diameter="22" />
+    } @else {
+      <mat-icon>{{ statusIcon() }}</mat-icon>
+    }
+  </div>
+
+  <div class="deadline-panel__content">
+    <div class="deadline-panel__header">
+      <div>
+        <span>Plazo de entrega del certificado</span>
+        <strong>{{ statusLabel() }}</strong>
+      </div>
+
+      <span class="deadline-panel__status">
+        {{ isRuleEnabled() ? 'Control activo' : 'Control inactivo' }}
+      </span>
+    </div>
+
+    <p>{{ detailText() }}</p>
+
+    <div class="deadline-panel__grid">
+      <article>
+        <span>Fecha de ejecución</span>
+        <strong>{{ formatDisplayDate(process()?.executionDate) }}</strong>
+      </article>
+
+      <article>
+        <span>Condición</span>
+        <strong>{{ conditionLabel() }}</strong>
+      </article>
+
+      <article>
+        <span>Plazo configurado</span>
+        <strong>
+          @if (configuredDays() !== null) {
+            {{ configuredDays() }} día(s)
+          } @else {
+            —
+          }
+        </strong>
+      </article>
+
+      <article>
+        <span>Fecha límite</span>
+        <strong>{{ formatDisplayDate(deadlineDate()) }}</strong>
+      </article>
+
+      <article>
+        <span>Fecha de envío</span>
+        <strong>{{ submittedLabel() }}</strong>
+      </article>
+    </div>
+  </div>
+</section>
