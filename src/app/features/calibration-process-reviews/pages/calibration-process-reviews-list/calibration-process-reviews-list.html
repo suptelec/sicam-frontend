@@ -2,7 +2,7 @@
   <app-page-header
     eyebrow="Revisión CENACE"
     title="Procesos de calibración en revisión"
-    description="Revisa los procesos de calibración enviados por los PMSE."
+    description="Revisa los procesos enviados por los PMSE, incluyendo acta firmada, certificados PDF y validación de configuración del medidor."
     [showAction]="false"
   />
 
@@ -54,13 +54,49 @@
       </ng-container>
 
       <ng-container matColumnDef="certificate">
-        <th mat-header-cell *matHeaderCellDef>Certificado</th>
+        <th mat-header-cell *matHeaderCellDef>Certificado principal</th>
 
         <td mat-cell *matCellDef="let row">
           <div class="stacked-cell">
             <strong>{{ row.certificateNumber ?? '—' }}</strong>
             <span>Válido hasta {{ row.certificateValidUntil ?? '—' }}</span>
           </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="signedActa">
+        <th mat-header-cell *matHeaderCellDef>Acta firmada</th>
+
+        <td mat-cell *matCellDef="let row">
+          @if (hasSignedActaPdf(row)) {
+            <span class="document-state document-state--ok">
+              <mat-icon>task_alt</mat-icon>
+              Cargada
+            </span>
+          } @else {
+            <span class="document-state document-state--pending">
+              <mat-icon>warning</mat-icon>
+              Pendiente
+            </span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="certificateDocuments">
+        <th mat-header-cell *matHeaderCellDef>Certificados PDF</th>
+
+        <td mat-cell *matCellDef="let row">
+          @if (hasCertificateDocuments(row)) {
+            <span class="document-state document-state--ok">
+              <mat-icon>task_alt</mat-icon>
+              {{ getCertificateDocumentsCount(row) }} PDF(s)
+            </span>
+          } @else {
+            <span class="document-state document-state--pending">
+              <mat-icon>warning</mat-icon>
+              Pendiente
+            </span>
+          }
         </td>
       </ng-container>
 

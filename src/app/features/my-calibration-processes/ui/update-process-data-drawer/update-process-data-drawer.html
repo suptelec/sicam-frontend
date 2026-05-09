@@ -6,7 +6,7 @@
       <h2>Datos finales de calibración</h2>
 
       <p class="drawer__description">
-        Registra los datos finales y adjunta el PDF del certificado emitido por el laboratorio acreditado.
+        Registra los datos finales del certificado y adjunta uno o varios PDFs emitidos por el laboratorio acreditado.
       </p>
     </div>
 
@@ -46,7 +46,7 @@
         </section>
 
         <section class="form-section">
-          <div class="section-title">Certificado de calibración</div>
+          <div class="section-title">Datos del certificado</div>
 
           <mat-form-field appearance="outline" class="drawer__field">
             <mat-label>Número de certificado</mat-label>
@@ -104,121 +104,157 @@
               placeholder="Observaciones finales de la calibración..."
             ></textarea>
           </mat-form-field>
+        </section>
 
-          <div class="certificate-upload-block">
-            <div class="certificate-upload-block__header">
-              <div>
-                <span>Archivo del certificado</span>
-                <strong>PDF emitido por el laboratorio</strong>
-              </div>
-
-              @if (hasCertificateDocument) {
-                <span class="certificate-status certificate-status--ok">
-                  <mat-icon>check_circle</mat-icon>
-                  Cargado
-                </span>
-              } @else {
-                <span class="certificate-status certificate-status--pending">
-                  <mat-icon>error</mat-icon>
-                  Requerido
-                </span>
-              }
+        <section class="certificate-upload-block">
+          <div class="certificate-upload-block__header">
+            <div>
+              <span>Certificados PDF</span>
+              <strong>Archivos emitidos por el laboratorio</strong>
             </div>
 
-            @if (certificateDocument; as document) {
-              <article class="current-document-card">
-                <div class="current-document-card__icon">
-                  <mat-icon>picture_as_pdf</mat-icon>
-                </div>
-
-                <div class="current-document-card__content">
-                  <span>Certificado actual</span>
-                  <strong>{{ document.fileName }}</strong>
-                  <small>{{ document.description ?? 'Certificado de calibración registrado.' }}</small>
-                </div>
-
-                <a
-                  mat-icon-button
-                  [href]="document.fileUrl"
-                  target="_blank"
-                  rel="noopener"
-                  matTooltip="Ver certificado"
-                >
-                  <mat-icon>open_in_new</mat-icon>
-                </a>
-              </article>
-            }
-
-            <label
-              class="upload-zone"
-              [class.upload-zone--selected]="selectedFile()"
-              [class.upload-zone--error]="fileError() || (fileTouched() && certificateRequired)"
-              [class.upload-zone--disabled]="loading || !canEdit"
+            <span
+              class="certificate-status"
+              [class.certificate-status--ok]="hasCertificateDocument"
+              [class.certificate-status--pending]="!hasCertificateDocument"
             >
-              <input
-                type="file"
-                accept="application/pdf,.pdf"
-                [disabled]="loading || !canEdit"
-                (change)="onFileSelected($event)"
-              />
-
-              @if (selectedFile(); as file) {
-                <div class="upload-zone__selected">
-                  <div class="upload-zone__file-icon">
-                    <mat-icon>picture_as_pdf</mat-icon>
-                  </div>
-
-                  <div class="upload-zone__file-info">
-                    <strong>{{ file.name }}</strong>
-                    <span>{{ selectedFileSizeLabel }}</span>
-                  </div>
-
-                  <button
-                    mat-icon-button
-                    type="button"
-                    matTooltip="Quitar archivo"
-                    [disabled]="loading"
-                    (click)="removeSelectedFile($event)"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              } @else {
-                <div class="upload-zone__empty">
-                  <mat-icon>cloud_upload</mat-icon>
-
-                  <div>
-                    <strong>
-                      {{ hasCertificateDocument ? 'Cargar nueva versión del certificado' : 'Selecciona el PDF del certificado' }}
-                    </strong>
-
-                    <span>Formato permitido: PDF · Máximo 15 MB</span>
-                  </div>
-                </div>
-              }
-            </label>
-
-            @if (fileError(); as error) {
-              <div class="form-error">
-                {{ error }}
-              </div>
-            } @else if (fileTouched() && certificateRequired) {
-              <div class="form-error">
-                El PDF del certificado de calibración es obligatorio.
-              </div>
-            }
-
-            @if (!hasCertificateDocument && !selectedFile()) {
-              <div class="certificate-required-card">
-                <mat-icon>info</mat-icon>
-
-                <p>
-                  Para guardar los datos finales y luego enviar el proceso a revisión CENACE,
-                  debes adjuntar el certificado PDF en este mismo formulario.
-                </p>
-              </div>
-            }
+              <mat-icon>{{ hasCertificateDocument ? 'check_circle' : 'error' }}</mat-icon>
+              {{ certificateStatusText }}
+            </span>
           </div>
+
+          @if (hasCertificateDocument) {
+            <section class="current-certificates">
+              <div class="current-certificates__header">
+                <strong>Certificados ya cargados</strong>
+                <span>{{ certificateDocuments.length }} documento(s) activo(s)</span>
+              </div>
+
+              <div class="current-certificates__list">
+                @for (document of certificateDocuments; track document.id) {
+                  <article class="current-certificate-row">
+                    <mat-icon>picture_as_pdf</mat-icon>
+
+                    <div>
+                      <strong>{{ document.fileName }}</strong>
+                      <span>{{ document.description ?? 'Certificado de calibración registrado.' }}</span>
+                    </div>
+
+                    <a
+                      mat-icon-button
+                      [href]="document.fileUrl"
+                      target="_blank"
+                      rel="noopener"
+                      matTooltip="Ver certificado"
+                    >
+                      <mat-icon>open_in_new</mat-icon>
+                    </a>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+
+          <label
+            class="upload-strip"
+            [class.upload-strip--selected]="selectedFilesCount > 0"
+            [class.upload-strip--error]="fileError() || (fileTouched() && certificateRequired)"
+            [class.upload-strip--disabled]="loading || !canEdit"
+          >
+            <input
+              type="file"
+              multiple
+              accept="application/pdf,.pdf"
+              [disabled]="loading || !canEdit"
+              (change)="onFileSelected($event)"
+            />
+
+            <mat-icon>upload_file</mat-icon>
+
+            <div class="upload-strip__content">
+              <strong>
+                @if (selectedFilesCount > 0) {
+                  {{ selectedFilesCount }} PDF(s) seleccionado(s)
+                } @else {
+                  Seleccionar certificado(s) PDF
+                }
+              </strong>
+
+              <span>
+                @if (selectedFilesCount > 0) {
+                  Tamaño total: {{ selectedFilesSizeLabel }}
+                } @else {
+                  Puedes seleccionar uno o varios archivos · Máximo 15 MB por PDF
+                }
+              </span>
+            </div>
+          </label>
+
+          @if (selectedFilesCount > 0) {
+            <section class="selected-files">
+              <div class="selected-files__header">
+                <div>
+                  <strong>Listos para guardar</strong>
+                  <span>{{ selectedFilesCount }} archivo(s) seleccionado(s)</span>
+                </div>
+
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="secondary-btn"
+                  [disabled]="loading"
+                  (click)="clearSelectedFiles($event)"
+                >
+                  <mat-icon>close</mat-icon>
+                  Quitar todos
+                </button>
+              </div>
+
+              <div class="selected-files__list">
+                @for (file of selectedFiles(); track file.name + file.size + file.lastModified) {
+                  <article class="selected-file-row">
+                    <mat-icon>picture_as_pdf</mat-icon>
+
+                    <div>
+                      <strong>{{ file.name }}</strong>
+                      <span>{{ formatFileSize(file.size) }}</span>
+                    </div>
+
+                    <button
+                      mat-icon-button
+                      type="button"
+                      class="selected-file-row__remove"
+                      matTooltip="Quitar archivo"
+                      [disabled]="loading"
+                      (click)="removeSelectedFile(file, $event)"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+
+          @if (fileError(); as error) {
+            <div class="form-error">
+              {{ error }}
+            </div>
+          } @else if (fileTouched() && certificateRequired) {
+            <div class="form-error">
+              Debes seleccionar al menos un certificado PDF.
+            </div>
+          }
+
+          @if (!hasCertificateDocument && selectedFilesCount === 0) {
+            <div class="certificate-required-card">
+              <mat-icon>info</mat-icon>
+
+              <p>
+                Para completar este paso, registra los datos finales y adjunta al menos un certificado PDF.
+              </p>
+            </div>
+          }
         </section>
       } @else {
         <section class="empty-state">
@@ -232,7 +268,7 @@
     <app-drawer-actions
       cancelText="Cancelar"
       cancelIcon="close"
-      submitText="Guardar datos finales"
+      [submitText]="saveText"
       submitIcon="save"
       [loading]="loading"
       [disabled]="saveDisabled"

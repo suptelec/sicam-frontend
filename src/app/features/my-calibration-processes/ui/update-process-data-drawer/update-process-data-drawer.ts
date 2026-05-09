@@ -75,30 +75,30 @@ export class UpdateProcessDataDrawerComponent {
 
   readonly CalibrationResult = CalibrationResult;
 
-  readonly selectedFile = signal<File | null>(null);
+  readonly selectedFiles = signal<File[]>([]);
   readonly fileTouched = signal(false);
   readonly fileError = signal<string | null>(null);
 
   loading = false;
 
-  readonly form = this.fb.group(
-    {
-      certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
-      certificateIssueDate: [this.todayAsIsoDate(), Validators.required],
-      certificateValidUntil: [this.todayAsIsoDate(), Validators.required],
-      calibrationResult: [CalibrationResult.Approved, Validators.required],
-      notes: ['', [Validators.maxLength(1000)]]
-    },
-    {
-      validators: [this.validUntilAfterIssueDateValidator()]
-    }
-  );
+readonly form = this.fb.group(
+  {
+    certificateNumber: ['', [Validators.required, Validators.maxLength(100)]],
+    certificateIssueDate: [this.todayAsIsoDate(), Validators.required],
+    certificateValidUntil: [this.todayPlusYearsAsIsoDate(2), Validators.required],
+    calibrationResult: [CalibrationResult.Approved, Validators.required],
+    notes: ['', [Validators.maxLength(1000)]]
+  },
+  {
+    validators: [this.validUntilAfterIssueDateValidator()]
+  }
+);
 
   constructor() {
     effect(() => {
       const current = this.process();
 
-      this.clearSelectedFile();
+      this.clearSelectedFiles();
 
       if (!current) {
         this.reset();
@@ -108,8 +108,14 @@ export class UpdateProcessDataDrawerComponent {
       this.form.patchValue(
         {
           certificateNumber: current.certificateNumber ?? '',
-          certificateIssueDate: this.normalizeDateOrToday(current.certificateIssueDate),
-          certificateValidUntil: this.normalizeDateOrToday(current.certificateValidUntil),
+certificateIssueDate: this.normalizeDateOrFallback(
+  current.certificateIssueDate,
+  this.todayAsIsoDate()
+),
+certificateValidUntil: this.normalizeDateOrFallback(
+  current.certificateValidUntil,
+  this.todayPlusYearsAsIsoDate(2)
+),
           calibrationResult: current.calibrationResult ?? CalibrationResult.Approved,
           notes: current.notes ?? ''
         },
@@ -122,18 +128,18 @@ export class UpdateProcessDataDrawerComponent {
     return this.process();
   }
 
-  get certificateDocument(): CalibrationProcessDocument | null {
-    return this.currentProcess?.documents?.find(document =>
+  get certificateDocuments(): CalibrationProcessDocument[] {
+    return this.currentProcess?.documents?.filter(document =>
       Number(document.documentType) === CalibrationProcessDocumentType.CalibrationCertificate
-    ) ?? null;
+    ) ?? [];
   }
 
   get hasCertificateDocument(): boolean {
-    return !!this.certificateDocument;
+    return this.certificateDocuments.length > 0;
   }
 
   get certificateRequired(): boolean {
-    return !this.hasCertificateDocument && !this.selectedFile();
+    return !this.hasCertificateDocument && this.selectedFiles().length === 0;
   }
 
   get canEdit(): boolean {
@@ -151,16 +157,35 @@ export class UpdateProcessDataDrawerComponent {
       !this.canEdit;
   }
 
-  get selectedFileName(): string {
-    return this.selectedFile()?.name ?? '';
+  get selectedFilesCount(): number {
+    return this.selectedFiles().length;
   }
 
-  get selectedFileSizeLabel(): string {
-    const file = this.selectedFile();
+  get selectedFilesSizeLabel(): string {
+    const totalSize = this.selectedFiles()
+      .reduce((total, file) => total + file.size, 0);
 
-    if (!file) return '';
+    return this.formatFileSize(totalSize);
+  }
 
-    return this.formatFileSize(file.size);
+  get certificateStatusText(): string {
+    if (this.hasCertificateDocument) {
+      return `${this.certificateDocuments.length} cargado(s)`;
+    }
+
+    return 'Requerido';
+  }
+
+  get saveText(): string {
+    if (this.loading) {
+      return 'Guardando...';
+    }
+
+    if (this.selectedFilesCount > 1) {
+      return `Guardar datos y ${this.selectedFilesCount} PDFs`;
+    }
+
+    return 'Guardar datos finales';
   }
 
   onFileSelected(event: Event): void {
@@ -168,40 +193,68 @@ export class UpdateProcessDataDrawerComponent {
     this.fileError.set(null);
 
     const inputElement = event.target as HTMLInputElement;
-    const file = inputElement.files?.[0] ?? null;
+    const files = Array.from(inputElement.files ?? []);
 
     inputElement.value = '';
 
-    if (!file) return;
+    if (files.length === 0) return;
 
-    const isPdf =
-      file.type === 'application/pdf' ||
-      file.name.toLowerCase().endsWith('.pdf');
+    const acceptedFiles: File[] = [];
+    const rejectedMessages: string[] = [];
 
-    if (!isPdf) {
-      this.selectedFile.set(null);
-      this.fileError.set('Solo se permite cargar el certificado en formato PDF.');
-      return;
+    for (const file of files) {
+      const validationError = this.validatePdf(file);
+
+      if (validationError) {
+        rejectedMessages.push(`${file.name}: ${validationError}`);
+        continue;
+      }
+
+      acceptedFiles.push(file);
     }
 
-    const maxBytes = UpdateProcessDataDrawerComponent.MAX_PDF_SIZE_MB * 1024 * 1024;
+    if (rejectedMessages.length > 0) {
+      this.fileError.set(
+        rejectedMessages.length === 1
+          ? rejectedMessages[0]
+          : `${rejectedMessages.length} archivo(s) no fueron aceptados. Solo se permiten PDFs de máximo ${UpdateProcessDataDrawerComponent.MAX_PDF_SIZE_MB} MB.`
+      );
 
-    if (file.size > maxBytes) {
-      this.selectedFile.set(null);
-      this.fileError.set(`El PDF no puede superar ${UpdateProcessDataDrawerComponent.MAX_PDF_SIZE_MB} MB.`);
-      return;
+      this.toast.warning('Algunos archivos no cumplen el formato o tamaño permitido.');
     }
 
-    this.selectedFile.set(file);
+    if (acceptedFiles.length === 0) return;
+
+    this.selectedFiles.set([
+      ...this.selectedFiles(),
+      ...acceptedFiles
+    ]);
   }
 
-  removeSelectedFile(event?: Event): void {
+  removeSelectedFile(fileToRemove: File, event?: Event): void {
     event?.preventDefault();
     event?.stopPropagation();
 
     if (this.loading) return;
 
-    this.clearSelectedFile();
+    this.selectedFiles.set(
+      this.selectedFiles().filter(file => file !== fileToRemove)
+    );
+
+    if (this.selectedFiles().length === 0) {
+      this.fileTouched.set(false);
+    }
+  }
+
+  clearSelectedFiles(event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (this.loading) return;
+
+    this.selectedFiles.set([]);
+    this.fileTouched.set(false);
+    this.fileError.set(null);
   }
 
   submit(): void {
@@ -219,8 +272,8 @@ export class UpdateProcessDataDrawerComponent {
 
     if (this.certificateRequired) {
       this.fileTouched.set(true);
-      this.fileError.set('Selecciona el PDF del certificado de calibración.');
-      this.toast.warning('Selecciona el PDF del certificado de calibración.');
+      this.fileError.set('Selecciona al menos un certificado PDF.');
+      this.toast.warning('Selecciona al menos un certificado PDF.');
       return;
     }
 
@@ -250,16 +303,16 @@ export class UpdateProcessDataDrawerComponent {
           return;
         }
 
-        const file = this.selectedFile();
+        const files = [...this.selectedFiles()];
 
-        if (!file) {
+        if (files.length === 0) {
           this.loading = false;
           this.toast.success('Datos finales de calibración actualizados correctamente.');
           this.updated.emit();
           return;
         }
 
-        this.uploadCertificate(current.id, file);
+        this.uploadCertificates(current.id, files, 0, 0);
       },
       error: () => {
         this.loading = false;
@@ -271,11 +324,32 @@ export class UpdateProcessDataDrawerComponent {
   close(): void {
     if (this.loading) return;
 
-    this.clearSelectedFile();
+    this.clearSelectedFiles();
     this.closed.emit();
   }
 
-  private uploadCertificate(processId: number, file: File): void {
+  private uploadCertificates(
+    processId: number,
+    files: File[],
+    index: number,
+    uploadedCount: number
+  ): void {
+    if (index >= files.length) {
+      this.loading = false;
+
+      this.toast.success(
+        uploadedCount === 1
+          ? 'Datos finales y certificado PDF guardados correctamente.'
+          : `Datos finales y ${uploadedCount} certificados PDF guardados correctamente.`
+      );
+
+      this.clearSelectedFiles();
+      this.updated.emit();
+      return;
+    }
+
+    const file = files[index];
+
     this.fileUploadService.upload({
       file,
       folder: UpdateProcessDataDrawerComponent.CERTIFICATE_FOLDER
@@ -283,7 +357,7 @@ export class UpdateProcessDataDrawerComponent {
       next: uploadResponse => {
         if (!uploadResponse.succeed || !uploadResponse.result) {
           this.loading = false;
-          this.toast.error(uploadResponse.message ?? 'No se pudo subir el certificado PDF.');
+          this.toast.error(uploadResponse.message ?? `No se pudo subir "${file.name}".`);
           return;
         }
 
@@ -299,47 +373,61 @@ export class UpdateProcessDataDrawerComponent {
 
         this.service.addDocument(processId, dto).subscribe({
           next: response => {
-            this.loading = false;
-
             if (!response.succeed) {
-              this.toast.error(response.message ?? 'No se pudo registrar el certificado PDF.');
+              this.loading = false;
+              this.toast.error(response.message ?? `No se pudo registrar "${file.name}".`);
               return;
             }
 
-            this.toast.success('Datos finales y certificado PDF guardados correctamente.');
-            this.clearSelectedFile();
-            this.updated.emit();
+            this.uploadCertificates(
+              processId,
+              files,
+              index + 1,
+              uploadedCount + 1
+            );
           },
           error: () => {
             this.loading = false;
-            this.toast.error('Error al registrar el certificado PDF.');
+            this.toast.error(`Error al registrar "${file.name}".`);
           }
         });
       },
       error: () => {
         this.loading = false;
-        this.toast.error('Error al subir el certificado PDF.');
+        this.toast.error(`Error al subir "${file.name}".`);
       }
     });
   }
 
   private reset(): void {
-    this.form.reset({
-      certificateNumber: '',
-      certificateIssueDate: this.todayAsIsoDate(),
-      certificateValidUntil: this.todayAsIsoDate(),
-      calibrationResult: CalibrationResult.Approved,
-      notes: ''
-    });
+this.form.reset({
+  certificateNumber: '',
+  certificateIssueDate: this.todayAsIsoDate(),
+  certificateValidUntil: this.todayPlusYearsAsIsoDate(2),
+  calibrationResult: CalibrationResult.Approved,
+  notes: ''
+});
 
     this.loading = false;
-    this.clearSelectedFile();
+    this.clearSelectedFiles();
   }
 
-  private clearSelectedFile(): void {
-    this.selectedFile.set(null);
-    this.fileTouched.set(false);
-    this.fileError.set(null);
+  private validatePdf(file: File): string | null {
+    const isPdf =
+      file.type === 'application/pdf' ||
+      file.name.toLowerCase().endsWith('.pdf');
+
+    if (!isPdf) {
+      return 'no es PDF';
+    }
+
+    const maxBytes = UpdateProcessDataDrawerComponent.MAX_PDF_SIZE_MB * 1024 * 1024;
+
+    if (file.size > maxBytes) {
+      return `supera ${UpdateProcessDataDrawerComponent.MAX_PDF_SIZE_MB} MB`;
+    }
+
+    return null;
   }
 
   private normalize(value: unknown): string | null {
@@ -376,29 +464,32 @@ export class UpdateProcessDataDrawerComponent {
     };
   }
 
-  private normalizeDateOrToday(value: string | null | undefined): string {
-    if (!value) {
-      return this.todayAsIsoDate();
-    }
-
-    const normalized = value.substring(0, 10);
-
-    if (
-      normalized.startsWith('0001-01-01') ||
-      normalized.startsWith('1901-01-01') ||
-      normalized.startsWith('0001-1-1')
-    ) {
-      return this.todayAsIsoDate();
-    }
-
-    const year = Number(normalized.substring(0, 4));
-
-    if (!year || year < 2000) {
-      return this.todayAsIsoDate();
-    }
-
-    return normalized;
+private normalizeDateOrFallback(
+  value: string | null | undefined,
+  fallback: string
+): string {
+  if (!value) {
+    return fallback;
   }
+
+  const normalized = value.substring(0, 10);
+
+  if (
+    normalized.startsWith('0001-01-01') ||
+    normalized.startsWith('1901-01-01') ||
+    normalized.startsWith('0001-1-1')
+  ) {
+    return fallback;
+  }
+
+  const year = Number(normalized.substring(0, 4));
+
+  if (!year || year < 2000) {
+    return fallback;
+  }
+
+  return normalized;
+}
 
   private todayAsIsoDate(): string {
     const today = new Date();
@@ -409,7 +500,19 @@ export class UpdateProcessDataDrawerComponent {
     return `${year}-${month}-${day}`;
   }
 
-  private formatFileSize(sizeInBytes: number): string {
+private todayPlusYearsAsIsoDate(years: number): string {
+  const date = new Date();
+
+  date.setFullYear(date.getFullYear() + years);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+  formatFileSize(sizeInBytes: number): string {
     if (sizeInBytes < 1024) {
       return `${sizeInBytes} B`;
     }

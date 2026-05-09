@@ -1,12 +1,12 @@
 <section class="drawer">
   <header class="drawer__header">
     <div>
-<p class="drawer__eyebrow">AUTORIZACIÓN CENACE</p>
-<h2>Autorizar inicio de calibración</h2>
-<p class="drawer__description">
-  Antes de autorizar, carga al menos una foto de la configuración actual del medidor.
-  El PMSE verá estas fotos como referencia técnica durante la calibración.
-</p>
+      <p class="drawer__eyebrow">AUTORIZACIÓN CENACE</p>
+      <h2>Autorizar inicio de calibración</h2>
+      <p class="drawer__description">
+        Antes de autorizar, carga una o varias fotos de la configuración actual del medidor.
+        El PMSE verá estas fotos como referencia técnica durante la calibración.
+      </p>
     </div>
 
     <button
@@ -53,26 +53,27 @@
       <section class="snapshot-card">
         <div class="section-heading">
           <div>
-<p>Fotos que recibirá el PMSE</p>
-<h3>Fotos cargadas para esta autorización</h3>
+            <p>Fotos que recibirá el PMSE</p>
+            <h3>Fotos cargadas para esta autorización</h3>
           </div>
         </div>
 
-          @if (!isLocked) {
-    <div class="snapshot-note">
-      <mat-icon>info</mat-icon>
-      <span>
-        Puedes agregar o eliminar fotos antes de autorizar. Al autorizar, estas fotos quedarán bloqueadas y serán visibles para el PMSE.
-      </span>
-    </div>
-  }
+        @if (!isLocked) {
+          <div class="snapshot-note">
+            <mat-icon>info</mat-icon>
+            <span>
+              Puedes agregar o eliminar fotos antes de autorizar. Al autorizar, estas fotos quedarán bloqueadas y serán visibles para el PMSE.
+            </span>
+          </div>
+        }
+
         @if (!hasPhotos) {
           <div class="empty-photos">
             <mat-icon>add_photo_alternate</mat-icon>
-<strong>Todavía no has cargado fotos</strong>
-<p>
-  Carga al menos una foto de la configuración actual del medidor para habilitar la autorización.
-</p>
+            <strong>Todavía no has cargado fotos</strong>
+            <p>
+              Carga al menos una foto de la configuración actual del medidor para habilitar la autorización.
+            </p>
           </div>
         } @else {
           <div class="photos-grid">
@@ -117,8 +118,8 @@
         <section class="upload-card">
           <div class="section-heading">
             <div>
-<p>Carga de evidencia</p>
-<h3>Agregar foto de configuración</h3>
+              <p>Carga de evidencia</p>
+              <h3>Agregar fotos de configuración</h3>
             </div>
           </div>
 
@@ -135,45 +136,75 @@
           <label class="upload-zone">
             <input
               type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
+              multiple
+              accept="image/png,image/jpeg,image/jpg"
               [disabled]="isUploading()"
-              (change)="onFileSelected($event)"
+              (change)="onFilesSelected($event)"
             />
 
-            @if (selectedFile()) {
-              <div class="upload-zone__selected">
-                @if (previewUrl()) {
-                  <img [src]="previewUrl()" alt="Vista previa" />
-                }
+            <div class="upload-zone__placeholder">
+              <mat-icon>cloud_upload</mat-icon>
 
-                <div>
-                  <strong>{{ selectedFile()?.name }}</strong>
-                  <span>{{ selectedFile()?.size ?? 0 }} bytes</span>
-                </div>
-              </div>
-            } @else {
-              <div class="upload-zone__placeholder">
-                <mat-icon>cloud_upload</mat-icon>
-                <strong>Selecciona una imagen</strong>
-                <span>JPG, PNG o WEBP</span>
-              </div>
-            }
+              @if (hasSelectedFiles) {
+                <strong>Agregar más imágenes</strong>
+                <span>{{ selectedFilesCount }} imagen(es) seleccionada(s) · {{ selectedFilesTotalSizeText }}</span>
+              } @else {
+                <strong>Selecciona una o varias imágenes</strong>
+                <span>JPG, JPEG o PNG</span>
+              }
+            </div>
           </label>
 
-          <div class="upload-actions">
-            @if (selectedFile()) {
-              <button
-                mat-stroked-button
-                type="button"
-                class="secondary-btn"
-                [disabled]="isUploading()"
-                (click)="clearSelectedFile()"
-              >
-                <mat-icon>close</mat-icon>
-                Quitar
-              </button>
-            }
+          @if (hasSelectedFiles) {
+            <section class="selected-files">
+              <div class="selected-files__header">
+                <div>
+                  <strong>Imágenes listas para subir</strong>
+                  <span>{{ selectedFilesCount }} archivo(s) seleccionado(s)</span>
+                </div>
 
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="secondary-btn secondary-btn--compact"
+                  [disabled]="isUploading()"
+                  (click)="clearSelectedFiles()"
+                >
+                  <mat-icon>close</mat-icon>
+                  Quitar todas
+                </button>
+              </div>
+
+              <div class="selected-files__grid">
+                @for (selected of selectedFiles(); track selected.id) {
+                  <article class="selected-file-card">
+                    <img
+                      [src]="selected.previewUrl"
+                      [alt]="selected.file.name"
+                    />
+
+                    <div class="selected-file-card__body">
+                      <strong>{{ selected.file.name }}</strong>
+                      <span>{{ selected.file.size }} bytes</span>
+                    </div>
+
+                    <button
+                      mat-icon-button
+                      type="button"
+                      class="selected-file-card__remove"
+                      matTooltip="Quitar imagen"
+                      [disabled]="isUploading()"
+                      (click)="removeSelectedFile(selected)"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+
+          <div class="upload-actions">
             <button
               mat-flat-button
               type="button"
@@ -187,7 +218,7 @@
                 <mat-icon>upload</mat-icon>
               }
 
-              Subir foto
+              {{ uploadButtonText }}
             </button>
           </div>
         </section>

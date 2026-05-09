@@ -1,12 +1,13 @@
 <section class="drawer">
   <header class="drawer__header">
     <div>
-      <p class="drawer__eyebrow">CERTIFICADO PDF</p>
+      <p class="drawer__eyebrow">ACTA FIRMADA</p>
 
-      <h2>Cargar certificado de calibración</h2>
+      <h2>Subir acta firmada PDF</h2>
 
       <p class="drawer__description">
-        Adjunta el PDF del certificado emitido por el laboratorio acreditado. El acta de calibración se crea desde SICAM en una sección independiente.
+        Adjunta el PDF del acta firmada electrónicamente por el PMSE.
+        Este será el documento que CENACE revisará para aprobar el proceso.
       </p>
     </div>
 
@@ -25,11 +26,12 @@
   <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()">
     <div class="drawer__body">
       <section class="form-section">
-        <div class="section-title">Archivo del certificado</div>
+        <div class="section-title">Documento firmado</div>
 
         <label
           class="upload-zone"
           [class.upload-zone--selected]="selectedFile()"
+          [class.upload-zone--error]="fileError() || (fileTouched() && !selectedFile())"
           [class.upload-zone--disabled]="loading"
         >
           <input
@@ -54,8 +56,8 @@
             <div class="upload-zone__placeholder">
               <mat-icon>cloud_upload</mat-icon>
 
-              <strong>Selecciona el PDF del certificado</strong>
-              <span>Formato permitido: PDF</span>
+              <strong>Selecciona el PDF del acta firmada</strong>
+              <span>Formato permitido: PDF · Máximo 15 MB</span>
             </div>
           }
         </label>
@@ -67,11 +69,21 @@
               type="button"
               class="secondary-btn"
               [disabled]="loading"
-              (click)="removeSelectedFile()"
+              (click)="removeSelectedFile($event)"
             >
               <mat-icon>close</mat-icon>
               Quitar archivo
             </button>
+          </div>
+        }
+
+        @if (fileError(); as error) {
+          <div class="form-error">
+            {{ error }}
+          </div>
+        } @else if (fileTouched() && !selectedFile()) {
+          <div class="form-error">
+            Debes seleccionar el PDF del acta firmada.
           </div>
         }
 
@@ -82,7 +94,7 @@
             matInput
             rows="4"
             formControlName="description"
-            placeholder="Certificado de calibración emitido por laboratorio acreditado."
+            placeholder="Acta firmada electrónicamente por el PMSE."
           ></textarea>
 
           @if (form.controls.description.hasError('maxlength')) {
@@ -95,10 +107,12 @@
         <mat-icon>info</mat-icon>
 
         <div>
-          <strong>Documento requerido</strong>
+          <strong>Documento requerido para CENACE</strong>
           <p>
-            Para enviar el proceso a revisión CENACE, este certificado PDF debe estar cargado.
-            El acta no se carga aquí; se genera desde el módulo de Acta SICAM.
+            Primero descarga el acta generada por SICAM, conviértela a PDF,
+            fírmala electrónicamente y luego súbela en este formulario.
+            Si vuelves a subir otra acta firmada, el backend conservará como vigente
+            la última cargada.
           </p>
         </div>
       </section>
@@ -107,7 +121,7 @@
     <app-drawer-actions
       cancelText="Cancelar"
       cancelIcon="close"
-      submitText="Guardar certificado"
+      [submitText]="submitText"
       submitIcon="save"
       [loading]="loading"
       [disabled]="saveDisabled"

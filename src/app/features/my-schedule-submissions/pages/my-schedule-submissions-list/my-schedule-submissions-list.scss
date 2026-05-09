@@ -7,7 +7,7 @@
 
 .schedules-table {
   width: 100%;
-  min-width: 1160px;
+  min-width: 1280px;
   background: transparent;
 
   th {
@@ -67,12 +67,19 @@
 
 .document-link {
   color: #60a5fa;
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
 
   &:hover {
+    color: #93c5fd;
     text-decoration: underline;
   }
+}
+
+.document-pending {
+  color: #fbbf24;
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .stacked-cell {
@@ -83,6 +90,7 @@
   strong {
     color: var(--color-text, #f9fafb);
     font-size: 0.86rem;
+    font-weight: 800;
   }
 
   span {
@@ -96,7 +104,7 @@
 }
 
 .actions-cell {
-  width: 110px;
+  width: 120px;
   text-align: right;
   white-space: nowrap;
 }

@@ -10,57 +10,12 @@
   </button>
 
   @if (process(); as current) {
-    <app-page-header
-      eyebrow="Revisión CENACE"
-      [title]="current.meterCode ?? 'Proceso #' + current.id"
-      description="Revisa la información técnica, certificado, acta generada y eventos del proceso de calibración enviado por el PMSE."
-      [showAction]="false"
-    />
+    <header class="review-hero">
+      <div class="review-hero__main">
+        <p>REVISIÓN CENACE</p>
 
-    <section class="summary-grid">
-      <article class="summary-card">
-        <div class="summary-card__icon">
-          <mat-icon>electric_meter</mat-icon>
-        </div>
-
-        <div>
-          <span>Medidor</span>
-          <strong>{{ current.meterCode ?? '—' }}</strong>
-          <small>Serial: {{ current.meterSerial ?? '—' }}</small>
-        </div>
-      </article>
-
-      <article class="summary-card">
-        <div class="summary-card__icon">
-          <mat-icon>business</mat-icon>
-        </div>
-
-        <div>
-          <span>PMSE</span>
-          <strong>{{ current.pmseCompanyName ?? '—' }}</strong>
-          <small>Empresa responsable del proceso</small>
-        </div>
-      </article>
-
-      <article class="summary-card">
-        <div class="summary-card__icon">
-          <mat-icon>workspace_premium</mat-icon>
-        </div>
-
-        <div>
-          <span>Certificado</span>
-          <strong>{{ current.certificateNumber ?? 'Pendiente' }}</strong>
-          <small>Válido hasta {{ current.certificateValidUntil ?? '—' }}</small>
-        </div>
-      </article>
-
-      <article class="summary-card">
-        <div class="summary-card__icon">
-          <mat-icon>fact_check</mat-icon>
-        </div>
-
-        <div>
-          <span>Estado</span>
+        <div class="review-hero__title-row">
+          <h1>{{ current.meterCode ?? 'Proceso #' + current.id }}</h1>
 
           <app-status-chip
             [label]="getProcessStatusLabel(current.processStatus)"
@@ -68,8 +23,29 @@
             icon="fact_check"
           />
         </div>
-      </article>
-    </section>
+
+        <span>
+          Revisa la configuración del medidor, el acta firmada y los certificados PDF enviados por el PMSE.
+        </span>
+      </div>
+
+      <div class="review-hero__meta">
+        <article>
+          <span>PMSE</span>
+          <strong>{{ current.pmseCompanyName ?? '—' }}</strong>
+        </article>
+
+        <article>
+          <span>Serial</span>
+          <strong>{{ current.meterSerial ?? '—' }}</strong>
+        </article>
+
+        <article>
+          <span>Fecha ejecución</span>
+          <strong>{{ current.executionDate ?? '—' }}</strong>
+        </article>
+      </div>
+    </header>
 
     @if (current.processStatus === CalibrationProcessStatus.Approved) {
       <section class="completion-card">
@@ -85,317 +61,268 @@
       </section>
     }
 
-    <section class="review-grid">
-      <article class="review-card">
-        <span>Fecha de ejecución</span>
-        <strong>{{ current.executionDate  }}</strong>
-        <small>Fecha en la que se inició/ejecutó la calibración</small>
+    <section
+      class="configuration-gate"
+      [class.configuration-gate--done]="meterSnapshotValidationSaved()"
+      [class.configuration-gate--pending]="!meterSnapshotValidationSaved()"
+    >
+      <div class="configuration-gate__icon">
+        <mat-icon>{{ meterSnapshotValidationSaved() ? 'verified' : 'manage_search' }}</mat-icon>
+      </div>
+
+      <div class="configuration-gate__content">
+        <p>Punto pendiente para aprobación</p>
+
+        <h2>
+          {{ meterSnapshotValidationSaved() ? 'Configuración del medidor validada' : 'Validar configuración del medidor' }}
+        </h2>
+
+        <span>
+          @if (meterSnapshotValidationSaved()) {
+            CENACE ya registró la revisión de configuración. El proceso puede continuar con aprobación o rechazo.
+          } @else {
+            Antes de aprobar, CENACE debe comparar la configuración final del medidor con las fotos de referencia cargadas en la autorización.
+          }
+        </span>
+      </div>
+
+      <div class="configuration-gate__actions">
+        <button
+          mat-flat-button
+          type="button"
+          class="primary-action"
+          [disabled]="!canReject || isApproving() || isRejecting()"
+          [matTooltip]="canReject ? 'Validar configuración del medidor' : 'Solo se puede validar en procesos enviados a revisión'"
+          (click)="onSnapshotReviewClicked()"
+        >
+          <mat-icon>{{ meterSnapshotValidationSaved() ? 'verified' : 'manage_search' }}</mat-icon>
+          {{ meterSnapshotValidationSaved() ? 'Revisar validación' : 'Validar configuración' }}
+        </button>
+
+        <button
+          mat-flat-button
+          type="button"
+          class="success-action"
+          [disabled]="!canApprove || isApproving() || isRejecting()"
+          [matTooltip]="approveTooltip"
+          (click)="onApprove()"
+        >
+          <mat-icon>check_circle</mat-icon>
+          Aprobar proceso
+        </button>
+
+        <button
+          mat-stroked-button
+          type="button"
+          class="danger-action"
+          [disabled]="!canReject || isApproving() || isRejecting()"
+          [matTooltip]="canReject ? 'Rechazar proceso' : 'Solo se pueden rechazar procesos en revisión'"
+          (click)="onRejectClicked()"
+        >
+          <mat-icon>block</mat-icon>
+          Rechazar
+        </button>
+      </div>
+    </section>
+
+    <section class="validation-strip">
+      <article [class.validation-strip__item--done]="hasSignedActaPdf">
+        <mat-icon>{{ hasSignedActaPdf ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+
+        <div>
+          <strong>Acta firmada PDF</strong>
+          <span>{{ hasSignedActaPdf ? 'Cargada' : 'Pendiente' }}</span>
+        </div>
       </article>
 
-      <article class="review-card">
-        <span>Laboratorio</span>
-        <strong>
-          {{ current.accreditedLaboratoryName ?? current.laboratoryName ?? '—' }}
-        </strong>
-        <small>Laboratorio responsable de la calibración</small>
+      <article [class.validation-strip__item--done]="hasCertificate">
+        <mat-icon>{{ hasCertificate ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+
+        <div>
+          <strong>Certificado(s) PDF</strong>
+          <span>{{ hasCertificate ? 'Cargado(s)' : 'Pendiente(s)' }}</span>
+        </div>
       </article>
 
-      <article class="review-card">
-        <span>Resultado</span>
-        <strong>{{ getCalibrationResultLabel(current.calibrationResult) }}</strong>
-        <small>Resultado técnico registrado por el PMSE</small>
+      <article [class.validation-strip__item--done]="current.calibrationResult === 1">
+        <mat-icon>{{ current.calibrationResult === 1 ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+
+        <div>
+          <strong>Resultado aprobado</strong>
+          <span>{{ current.calibrationResult === 1 ? 'Registrado' : 'No aprobado' }}</span>
+        </div>
       </article>
 
-      <article class="review-card">
-        <span>Fecha emisión certificado</span>
-        <strong>{{ current.certificateIssueDate ?? '—' }}</strong>
-        <small>Fecha de emisión del certificado</small>
+      <article [class.validation-strip__item--done]="meterSnapshotValidationSaved()">
+        <mat-icon>{{ meterSnapshotValidationSaved() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+
+        <div>
+          <strong>Configuración</strong>
+          <span>{{ meterSnapshotValidationSaved() ? 'Validada' : 'Pendiente' }}</span>
+        </div>
       </article>
     </section>
 
-    <section class="acta-card">
+    <section class="documents-panel">
       <div class="section-heading">
         <div>
-          <p>Acta SICAM</p>
-          <h3>Acta de calibración generada por el sistema</h3>
+          <p>Documentación</p>
+          <h2>Documentos para revisión</h2>
+        </div>
+
+        <span
+          class="section-status"
+          [class.section-status--ok]="hasSignedActaPdf && hasCertificate"
+          [class.section-status--pending]="!hasSignedActaPdf || !hasCertificate"
+        >
+          <mat-icon>{{ hasSignedActaPdf && hasCertificate ? 'task_alt' : 'warning' }}</mat-icon>
+          {{ hasSignedActaPdf && hasCertificate ? 'Completa' : 'Pendiente' }}
+        </span>
+      </div>
+
+      <div class="documents-grid">
+        <article
+          class="document-card"
+          [class.document-card--ok]="hasSignedActaPdf"
+          [class.document-card--pending]="!hasSignedActaPdf"
+        >
+          <div class="document-card__header">
+            <div class="document-card__icon">
+              <mat-icon>{{ hasSignedActaPdf ? 'task_alt' : 'warning' }}</mat-icon>
+            </div>
+
+            <div>
+              <span>Acta SICAM firmada</span>
+              <strong>{{ hasSignedActaPdf ? 'PDF cargado' : 'Pendiente' }}</strong>
+            </div>
+          </div>
+
+          <p>
+            Documento firmado electrónicamente por el PMSE. Este es el acta que CENACE debe revisar.
+          </p>
+
+          @if (signedActaUrl) {
+            <a
+              mat-stroked-button
+              class="document-card__main-action"
+              [href]="signedActaUrl"
+              target="_blank"
+              rel="noopener"
+            >
+              <mat-icon>open_in_new</mat-icon>
+              Ver acta firmada
+            </a>
+          }
+        </article>
+
+        <article
+          class="document-card"
+          [class.document-card--ok]="hasCertificate"
+          [class.document-card--pending]="!hasCertificate"
+        >
+          <div class="document-card__header">
+            <div class="document-card__icon">
+              <mat-icon>{{ hasCertificate ? 'task_alt' : 'warning' }}</mat-icon>
+            </div>
+
+            <div>
+              <span>Certificado(s) PDF</span>
+              <strong>
+                {{ hasCertificate ? certificateDocuments.length + ' documento(s)' : 'Pendiente' }}
+              </strong>
+            </div>
+          </div>
+
+          <p>
+            Certificados de calibración cargados por el PMSE como evidencia técnica del proceso.
+          </p>
+
+          @if (certificateDocuments.length > 0) {
+            <div class="certificate-list">
+              @for (certificate of certificateDocuments; track certificate.id) {
+                <article class="certificate-item">
+                  <mat-icon>picture_as_pdf</mat-icon>
+
+                  <div>
+                    <strong>{{ certificate.fileName }}</strong>
+                    <span>{{ certificate.description ?? 'Certificado de calibración registrado.' }}</span>
+                  </div>
+
+                  <a
+                    mat-icon-button
+                    [href]="certificate.fileUrl"
+                    target="_blank"
+                    rel="noopener"
+                    matTooltip="Ver certificado"
+                  >
+                    <mat-icon>open_in_new</mat-icon>
+                  </a>
+                </article>
+              }
+            </div>
+          }
+        </article>
+      </div>
+    </section>
+
+    <section class="technical-panel">
+      <div class="section-heading">
+        <div>
+          <p>Datos técnicos</p>
+          <h2>Información registrada por PMSE</h2>
         </div>
       </div>
 
-      @if (current.calibrationActUrl) {
-        <div class="acta-ready">
-          <mat-icon>assignment_turned_in</mat-icon>
+      <div class="technical-grid">
+        <article>
+          <span>Certificado principal</span>
+          <strong>{{ current.certificateNumber ?? '—' }}</strong>
+          <small>Válido hasta {{ current.certificateValidUntil ?? '—' }}</small>
+        </article>
+
+        <article>
+          <span>Resultado</span>
+          <strong>{{ getCalibrationResultLabel(current.calibrationResult) }}</strong>
+          <small>Resultado técnico registrado</small>
+        </article>
+
+        <article>
+          <span>Laboratorio</span>
+          <strong>{{ current.accreditedLaboratoryName ?? current.laboratoryName ?? '—' }}</strong>
+          <small>Responsable de calibración</small>
+        </article>
+
+        <article>
+          <span>Fecha emisión</span>
+          <strong>{{ current.certificateIssueDate ?? '—' }}</strong>
+          <small>Fecha del certificado</small>
+        </article>
+      </div>
+
+      @if (current.notes) {
+        <section class="notes-card">
+          <mat-icon>notes</mat-icon>
 
           <div>
-            <strong>Acta generada correctamente</strong>
-            <p>
-              El acta fue generada por SICAM al enviar el proceso a revisión.
-            </p>
+            <strong>Notas del PMSE</strong>
+            <p>{{ current.notes }}</p>
           </div>
-
-          <a
-            mat-stroked-button
-            class="acta-ready__link"
-            [href]="current.calibrationActUrl"
-            target="_blank"
-            rel="noopener"
-          >
-            <mat-icon>download</mat-icon>
-            Descargar acta
-          </a>
-        </div>
-      } @else {
-        <div class="acta-missing">
-          <mat-icon>warning</mat-icon>
-
-          <div>
-            <strong>Acta pendiente</strong>
-            <p>
-              No se encontró el acta generada desde SICAM. El proceso no debe aprobarse hasta que el backend genere el acta oficial.
-            </p>
-          </div>
-        </div>
+        </section>
       }
     </section>
 
-    @if (current.notes) {
-      <section class="notes-card">
-        <mat-icon>notes</mat-icon>
-
-        <div>
-          <strong>Notas del PMSE</strong>
-          <p>{{ current.notes }}</p>
-        </div>
-      </section>
-    }
-
-    <section class="actions-bar">
-
-<button
-  mat-stroked-button
-  type="button"
-  class="actions-bar__btn actions-bar__btn--info"
-  [disabled]="!canReject || isApproving() || isRejecting()"
-  [matTooltip]="canReject ? 'Validar configuración del medidor' : 'Solo se puede validar en procesos enviados a revisión'"
-  (click)="onSnapshotReviewClicked()"
->
-  <mat-icon>{{ meterSnapshotValidationSaved() ? 'verified' : 'manage_search' }}</mat-icon>
-  {{ meterSnapshotValidationSaved() ? 'Configuración validada' : 'Validar configuración' }}
-</button>
-
-      <button
-        mat-flat-button
-        type="button"
-        class="actions-bar__btn actions-bar__btn--success"
-        [disabled]="!canApprove || isApproving() || isRejecting()"
-        [matTooltip]="canApprove ? 'Aprobar proceso final' : 'Para aprobar, debe estar en revisión, tener resultado aprobado, certificado PDF, acta generada y evento ejecutado'"
-        (click)="onApprove()"
-      >
-        <mat-icon>check_circle</mat-icon>
-        Aprobar proceso
-      </button>
-
+    <section class="refresh-bar">
       <button
         mat-stroked-button
         type="button"
-        class="actions-bar__btn actions-bar__btn--danger"
-        [disabled]="!canReject || isApproving() || isRejecting()"
-        [matTooltip]="canReject ? 'Rechazar proceso' : 'Solo se pueden rechazar procesos en revisión'"
-        (click)="onRejectClicked()"
-      >
-        <mat-icon>block</mat-icon>
-        Rechazar
-      </button>
-
-      <button
-        mat-icon-button
-        type="button"
-        class="actions-bar__refresh"
-        matTooltip="Actualizar"
+        class="neutral-action"
+        [disabled]="isLoading()"
         (click)="load()"
       >
         <mat-icon>refresh</mat-icon>
+        Actualizar información
       </button>
     </section>
-
-    <section class="checklist-card">
-      <article [class.checklist-card__item--done]="hasCertificate">
-        <mat-icon>
-          {{ hasCertificate ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-
-        <div>
-          <strong>Certificado PDF</strong>
-          <span>{{ hasCertificate ? 'Cargado' : 'Pendiente' }}</span>
-        </div>
-      </article>
-
-      <article [class.checklist-card__item--done]="hasAct">
-        <mat-icon>
-          {{ hasAct ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-
-        <div>
-          <strong>Acta SICAM</strong>
-          <span>{{ hasAct ? 'Generada' : 'Pendiente' }}</span>
-        </div>
-      </article>
-
-      <article [class.checklist-card__item--done]="hasCalibrationExecutedEvent">
-        <mat-icon>
-          {{ hasCalibrationExecutedEvent ? 'check_circle' : 'radio_button_unchecked' }}
-        </mat-icon>
-
-        <div>
-          <strong>Evento calibración ejecutada</strong>
-          <span>{{ hasCalibrationExecutedEvent ? 'Registrado' : 'Pendiente' }}</span>
-        </div>
-      </article>
-
-<article [class.checklist-card__item--done]="meterSnapshotValidationSaved()">
-  <mat-icon>
-    {{ meterSnapshotValidationSaved() ? 'check_circle' : 'radio_button_unchecked' }}
-  </mat-icon>
-
-  <div>
-    <strong>Configuración del medidor</strong>
-    <span>{{ meterSnapshotValidationSaved() ? 'Validada en esta sesión' : 'Pendiente de validación CENACE' }}</span>
-  </div>
-</article>
-
-    </section>
-
-    <app-table-card
-      [loading]="isLoading()"
-      [empty]="documentsDataSource.data.length === 0"
-      loadingText="Cargando documentos..."
-      emptyIcon="description"
-      emptyTitle="No hay documentos cargados"
-      emptyDescription="El PMSE debe cargar el PDF del certificado antes de enviar a revisión."
-    >
-      <table
-        table-content
-        mat-table
-        [dataSource]="documentsDataSource"
-        class="documents-table"
-      >
-        <ng-container matColumnDef="documentType">
-          <th mat-header-cell *matHeaderCellDef>Tipo</th>
-
-          <td mat-cell *matCellDef="let row">
-            <div class="document-type">
-              <mat-icon>description</mat-icon>
-              <strong>{{ getDocumentTypeLabel(row.documentType) }}</strong>
-            </div>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="fileName">
-          <th mat-header-cell *matHeaderCellDef>Archivo</th>
-
-          <td mat-cell *matCellDef="let row">
-            <div class="stacked-cell">
-              <strong>{{ row.fileName }}</strong>
-              <span>{{ row.contentType }}</span>
-            </div>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="description">
-          <th mat-header-cell *matHeaderCellDef>Descripción</th>
-
-          <td mat-cell *matCellDef="let row">
-            <span class="muted">{{ row.description ?? '—' }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Acciones</th>
-
-          <td mat-cell *matCellDef="let row" class="actions-cell">
-            <a
-              mat-icon-button
-              class="row-actions__btn"
-              [href]="row.fileUrl"
-              target="_blank"
-              rel="noopener"
-              matTooltip="Ver documento"
-            >
-              <mat-icon>open_in_new</mat-icon>
-            </a>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="documentColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: documentColumns"></tr>
-      </table>
-    </app-table-card>
-
-    <app-table-card
-      [loading]="isLoading()"
-      [empty]="eventsDataSource.data.length === 0"
-      loadingText="Cargando eventos..."
-      emptyIcon="event_note"
-      emptyTitle="No hay eventos técnicos"
-      emptyDescription="El PMSE debe registrar el evento de calibración ejecutada antes de enviar a revisión."
-    >
-      <table
-        table-content
-        mat-table
-        [dataSource]="eventsDataSource"
-        class="events-table"
-      >
-        <ng-container matColumnDef="eventType">
-          <th mat-header-cell *matHeaderCellDef>Evento</th>
-
-          <td mat-cell *matCellDef="let row">
-            <div class="event-type">
-              <mat-icon>event_available</mat-icon>
-              <strong>{{ getEventTypeLabel(row.eventType) }}</strong>
-            </div>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="occurredAt">
-          <th mat-header-cell *matHeaderCellDef>Fecha</th>
-
-          <td mat-cell *matCellDef="let row">
-            <strong>{{ row.occurredAt ?? '—' }}</strong>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="description">
-          <th mat-header-cell *matHeaderCellDef>Descripción</th>
-
-          <td mat-cell *matCellDef="let row">
-            <span class="muted">{{ row.description ?? '—' }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="attachment">
-          <th mat-header-cell *matHeaderCellDef>Adjunto</th>
-
-          <td mat-cell *matCellDef="let row" class="actions-cell">
-            @if (row.attachmentUrl) {
-              <a
-                mat-icon-button
-                class="row-actions__btn"
-                [href]="row.attachmentUrl"
-                target="_blank"
-                rel="noopener"
-                matTooltip="Ver adjunto"
-              >
-                <mat-icon>open_in_new</mat-icon>
-              </a>
-            } @else {
-              <span class="muted">—</span>
-            }
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="eventColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: eventColumns"></tr>
-      </table>
-    </app-table-card>
   } @else {
     <section class="loading-page">
       <mat-spinner diameter="36" />

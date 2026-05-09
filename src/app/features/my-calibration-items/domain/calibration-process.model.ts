@@ -59,12 +59,15 @@ export interface CalibrationProcess {
   certificateIssueDate?: string | null;
   certificateValidUntil?: string | null;
 
+  
   calibrationResult?: CalibrationResult | null;
+  certificatePdfUrl?: string | null;
+  calibrationActUrl?: string | null;
+  
   processStatus: CalibrationProcessStatus;
 
   notes?: string | null;
 
-  calibrationActUrl?: string | null;
 
   documents?: CalibrationProcessDocument[];
   events?: CalibrationProcessEvent[];

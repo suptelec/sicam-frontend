@@ -17,46 +17,66 @@
       [showAction]="false"
     />
 
-    <section class="summary-card">
-      <article>
-        <span>Plan</span>
-        <strong>{{ current.planYear }}</strong>
-        <small>{{ current.planName }}</small>
-      </article>
+<section class="summary-card">
+  <article>
+    <span>Plan</span>
+    <strong>{{ current.planYear }}</strong>
+    <small>{{ current.planName }}</small>
+  </article>
 
-      <article>
-        <span>Ítems</span>
-        <strong>{{ itemsCount }}</strong>
-        <small>Medidores agregados</small>
-      </article>
+  <article>
+    <span>Ítems</span>
+    <strong>{{ itemsCount }}</strong>
+    <small>Medidores agregados</small>
+  </article>
 
-      <article>
-        <span>Documento oficial</span>
+  <article>
+    <span>Excel oficial</span>
 
-        @if (current.documentUrl) {
-          <a
-            class="document-link"
-            [href]="current.documentUrl"
-            target="_blank"
-            rel="noopener"
-          >
-            Ver documento
-          </a>
-        } @else {
-          <strong class="warning-text">Pendiente</strong>
-          <small>Debe adjuntarse antes de enviar</small>
-        }
-      </article>
+    @if (current.documentUrl) {
+      <strong>Generado</strong>
+      <a
+        class="document-link"
+        [href]="current.documentUrl"
+        target="_blank"
+        rel="noopener"
+      >
+        Abrir Excel
+      </a>
+    } @else {
+      <strong class="warning-text">Pendiente</strong>
+      <small>Debes generarlo antes de enviar</small>
+    }
+  </article>
 
-      <article>
-        <span>Estado</span>
-        <app-status-chip
-          [label]="getStatusLabel(current.submissionStatus)"
-          [tone]="getStatusTone(current.submissionStatus)"
-          [icon]="getStatusIcon(current.submissionStatus)"
-        />
-      </article>
-    </section>
+  <article>
+    <span>Documento oficial</span>
+
+    @if (hasOfficializationDocument) {
+      <strong>Cargado</strong>
+      <a
+        class="document-link"
+        [href]="current.officializationDocumentUrl"
+        target="_blank"
+        rel="noopener"
+      >
+        Ver PDF
+      </a>
+    } @else {
+      <strong class="warning-text">Pendiente</strong>
+      <small>Debes adjuntarlo antes de enviar</small>
+    }
+  </article>
+
+  <article>
+    <span>Estado</span>
+    <app-status-chip
+      [label]="getStatusLabel(current.submissionStatus)"
+      [tone]="getStatusTone(current.submissionStatus)"
+      [icon]="getStatusIcon(current.submissionStatus)"
+    />
+  </article>
+</section>
 
     @if (current.rejectionReason) {
       <section class="rejection-card">
@@ -70,85 +90,31 @@
     }
 
 <section class="actions-bar">
-  <button
-    mat-flat-button
-    type="button"
-    class="actions-bar__btn actions-bar__btn--secondary"
-    [disabled]="!canGenerateExcel || isGeneratingDocument() || current.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft"
-    [matTooltip]="canGenerateExcel ? 'Generar Excel oficial' : 'Debe estar en borrador y tener ítems'"
-    (click)="onGenerateOfficialDocument()"
-  >
-    <mat-icon>description</mat-icon>
-    {{ current.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial' }}
-  </button>
+  <div class="actions-bar__info">
+    <span class="actions-bar__eyebrow">Documentos oficiales</span>
+    <h3 class="actions-bar__title">Prepara los archivos del cronograma</h3>
+    <p class="actions-bar__description">
+      Estos documentos acompañan el envío oficial del cronograma a CENACE.
+      Genera el Excel oficial y adjunta el PDF/oficio de respaldo si ya lo
+      tienes disponible.
+    </p>
+  </div>
 
-  @if (current.documentUrl) {
+  <div class="actions-bar__actions">
     <button
       mat-flat-button
       type="button"
       class="actions-bar__btn actions-bar__btn--secondary"
-      matTooltip="Descargar Excel oficial"
-      (click)="downloadOfficialDocument()"
+      [disabled]="!canGenerateExcel || isGeneratingDocument() || current.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft"
+      [matTooltip]="canGenerateExcel ? 'Generar Excel oficial' : 'Debe estar en borrador y tener ítems'"
+      (click)="onGenerateOfficialDocument()"
     >
-      <mat-icon>download</mat-icon>
-      Descargar Excel
+      <mat-icon>
+        {{ isGeneratingDocument() ? 'hourglass_top' : 'description' }}
+      </mat-icon>
+      {{ current.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial' }}
     </button>
-  }
 
-  <button
-    mat-flat-button
-    type="button"
-    class="actions-bar__btn actions-bar__btn--primary"
-    [disabled]="!canSubmit || isSubmitting()"
-    [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe generar el Excel oficial antes de enviar'"
-    (click)="onSubmit()"
-  >
-    <mat-icon>send</mat-icon>
-    Enviar a CENACE
-  </button>
-
-  <button
-    mat-icon-button
-    type="button"
-    class="actions-bar__refresh"
-    matTooltip="Actualizar"
-    (click)="load()"
-  >
-    <mat-icon>refresh</mat-icon>
-  </button>
-</section>
-
-<section class="officialization-card">
-  <div class="officialization-card__main">
-    <div
-      class="officialization-card__icon"
-      [class.officialization-card__icon--success]="hasOfficializationDocument"
-    >
-      <mat-icon>{{ hasOfficializationDocument ? 'task' : 'picture_as_pdf' }}</mat-icon>
-    </div>
-
-    <div class="officialization-card__content">
-      <p class="officialization-card__eyebrow">Documento opcional</p>
-
-      <div class="officialization-card__title-row">
-        <h3>Documento de oficialización</h3>
-
-        <span
-          class="officialization-card__badge"
-          [class.officialization-card__badge--success]="hasOfficializationDocument"
-        >
-          {{ hasOfficializationDocument ? 'Cargado' : 'Pendiente' }}
-        </span>
-      </div>
-
-      <p class="officialization-card__description">
-        Adjunta el PDF/oficio/acta relacionado con la oficialización del cronograma.
-        Este documento no bloquea el envío ni la revisión del cronograma.
-      </p>
-    </div>
-  </div>
-
-  <div class="officialization-card__actions">
     <input
       #officializationDocumentInput
       type="file"
@@ -157,29 +123,44 @@
       (change)="onOfficializationDocumentSelected($event)"
     />
 
+<button
+  mat-flat-button
+  type="button"
+  class="actions-bar__btn actions-bar__btn--secondary"
+  [disabled]="isUploadingOfficializationDocument() || current.submissionStatus !== CalibrationScheduleSubmissionStatus.Draft"
+  [matTooltip]="current.submissionStatus === CalibrationScheduleSubmissionStatus.Draft
+    ? (hasOfficializationDocument ? 'Reemplazar documento oficial' : 'Subir documento oficial')
+    : 'Solo puedes modificar el documento oficial mientras el cronograma está en borrador'"
+  (click)="officializationDocumentInput.click()"
+>
+  <mat-icon>
+    {{ isUploadingOfficializationDocument() ? 'hourglass_top' : 'upload_file' }}
+  </mat-icon>
+  {{ hasOfficializationDocument ? 'Reemplazar PDF' : 'Subir PDF' }}
+</button>
+
     <button
-      mat-stroked-button
+      mat-flat-button
       type="button"
-      class="officialization-card__btn"
-      [disabled]="isUploadingOfficializationDocument()"
-      (click)="officializationDocumentInput.click()"
+      class="actions-bar__btn actions-bar__btn--primary"
+      [disabled]="!canSubmit || isSubmitting()"
+      [matTooltip]="canSubmit ? 'Enviar a CENACE' : 'Debe generar el Excel oficial y adjuntar el documento oficial antes de enviar'"
+      (click)="onSubmit()"
     >
       <mat-icon>
-        {{ isUploadingOfficializationDocument() ? 'hourglass_top' : 'upload_file' }}
+        {{ isSubmitting() ? 'hourglass_top' : 'send' }}
       </mat-icon>
-
-      {{ hasOfficializationDocument ? 'Reemplazar PDF' : 'Subir PDF' }}
+      Enviar a CENACE
     </button>
 
     <button
-      mat-stroked-button
+      mat-icon-button
       type="button"
-      class="officialization-card__btn officialization-card__btn--primary"
-      [disabled]="!hasOfficializationDocument || isUploadingOfficializationDocument()"
-      (click)="viewOfficializationDocument()"
+      class="actions-bar__refresh"
+      matTooltip="Actualizar"
+      (click)="load()"
     >
-      <mat-icon>open_in_new</mat-icon>
-      Ver PDF
+      <mat-icon>refresh</mat-icon>
     </button>
   </div>
 </section>
@@ -216,11 +197,11 @@
         </ng-container>
 
         <ng-container matColumnDef="proposedDate">
-<th mat-header-cell *matHeaderCellDef>Fecha y hora propuesta</th>
+          <th mat-header-cell *matHeaderCellDef>Fecha y hora propuesta</th>
 
-<td mat-cell *matCellDef="let row">
-  <strong>{{ formatProposedCalibrationDateTime(row) }}</strong>
-</td>
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ formatProposedCalibrationDateTime(row) }}</strong>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="laboratory">

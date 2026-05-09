@@ -31,24 +31,48 @@
       </article>
 
       <article>
-        <span>Documento oficial</span>
+        <span>Excel oficial</span>
 
         @if (current.documentUrl) {
+          <strong>Generado</strong>
+
           <a
             class="document-link"
             [href]="current.documentUrl"
             target="_blank"
             rel="noopener"
           >
-            Descargar Excel oficial
+           Descargar
           </a>
         } @else {
-          <strong class="warning-text">Sin documento</strong>
+          <strong class="warning-text">Pendiente</strong>
+          <small>Excel oficial no generado</small>
+        }
+      </article>
+
+      <article>
+        <span>Documento oficial</span>
+
+        @if (hasOfficializationDocument) {
+          <strong>Cargado</strong>
+
+          <a
+            class="document-link"
+            [href]="current.officializationDocumentUrl"
+            target="_blank"
+            rel="noopener"
+          >
+            Descargar
+          </a>
+        } @else {
+          <strong class="warning-text">Pendiente</strong>
+          <small>PDF/oficio no adjuntado</small>
         }
       </article>
 
       <article>
         <span>Estado</span>
+
         <app-status-chip
           [label]="getStatusLabel(current.submissionStatus)"
           [tone]="getStatusTone(current.submissionStatus)"
@@ -56,47 +80,6 @@
         />
       </article>
     </section>
-
-<section class="officialization-review-card">
-  <div class="officialization-review-card__main">
-    <div
-      class="officialization-review-card__icon"
-      [class.officialization-review-card__icon--success]="hasOfficializationDocument"
-    >
-      <mat-icon>{{ hasOfficializationDocument ? 'task' : 'picture_as_pdf' }}</mat-icon>
-    </div>
-
-    <div class="officialization-review-card__content">
-      <p class="officialization-review-card__eyebrow">Documento adjunto por PMSE</p>
-
-      <div class="officialization-review-card__title-row">
-        <h3>Documento de oficialización</h3>
-
-        <span
-          class="officialization-review-card__badge"
-          [class.officialization-review-card__badge--success]="hasOfficializationDocument"
-        >
-          {{ hasOfficializationDocument ? 'Cargado' : 'No adjuntado' }}
-        </span>
-      </div>
-
-      <p class="officialization-review-card__description">
-        PDF/oficio/acta adjuntado por el PMSE como respaldo de la oficialización del cronograma.
-      </p>
-    </div>
-  </div>
-
-  <button
-    mat-stroked-button
-    type="button"
-    class="officialization-review-card__btn"
-    [disabled]="!hasOfficializationDocument"
-    (click)="viewOfficializationDocument()"
-  >
-    <mat-icon>open_in_new</mat-icon>
-    Ver PDF
-  </button>
-</section>
 
     @if (current.rejectionReason) {
       <section class="rejection-card">
@@ -110,29 +93,31 @@
     }
 
     <section class="actions-bar">
-      <button
-        mat-flat-button
-        type="button"
-        class="actions-bar__btn actions-bar__btn--success"
-        [disabled]="!canReview || isApproving() || isRejecting()"
-        [matTooltip]="canReview ? 'Aprobar cronograma' : 'Solo se revisan cronogramas enviados'"
-        (click)="onApprove()"
-      >
-        <mat-icon>check_circle</mat-icon>
-        Aprobar cronograma
-      </button>
+      <div class="actions-bar__group">
+        <button
+          mat-flat-button
+          type="button"
+          class="actions-bar__btn actions-bar__btn--success"
+          [disabled]="!canReview || isApproving() || isRejecting()"
+          [matTooltip]="canReview ? 'Aprobar cronograma' : 'Solo se revisan cronogramas enviados'"
+          (click)="onApprove()"
+        >
+          <mat-icon>check_circle</mat-icon>
+          Aprobar cronograma
+        </button>
 
-      <button
-        mat-stroked-button
-        type="button"
-        class="actions-bar__btn actions-bar__btn--danger"
-        [disabled]="!canReview || isApproving() || isRejecting()"
-        [matTooltip]="canReview ? 'Rechazar cronograma' : 'Solo se revisan cronogramas enviados'"
-        (click)="onRejectClicked()"
-      >
-        <mat-icon>block</mat-icon>
-        Rechazar
-      </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="actions-bar__btn actions-bar__btn--danger"
+          [disabled]="!canReview || isApproving() || isRejecting()"
+          [matTooltip]="canReview ? 'Rechazar cronograma' : 'Solo se revisan cronogramas enviados'"
+          (click)="onRejectClicked()"
+        >
+          <mat-icon>block</mat-icon>
+          Rechazar
+        </button>
+      </div>
 
       <button
         mat-icon-button
@@ -176,16 +161,17 @@
           </td>
         </ng-container>
 
-<ng-container matColumnDef="proposedDate">
-  <th mat-header-cell *matHeaderCellDef>Fecha y hora propuesta</th>
+        <ng-container matColumnDef="proposedDate">
+          <th mat-header-cell *matHeaderCellDef>Fecha y hora propuesta</th>
 
-  <td mat-cell *matCellDef="let row">
-    <div class="stacked-cell">
-      <strong>{{ formatProposedCalibrationDateTime(row) }}</strong>
-      <span>Inicio programado</span>
-    </div>
-  </td>
-</ng-container>
+          <td mat-cell *matCellDef="let row">
+            <div class="stacked-cell">
+              <strong>{{ formatProposedCalibrationDateTime(row) }}</strong>
+              <span>Inicio programado</span>
+            </div>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="laboratory">
           <th mat-header-cell *matHeaderCellDef>Laboratorio</th>
 

@@ -74,7 +74,6 @@ export class WorkAuthorizationReviewsListComponent implements OnInit, OnDestroy 
     'item',
     'pmse',
     'workWindow',
-    'document',
     'authorizationStatus',
     'actions'
   ];
@@ -307,7 +306,7 @@ export class WorkAuthorizationReviewsListComponent implements OnInit, OnDestroy 
       [
         'PmseCompanyName',
         'MeterCode',
-        'MeterSerial',
+        'MeterSerial'
       ],
       this.searchTerm
     );

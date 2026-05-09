@@ -18,6 +18,8 @@ import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.ser
 import { CalibrationProcessesService } from '../../../my-calibration-items/data-access/calibration-processes.service';
 import {
   CalibrationProcess,
+  CalibrationProcessDocument,
+  CalibrationProcessDocumentType,
   CalibrationProcessStatus
 } from '../../../my-calibration-items/domain/calibration-process.model';
 
@@ -52,6 +54,8 @@ export class CalibrationProcessReviewsListComponent implements OnInit {
     'meter',
     'pmse',
     'certificate',
+    'signedActa',
+    'certificateDocuments',
     'executionDate',
     'processStatus',
     'actions'
@@ -80,7 +84,8 @@ export class CalibrationProcessReviewsListComponent implements OnInit {
         'MeterSerial',
         'PmseCompanyName',
         'CertificateNumber',
-        'LaboratoryName'
+        'LaboratoryName',
+        'AccreditedLaboratoryName'
       ],
       this.searchTerm
     );
@@ -127,6 +132,41 @@ export class CalibrationProcessReviewsListComponent implements OnInit {
   onViewDetail(row: CalibrationProcess): void {
     this.router.navigate(['/calibration-process-reviews', row.id]);
   }
+
+getCertificateDocuments(row: CalibrationProcess): CalibrationProcessDocument[] {
+  return (row.documents ?? []).filter(document =>
+    Number(document.documentType) === CalibrationProcessDocumentType.CalibrationCertificate
+  );
+}
+
+getCertificateDocumentsCount(row: CalibrationProcess): number {
+  const documentsCount = this.getCertificateDocuments(row).length;
+
+  if (documentsCount > 0) {
+    return documentsCount;
+  }
+
+  return row.certificatePdfUrl?.trim()
+    ? 1
+    : 0;
+}
+
+hasCertificateDocuments(row: CalibrationProcess): boolean {
+  return this.getCertificateDocumentsCount(row) > 0;
+}
+
+hasSignedActaPdf(row: CalibrationProcess): boolean {
+  const hasActaDocument = (row.documents ?? []).some(document =>
+    Number(document.documentType) === CalibrationProcessDocumentType.CalibrationAct &&
+    !!document.fileUrl?.trim()
+  );
+
+  return hasActaDocument || !!row.calibrationActUrl?.trim();
+}
+
+
+
+
 
   getProcessStatusLabel(status: CalibrationProcessStatus): string {
     switch (Number(status)) {

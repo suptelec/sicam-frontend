@@ -1,7 +1,7 @@
 <section class="drawer">
   <header class="drawer__header">
     <div>
-      <p class="drawer__eyebrow">ACTA SICAM</p>
+      <p class="drawer__eyebrow">ACTA</p>
 
       <h2>Acta de calibración</h2>
 
@@ -86,7 +86,11 @@
       <span>Cargando formulario del acta...</span>
     </section>
   } @else {
-    <form class="drawer__form" [formGroup]="form" (ngSubmit)="submitActaAndContinue()">
+    <form
+      class="drawer__form"
+      [formGroup]="form"
+      (ngSubmit)="submitActaAndContinue()"
+    >
       <div class="drawer__body">
         @if (currentStep() === 'acta') {
           @if (formData(); as data) {
@@ -129,109 +133,118 @@
             }
           }
 
-<section class="form-section form-section--general">
-  <div class="section-heading">
-    <div>
-      <p>Datos generales</p>
-      <h3>Información del acta</h3>
-    </div>
-  </div>
+          <section class="form-section form-section--general">
+            <div class="section-heading">
+              <div>
+                <p>Datos generales</p>
+                <h3>Información del acta</h3>
+              </div>
+            </div>
 
-  <div class="general-form-grid">
-    <mat-form-field appearance="outline" class="drawer__field">
-      <mat-label>Delegado técnico PMSE</mat-label>
+            <div class="general-form-grid">
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Delegado técnico PMSE</mat-label>
 
-      <input
-        matInput
-        formControlName="pmseTechnicalDelegateName"
-        autocomplete="off"
-      />
+                <input
+                  matInput
+                  formControlName="pmseTechnicalDelegateName"
+                  autocomplete="off"
+                />
 
-      @if (
-        form.controls.pmseTechnicalDelegateName.hasError('required') &&
-        form.controls.pmseTechnicalDelegateName.touched
-      ) {
-        <mat-error>El delegado técnico es obligatorio.</mat-error>
-      }
-    </mat-form-field>
+                @if (
+                  form.controls.pmseTechnicalDelegateName.hasError('required') &&
+                  form.controls.pmseTechnicalDelegateName.touched
+                ) {
+                  <mat-error>El delegado técnico es obligatorio.</mat-error>
+                }
+              </mat-form-field>
 
-    <mat-form-field appearance="outline" class="drawer__field">
-      <mat-label>Teléfono PMSE</mat-label>
+              <mat-form-field appearance="outline" class="drawer__field">
+                <mat-label>Teléfono PMSE</mat-label>
 
-      <input
-        matInput
-        formControlName="pmsePhone"
-        autocomplete="off"
-      />
+                <input
+                  matInput
+                  formControlName="pmsePhone"
+                  autocomplete="off"
+                />
 
-      @if (form.controls.pmsePhone.hasError('maxlength')) {
-        <mat-error>Máximo 50 caracteres.</mat-error>
-      }
-    </mat-form-field>
-  </div>
+                @if (form.controls.pmsePhone.hasError('maxlength')) {
+                  <mat-error>Máximo 50 caracteres.</mat-error>
+                }
+              </mat-form-field>
+            </div>
 
+            <div class="acta-timeline">
+              <article class="timeline-field timeline-field--acta">
+                <div class="timeline-field__header">
+                  <span>Acta</span>
+                  <strong>Fecha del acta</strong>
+                </div>
 
-  
-<div class="acta-timeline">
-  <article class="timeline-field timeline-field--acta">
-    <div class="timeline-field__header">
-      <span>Acta</span>
-      <strong>Fecha del acta</strong>
-    </div>
+                <app-date-field
+                  class="drawer__field"
+                  formControlName="actaDate"
+                  label="Fecha del acta"
+                />
+              </article>
 
-    <app-date-field
-      class="drawer__field"
-      formControlName="actaDate"
-      label="Fecha del acta"
-    />
-  </article>
+              <article class="timeline-field timeline-field--calibration">
+                <div class="timeline-field__header">
+                  <span>Calibración</span>
+                  <strong>Inicio y fin de calibración</strong>
+                </div>
 
-  <article class="timeline-field timeline-field--calibration">
-    <div class="timeline-field__header">
-      <span>Calibración</span>
-      <strong>Inicio y fin de calibración</strong>
-    </div>
+                <div class="timeline-field__dates">
+                  <div>
+                    <app-date-field
+                      class="drawer__field"
+                      formControlName="calibrationStartDateTime"
+                      label="Fecha y hora de inicio"
+                      [withTime]="true"
+                      [minuteStep]="1"
+                    />
 
-    <div class="timeline-field__dates">
-      <app-date-field
-        class="drawer__field"
-        formControlName="calibrationStartDateTime"
-        label="Fecha y hora de inicio"
-        [withTime]="true"
-        [minuteStep]="1"
-      />
+                    @if (
+                      form.controls.calibrationStartDateTime.hasError('required') &&
+                      form.controls.calibrationStartDateTime.touched
+                    ) {
+                      <p class="field-error">
+                        La fecha y hora de inicio es obligatoria.
+                      </p>
+                    }
+                  </div>
 
-      <app-date-field
-        class="drawer__field"
-        formControlName="meterRestorationEndDateTime"
-        label="Fecha y hora de fin"
-        [withTime]="true"
-        [minuteStep]="1"
-      />
-    </div>
+                  <div>
+                    <app-date-field
+                      class="drawer__field"
+                      formControlName="meterRestorationEndDateTime"
+                      label="Fecha y hora de fin"
+                      [withTime]="true"
+                      [minuteStep]="1"
+                    />
 
-    @if (
-      form.controls.calibrationStartDateTime.hasError('required') &&
-      form.controls.calibrationStartDateTime.touched
-    ) {
-      <p class="field-error">
-        La fecha y hora de inicio es obligatoria.
-      </p>
-    }
+                    @if (
+                      form.controls.meterRestorationEndDateTime.hasError('required') &&
+                      form.controls.meterRestorationEndDateTime.touched
+                    ) {
+                      <p class="field-error">
+                        La fecha y hora de fin es obligatoria.
+                      </p>
+                    }
 
-    @if (
-      form.controls.meterRestorationEndDateTime.hasError('required') &&
-      form.controls.meterRestorationEndDateTime.touched
-    ) {
-      <p class="field-error">
-        La fecha y hora de fin es obligatoria.
-      </p>
-    }
-  </article>
-</div>
-
-
-</section>
+                    @if (
+                      calibrationEndBeforeStart &&
+                      form.controls.meterRestorationEndDateTime.touched
+                    ) {
+                      <p class="field-error">
+                        La fecha y hora de fin no puede ser anterior al inicio de calibración.
+                      </p>
+                    }
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
 
           <section class="form-section">
             <div class="section-heading">
@@ -363,29 +376,45 @@
                       </div>
                     </header>
 
-<div class="eventuality-stack">
-  <app-date-field
-    class="drawer__field eventuality-date-field"
-    formControlName="activeEnergyEndDateTime"
-    label="Fin energía activa"
-    [withTime]="true"
-    [minuteStep]="1"
-  />
+                    <div class="eventuality-fields">
+                      <div>
+                        <app-date-field
+                          class="drawer__field eventuality-date-field"
+                          formControlName="activeEnergyEndDateTime"
+                          label="Fin energía activa"
+                          [withTime]="true"
+                          [minuteStep]="1"
+                          [min]="calibrationWindowStartDateTime"
+                          [max]="calibrationWindowEndDateTime"
+                        />
 
-  <mat-form-field appearance="outline" class="drawer__field drawer__textarea eventuality-observation-field">
-    <mat-label>Eventualidades energía activa</mat-label>
+                        @if (
+                          activeEnergyEndOutOfWindow &&
+                          form.controls.activeEnergyEndDateTime.touched
+                        ) {
+                          <p class="field-error">
+                            La finalización de energía activa debe estar dentro de la fecha y hora de inicio y fin del cronograma.
+                          </p>
+                        }
+                      </div>
 
-    <textarea
-      matInput
-      rows="3"
-      formControlName="activeEnergyEventualities"
-    ></textarea>
+                      <mat-form-field
+                        appearance="outline"
+                        class="drawer__field drawer__textarea eventuality-observation-field"
+                      >
+                        <mat-label>Eventualidades energía activa</mat-label>
 
-    @if (form.controls.activeEnergyEventualities.hasError('maxlength')) {
-      <mat-error>Máximo 1000 caracteres.</mat-error>
-    }
-  </mat-form-field>
-</div>
+                        <textarea
+                          matInput
+                          rows="3"
+                          formControlName="activeEnergyEventualities"
+                        ></textarea>
+
+                        @if (form.controls.activeEnergyEventualities.hasError('maxlength')) {
+                          <mat-error>Máximo 1000 caracteres.</mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
                   </section>
                 }
 
@@ -398,29 +427,45 @@
                       </div>
                     </header>
 
-<div class="eventuality-stack">
-  <app-date-field
-    class="drawer__field eventuality-date-field"
-    formControlName="reactiveEnergyEndDateTime"
-    label="Fin energía reactiva"
-    [withTime]="true"
-    [minuteStep]="1"
-  />
+                    <div class="eventuality-fields">
+                      <div>
+                        <app-date-field
+                          class="drawer__field eventuality-date-field"
+                          formControlName="reactiveEnergyEndDateTime"
+                          label="Fin energía reactiva"
+                          [withTime]="true"
+                          [minuteStep]="1"
+                          [min]="calibrationWindowStartDateTime"
+                          [max]="calibrationWindowEndDateTime"
+                        />
 
-  <mat-form-field appearance="outline" class="drawer__field drawer__textarea eventuality-observation-field">
-    <mat-label>Eventualidades energía reactiva</mat-label>
+                        @if (
+                          reactiveEnergyEndOutOfWindow &&
+                          form.controls.reactiveEnergyEndDateTime.touched
+                        ) {
+                          <p class="field-error">
+                            La finalización de energía reactiva debe estar dentro de la fecha y hora de inicio y fin del cronograma.
+                          </p>
+                        }
+                      </div>
 
-    <textarea
-      matInput
-      rows="3"
-      formControlName="reactiveEnergyEventualities"
-    ></textarea>
+                      <mat-form-field
+                        appearance="outline"
+                        class="drawer__field drawer__textarea eventuality-observation-field"
+                      >
+                        <mat-label>Eventualidades energía reactiva</mat-label>
 
-    @if (form.controls.reactiveEnergyEventualities.hasError('maxlength')) {
-      <mat-error>Máximo 1000 caracteres.</mat-error>
-    }
-  </mat-form-field>
-</div>
+                        <textarea
+                          matInput
+                          rows="3"
+                          formControlName="reactiveEnergyEventualities"
+                        ></textarea>
+
+                        @if (form.controls.reactiveEnergyEventualities.hasError('maxlength')) {
+                          <mat-error>Máximo 1000 caracteres.</mat-error>
+                        }
+                      </mat-form-field>
+                    </div>
                   </section>
                 }
               }

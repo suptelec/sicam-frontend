@@ -87,14 +87,15 @@ export class MyScheduleSubmissionDetailComponent implements OnInit {
     return !!this.submission()?.documentUrl;
   }
 
-  get canSubmit(): boolean {
-    const current = this.submission();
+get canSubmit(): boolean {
+  const current = this.submission();
 
-    return !!current &&
-      Number(current.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
-      this.itemsCount > 0 &&
-      this.hasDocument;
-  }
+  return !!current &&
+    Number(current.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
+    this.itemsCount > 0 &&
+    this.hasDocument &&
+    this.hasOfficializationDocument;
+}
 
 get canGenerateExcel(): boolean {
   const current = this.submission();
@@ -204,7 +205,7 @@ downloadOfficialDocument(): void {
     if (!current) return;
 
     if (!this.canSubmit) {
-      this.toast.warning('El cronograma debe estar en borrador, tener ítems y documento oficial.');
+      this.toast.warning('El cronograma debe estar en borrador, tener ítems, Excel oficial y documento oficial.');
       return;
     }
 
@@ -406,23 +407,57 @@ viewOfficializationDocument(): void {
 }
 
 formatProposedCalibrationDateTime(row: CalibrationScheduleSubmissionItem): string {
-  if (row.proposedCalibrationDateTime) {
-    return this.formatDateTimeText(row.proposedCalibrationDateTime);
+  const dateTime = this.formatDateTimeText(row.proposedCalibrationDateTime);
+
+  if (dateTime) {
+    return dateTime;
   }
 
-  if (row.proposedCalibrationDate && row.proposedCalibrationTime) {
-    return `${row.proposedCalibrationDate} ${row.proposedCalibrationTime.slice(0, 5)}`;
+  const date = row.proposedCalibrationDate?.trim();
+  const time = this.formatTimeText(row.proposedCalibrationTime);
+
+  if (date && time) {
+    return `${date} ${time}`;
   }
 
-  return row.proposedCalibrationDate ?? '—';
+  return date || '—';
 }
 
-private formatDateTimeText(value: string): string {
-  const normalized = value.replace('T', ' ');
-  const [date, time] = normalized.split(' ');
+private formatDateTimeText(value?: string | null): string | null {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const [date, rawTime] = normalized.replace('T', ' ').split(' ');
+  const time = this.formatTimeText(rawTime);
+
+  if (!date) {
+    return null;
+  }
 
   return time
-    ? `${date} ${time.slice(0, 5)}`
+    ? `${date} ${time}`
     : date;
 }
+
+private formatTimeText(value?: string | null): string | null {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const match = normalized.match(/^(\d{1,2}):(\d{2})/);
+
+  if (!match) {
+    return null;
+  }
+
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+
+
 }

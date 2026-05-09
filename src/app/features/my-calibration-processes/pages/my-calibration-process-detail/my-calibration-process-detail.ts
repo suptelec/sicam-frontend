@@ -20,8 +20,6 @@ import {
   CalibrationProcess,
   CalibrationProcessDocument,
   CalibrationProcessDocumentType,
-  CalibrationProcessEvent,
-  CalibrationProcessEventType,
   CalibrationProcessStatus,
   CalibrationResult,
   MeterCalibrationActa,
@@ -29,10 +27,10 @@ import {
   MeterCalibrationActaSeal
 } from '../../../my-calibration-items/domain/calibration-process.model';
 
-import { ProcessEventDrawerComponent } from '../../ui/process-event-drawer/process-event-drawer';
 import { StartCorrectionDrawerComponent } from '../../ui/start-correction-drawer/start-correction-drawer';
 import { UpdateProcessDataDrawerComponent } from '../../ui/update-process-data-drawer/update-process-data-drawer';
 import { MeterCalibrationActaDrawerComponent } from '../../ui/meter-calibration-acta-drawer/meter-calibration-acta-drawer';
+import { ProcessDocumentDrawerComponent } from '../../ui/process-document-drawer/process-document-drawer';
 
 @Component({
   selector: 'app-my-calibration-process-detail',
@@ -47,10 +45,10 @@ import { MeterCalibrationActaDrawerComponent } from '../../ui/meter-calibration-
     TableCardComponent,
     StatusChipComponent,
     DrawerShellComponent,
-    ProcessEventDrawerComponent,
     StartCorrectionDrawerComponent,
     UpdateProcessDataDrawerComponent,
-    MeterCalibrationActaDrawerComponent
+    MeterCalibrationActaDrawerComponent,
+    ProcessDocumentDrawerComponent
   ],
   templateUrl: './my-calibration-process-detail.html',
   styleUrl: './my-calibration-process-detail.scss'
@@ -63,26 +61,28 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly CalibrationProcessDocumentType = CalibrationProcessDocumentType;
-  readonly CalibrationProcessEventType = CalibrationProcessEventType;
   readonly CalibrationProcessStatus = CalibrationProcessStatus;
 
   process = signal<CalibrationProcess | null>(null);
   actaForm = signal<MeterCalibrationActaFormResponse | null>(null);
-  actaDrawerOpen = signal(false);
 
   isLoading = signal(false);
   isLoadingActa = signal(false);
   isSubmitting = signal(false);
+  isDownloadingActa = signal(false);
 
-  eventDrawerOpen = signal(false);
+  actaDrawerOpen = signal(false);
   startCorrectionDrawerOpen = signal(false);
   updateDataDrawerOpen = signal(false);
+  documentDrawerOpen = signal(false);
+
+  selectedDocumentType = signal<CalibrationProcessDocumentType>(
+    CalibrationProcessDocumentType.CalibrationCertificate
+  );
 
   documentsDataSource = new MatTableDataSource<CalibrationProcessDocument>([]);
-  eventsDataSource = new MatTableDataSource<CalibrationProcessEvent>([]);
 
   documentColumns = ['documentType', 'fileName', 'description', 'actions'];
-  eventColumns = ['eventType', 'occurredAt', 'description', 'attachment'];
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -104,8 +104,16 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
     return this.process()?.documents ?? [];
   }
 
-  get events(): CalibrationProcessEvent[] {
-    return this.process()?.events ?? [];
+  get certificateDocuments(): CalibrationProcessDocument[] {
+    return this.documents.filter(x =>
+      Number(x.documentType) === CalibrationProcessDocumentType.CalibrationCertificate
+    );
+  }
+
+  get signedActaDocument(): CalibrationProcessDocument | null {
+    return this.documents
+      .filter(x => Number(x.documentType) === CalibrationProcessDocumentType.CalibrationAct)
+      .at(-1) ?? null;
   }
 
   get existingActa(): MeterCalibrationActa | null {
@@ -127,21 +135,23 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
   }
 
   get hasCertificate(): boolean {
-    return this.documents.some(x =>
-      Number(x.documentType) === CalibrationProcessDocumentType.CalibrationCertificate
-    );
+    return this.certificateDocuments.length > 0;
   }
 
-  get hasCalibrationExecutedEvent(): boolean {
-    return this.events.some(x =>
-      Number(x.eventType) === CalibrationProcessEventType.CalibrationExecuted
-    );
+  get hasSignedActaPdf(): boolean {
+    return !!this.signedActaUrl;
   }
 
-  get hasCorrectionEvent(): boolean {
-    return this.events.some(x =>
-      Number(x.eventType) === CalibrationProcessEventType.CorrectionRegistered
-    );
+  get signedActaUrl(): string | null {
+    const documentUrl = this.signedActaDocument?.fileUrl?.trim();
+
+    if (documentUrl) {
+      return documentUrl;
+    }
+
+    const currentUrl = this.process()?.calibrationActUrl?.trim();
+
+    return currentUrl || null;
   }
 
   get hasActa(): boolean {
@@ -161,19 +171,10 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
       this.actaSeals.every(seal => (seal.photos?.length ?? 0) > 0);
   }
 
-  get hasGeneratedActaFile(): boolean {
-    const current = this.process();
-    const acta = this.existingActa;
+get canDownloadGeneratedActa(): boolean {
+  return this.hasCompleteActa && !this.isDownloadingActa();
+}
 
-    return !!current?.calibrationActUrl?.trim() ||
-      !!acta?.generatedFileUrl?.trim();
-  }
-
-  get actaDownloadUrl(): string | null {
-    return this.process()?.calibrationActUrl ??
-      this.existingActa?.generatedFileUrl ??
-      null;
-  }
 
   get canEditProcess(): boolean {
     const status = Number(this.process()?.processStatus);
@@ -191,18 +192,13 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
 
     if (!current || !this.canEditProcess) return false;
 
-    const correctionOk = Number(current.processStatus) === CalibrationProcessStatus.Corrected
-      ? this.hasCorrectionEvent
-      : true;
-
     return this.hasFinalData &&
       this.hasCertificate &&
-      this.hasCalibrationExecutedEvent &&
       this.hasActa &&
+      this.hasSignedActaPdf &&
       this.hasActaChecks &&
       this.hasActaSeals &&
-      this.allActaSealsHavePhotos &&
-      correctionOk;
+      this.allActaSealsHavePhotos;
   }
 
   get submitTooltip(): string {
@@ -232,7 +228,6 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
 
         this.process.set(response.result);
         this.documentsDataSource.data = response.result.documents ?? [];
-        this.eventsDataSource.data = response.result.events ?? [];
 
         this.loadActaForm(response.result.id);
       },
@@ -269,34 +264,24 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
     this.router.navigate(['/my-calibration-items']);
   }
 
-
-
-  onAddEvent(): void {
-    if (!this.canEditProcess) {
-      this.toast.warning('Solo puedes registrar eventos cuando el proceso está en proceso o en corrección.');
-      return;
-    }
-
-    this.eventDrawerOpen.set(true);
+onEditDataClicked(): void {
+  if (!this.canEditProcess) {
+    this.toast.warning('Solo puedes registrar datos finales cuando el proceso está en proceso o en corrección.');
+    return;
   }
 
-  onEventDrawerClosed(): void {
-    this.eventDrawerOpen.set(false);
+  if (!this.hasCompleteActa) {
+    this.toast.warning('Primero debes completar el acta con validaciones, sellos y fotos.');
+    return;
   }
 
-  onEventCreated(): void {
-    this.eventDrawerOpen.set(false);
-    this.load(this.processId);
+  if (!this.hasSignedActaPdf) {
+    this.toast.warning('Primero debes subir el acta firmada en PDF.');
+    return;
   }
 
-  onEditDataClicked(): void {
-    if (!this.canEditProcess) {
-      this.toast.warning('Solo puedes registrar datos finales cuando el proceso está en proceso o en corrección.');
-      return;
-    }
-
-    this.updateDataDrawerOpen.set(true);
-  }
+  this.updateDataDrawerOpen.set(true);
+}
 
   onUpdateDataDrawerClosed(): void {
     this.updateDataDrawerOpen.set(false);
@@ -307,23 +292,88 @@ export class MyCalibrationProcessDetailComponent implements OnInit {
     this.load(this.processId);
   }
 
-onOpenActa(): void {
-  if (!this.canEditProcess) {
-    this.toast.warning('Solo puedes crear o editar el acta cuando el proceso está en proceso o en corrección.');
+  onOpenActa(): void {
+    if (!this.canEditProcess) {
+      this.toast.warning('Solo puedes crear o editar el acta cuando el proceso está en proceso o en corrección.');
+      return;
+    }
+
+    this.actaDrawerOpen.set(true);
+  }
+
+  onActaDrawerClosed(): void {
+    this.actaDrawerOpen.set(false);
+  }
+
+  onActaSaved(): void {
+    this.actaDrawerOpen.set(false);
+    this.load(this.processId);
+  }
+
+onDownloadGeneratedActa(): void {
+  if (!this.hasCompleteActa) {
+    this.toast.warning('Primero debes completar el acta con validaciones, sellos y fotos.');
     return;
   }
 
-  this.actaDrawerOpen.set(true);
+  if (this.isDownloadingActa()) return;
+
+  const current = this.process();
+
+  if (!current) return;
+
+  this.isDownloadingActa.set(true);
+
+  this.service.exportActa(current.id).subscribe({
+    next: blob => {
+      this.isDownloadingActa.set(false);
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+
+      anchor.href = url;
+      anchor.download = this.buildActaFileName(current);
+      anchor.click();
+
+      URL.revokeObjectURL(url);
+    },
+    error: () => {
+      this.isDownloadingActa.set(false);
+      this.toast.error('Error al descargar el acta.');
+    }
+  });
 }
 
-onActaDrawerClosed(): void {
-  this.actaDrawerOpen.set(false);
+get hasCompleteActa(): boolean {
+  return this.hasActa &&
+    this.hasActaChecks &&
+    this.hasActaSeals &&
+    this.allActaSealsHavePhotos;
 }
 
-onActaSaved(): void {
-  this.actaDrawerOpen.set(false);
-  this.load(this.processId);
+onAddSignedActaClicked(): void {
+  if (!this.canEditProcess) {
+    this.toast.warning('Solo puedes cargar el acta firmada cuando el proceso está en proceso o en corrección.');
+    return;
+  }
+
+  if (!this.hasCompleteActa) {
+    this.toast.warning('Primero debes completar el acta con validaciones, sellos y fotos.');
+    return;
+  }
+
+  this.selectedDocumentType.set(CalibrationProcessDocumentType.CalibrationAct);
+  this.documentDrawerOpen.set(true);
 }
+
+  onDocumentDrawerClosed(): void {
+    this.documentDrawerOpen.set(false);
+  }
+
+  onDocumentCreated(): void {
+    this.documentDrawerOpen.set(false);
+    this.load(this.processId);
+  }
 
   onStartCorrectionClicked(): void {
     if (!this.canStartCorrection) {
@@ -362,7 +412,7 @@ onActaSaved(): void {
 
     this.confirmDialog.confirm({
       title: 'Enviar proceso a revisión',
-      message: 'Se enviará el proceso de calibración a revisión CENACE. SICAM generará el acta oficial si las validaciones del backend son correctas. ¿Deseas continuar?',
+      message: 'Se enviará el proceso de calibración a revisión CENACE. Asegúrate de que el acta firmada en PDF y los certificados cargados correspondan al proceso.',
       confirmText: 'Enviar',
       cancelText: 'Cancelar',
       type: 'warning'
@@ -397,23 +447,10 @@ onActaSaved(): void {
         return 'Certificado de calibración';
 
       case CalibrationProcessDocumentType.CalibrationAct:
-        return 'Acta de calibración';
+        return 'Acta firmada';
 
       default:
         return 'Documento';
-    }
-  }
-
-  getEventTypeLabel(type: CalibrationProcessEventType): string {
-    switch (Number(type)) {
-      case CalibrationProcessEventType.CalibrationExecuted:
-        return 'Calibración ejecutada';
-
-      case CalibrationProcessEventType.CorrectionRegistered:
-        return 'Corrección registrada';
-
-      default:
-        return 'Evento técnico';
     }
   }
 
@@ -474,47 +511,27 @@ onActaSaved(): void {
     }
   }
 
-  private getMissingSubmitRequirements(): string[] {
-    const missing: string[] = [];
-    const current = this.process();
+private getMissingSubmitRequirements(): string[] {
+  const missing: string[] = [];
 
-    if (!this.hasFinalData) {
-      missing.push('datos finales');
-    }
-
-    if (!this.hasCertificate) {
-      missing.push('certificado PDF');
-    }
-
-    if (!this.hasCalibrationExecutedEvent) {
-      missing.push('evento de calibración ejecutada');
-    }
-
-    if (!this.hasActa) {
-      missing.push('acta SICAM');
-    }
-
-    if (!this.hasActaChecks) {
-      missing.push('checks del acta');
-    }
-
-    if (!this.hasActaSeals) {
-      missing.push('sellos del acta');
-    }
-
-    if (this.hasActaSeals && !this.allActaSealsHavePhotos) {
-      missing.push('fotos de todos los sellos');
-    }
-
-    if (
-      Number(current?.processStatus) === CalibrationProcessStatus.Corrected &&
-      !this.hasCorrectionEvent
-    ) {
-      missing.push('evento de corrección');
-    }
-
-    return missing;
+  if (!this.hasCompleteActa) {
+    missing.push('acta completa');
   }
+
+  if (!this.hasSignedActaPdf) {
+    missing.push('acta firmada en PDF');
+  }
+
+  if (!this.hasFinalData) {
+    missing.push('datos del certificado');
+  }
+
+  if (!this.hasCertificate) {
+    missing.push('al menos un certificado PDF');
+  }
+
+  return missing;
+}
 
   private hasValidDate(value: string | null | undefined): boolean {
     if (!value) return false;
@@ -522,4 +539,35 @@ onActaSaved(): void {
     return !value.startsWith('0001-01-01') &&
       !value.startsWith('0001-1-1');
   }
+
+  private buildActaFileName(process: CalibrationProcess): string {
+    const meterCode = process.meterCode?.trim() || `proceso-${process.id}`;
+    const safeMeterCode = meterCode.replace(/[\\/:*?"<>|]/g, '-');
+
+    return `Acta-SICAM-${safeMeterCode}.xlsx`;
+  }
+
+get canRegisterCertificate(): boolean {
+  return this.canEditProcess &&
+    this.hasCompleteActa &&
+    this.hasSignedActaPdf;
+}
+
+get registerCertificateTooltip(): string {
+  if (this.canRegisterCertificate) {
+    return 'Registrar datos finales y certificado(s) PDF';
+  }
+
+  if (!this.hasCompleteActa) {
+    return 'Primero debes completar el acta con validaciones, sellos y fotos.';
+  }
+
+  if (!this.hasSignedActaPdf) {
+    return 'Primero debes subir el acta firmada en PDF.';
+  }
+
+  return 'No puedes registrar certificado en el estado actual del proceso.';
+}
+
+
 }

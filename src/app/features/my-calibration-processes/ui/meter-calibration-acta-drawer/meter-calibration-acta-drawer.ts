@@ -9,10 +9,13 @@ import {
 } from '@angular/core';
 
 import {
+  AbstractControl,
   FormArray,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
   Validators
 } from '@angular/forms';
 
@@ -274,7 +277,8 @@ export class MeterCalibrationActaDrawerComponent {
   readonly uploadingSealPhotoId = signal<number | null>(null);
   readonly deletingPhotoId = signal<number | null>(null);
 
-  readonly form = this.fb.group({
+readonly form = this.fb.group(
+  {
     pmseTechnicalDelegateName: ['', [Validators.required, Validators.maxLength(200)]],
     pmsePhone: ['', [Validators.maxLength(50)]],
     actaDate: ['', Validators.required],
@@ -290,7 +294,11 @@ export class MeterCalibrationActaDrawerComponent {
 
     checks: this.fb.array([]),
     seals: this.fb.array([])
-  });
+  },
+  {
+    validators: [this.energyEndDatesWithinCalibrationWindowValidator()]
+  }
+);
 
   constructor() {
     effect(() => {
@@ -302,6 +310,26 @@ export class MeterCalibrationActaDrawerComponent {
       }
     });
   }
+
+get calibrationWindowStartDateTime(): string | null {
+  return this.normalize(this.form.controls.calibrationStartDateTime.value);
+}
+
+get calibrationWindowEndDateTime(): string | null {
+  return this.normalize(this.form.controls.meterRestorationEndDateTime.value);
+}
+
+get activeEnergyEndOutOfWindow(): boolean {
+  return this.form.hasError('activeEnergyEndOutOfWindow');
+}
+
+get reactiveEnergyEndOutOfWindow(): boolean {
+  return this.form.hasError('reactiveEnergyEndOutOfWindow');
+}
+
+get calibrationEndBeforeStart(): boolean {
+  return this.form.hasError('calibrationEndBeforeStart');
+}
 
   get checks(): FormArray {
     return this.form.controls.checks as FormArray;
@@ -455,11 +483,27 @@ export class MeterCalibrationActaDrawerComponent {
       return;
     }
 
-    if (this.form.invalid || this.isSaving()) {
-      this.form.markAllAsTouched();
-      this.toast.warning('Revisa los campos obligatorios del acta.');
-      return;
-    }
+if (this.form.invalid || this.isSaving()) {
+  this.form.markAllAsTouched();
+
+  if (this.calibrationEndBeforeStart) {
+    this.toast.warning('La fecha y hora de fin no puede ser anterior al inicio de calibración.');
+    return;
+  }
+
+  if (this.activeEnergyEndOutOfWindow) {
+    this.toast.warning('La finalización de energía activa debe estar dentro de la fecha y hora de inicio y fin del cronograma.');
+    return;
+  }
+
+  if (this.reactiveEnergyEndOutOfWindow) {
+    this.toast.warning('La finalización de energía reactiva debe estar dentro de la fecha y hora de inicio y fin del cronograma.');
+    return;
+  }
+
+  this.toast.warning('Revisa los campos obligatorios del acta.');
+  return;
+}
 
     if (this.seals.length === 0) {
       this.toast.warning('Registra al menos un sello colocado después de la calibración.');
@@ -899,4 +943,72 @@ export class MeterCalibrationActaDrawerComponent {
       CENACE_MANUAL_CHECK_CODES.includes(checkCode) ||
       (checkCode >= 50 && checkCode <= 56);
   }
+
+private energyEndDatesWithinCalibrationWindowValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const start = this.parseDateTimeForComparison(
+      control.get('calibrationStartDateTime')?.value
+    );
+
+    const end = this.parseDateTimeForComparison(
+      control.get('meterRestorationEndDateTime')?.value
+    );
+
+    const activeEnergyEnd = this.parseDateTimeForComparison(
+      control.get('activeEnergyEndDateTime')?.value
+    );
+
+    const reactiveEnergyEnd = this.parseDateTimeForComparison(
+      control.get('reactiveEnergyEndDateTime')?.value
+    );
+
+    const errors: ValidationErrors = {};
+
+    if (start && end && end < start) {
+      errors['calibrationEndBeforeStart'] = true;
+    }
+
+    if (
+      start &&
+      end &&
+      activeEnergyEnd &&
+      (activeEnergyEnd < start || activeEnergyEnd > end)
+    ) {
+      errors['activeEnergyEndOutOfWindow'] = true;
+    }
+
+    if (
+      start &&
+      end &&
+      reactiveEnergyEnd &&
+      (reactiveEnergyEnd < start || reactiveEnergyEnd > end)
+    ) {
+      errors['reactiveEnergyEndOutOfWindow'] = true;
+    }
+
+    return Object.keys(errors).length > 0 ? errors : null;
+  };
+}
+
+private parseDateTimeForComparison(value: unknown): Date | null {
+  const normalized = this.normalize(value);
+
+  if (!normalized) return null;
+
+  const match = normalized.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/
+  );
+
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4] ?? '0');
+  const minute = Number(match[5] ?? '0');
+
+  const parsed = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 }

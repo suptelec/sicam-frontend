@@ -31,6 +31,12 @@ import {
   CreateAuthorizationMeterSnapshotPhotoRequest
 } from '../../../my-calibration-items/domain/work-authorization.model';
 
+interface SelectedSnapshotFile {
+  id: string;
+  file: File;
+  previewUrl: string;
+}
+
 @Component({
   selector: 'app-authorization-meter-snapshot-drawer',
   standalone: true,
@@ -64,17 +70,16 @@ export class AuthorizationMeterSnapshotDrawerComponent implements OnChanges {
   readonly isDeleting = signal(false);
   readonly isAuthorizing = signal(false);
 
-  readonly selectedFile = signal<File | null>(null);
-  readonly previewUrl = signal<string | null>(null);
+  readonly selectedFiles = signal<SelectedSnapshotFile[]>([]);
 
-readonly captionControl = new FormControl<string>(
-  'Foto de configuración del medidor antes de la calibración',
-  { nonNullable: true }
-);
+  readonly captionControl = new FormControl<string>(
+    'Foto de configuración del medidor antes de la calibración',
+    { nonNullable: true }
+  );
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['authorization'] && this.authorization?.id) {
-      this.clearSelectedFile();
+      this.clearSelectedFiles();
       this.loadSnapshot();
     }
   }
@@ -93,10 +98,33 @@ readonly captionControl = new FormControl<string>(
       this.authorization.authorizationStatus !== CalibrationWorkAuthorizationStatus.Requested;
   }
 
+  get selectedFilesCount(): number {
+    return this.selectedFiles().length;
+  }
+
+  get hasSelectedFiles(): boolean {
+    return this.selectedFilesCount > 0;
+  }
+
+  get selectedFilesTotalSizeText(): string {
+    const total = this.selectedFiles()
+      .reduce((sum, item) => sum + item.file.size, 0);
+
+    return this.formatFileSize(total);
+  }
+
+  get uploadButtonText(): string {
+    if (this.selectedFilesCount <= 1) {
+      return 'Subir foto';
+    }
+
+    return `Subir ${this.selectedFilesCount} fotos`;
+  }
+
   get canUpload(): boolean {
     return !this.isLocked &&
       !this.isUploading() &&
-      !!this.selectedFile();
+      this.hasSelectedFiles;
   }
 
   get canAuthorize(): boolean {
@@ -129,82 +157,64 @@ readonly captionControl = new FormControl<string>(
     });
   }
 
-  onFileSelected(event: Event): void {
+  onFilesSelected(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
-    const file = inputElement.files?.[0] ?? null;
+    const files = Array.from(inputElement.files ?? []);
 
     inputElement.value = '';
 
-    if (!file) return;
+    if (files.length === 0) return;
 
-    if (!file.type.startsWith('image/')) {
-      this.toast.warning('Solo se permiten imágenes para la configuración del medidor.');
-      return;
+    const validFiles = files.filter(file => this.isAllowedImage(file));
+    const rejectedFiles = files.length - validFiles.length;
+
+    if (rejectedFiles > 0) {
+      this.toast.warning('Solo se permiten imágenes JPG, JPEG o PNG.');
     }
 
-    this.clearSelectedFile();
+    if (validFiles.length === 0) return;
 
-    this.selectedFile.set(file);
-    this.previewUrl.set(URL.createObjectURL(file));
+    const currentFiles = this.selectedFiles();
+
+    const newSelectedFiles = validFiles.map((file, index) => ({
+      id: this.createClientFileId(file, index),
+      file,
+      previewUrl: URL.createObjectURL(file)
+    }));
+
+    this.selectedFiles.set([
+      ...currentFiles,
+      ...newSelectedFiles
+    ]);
+  }
+
+  removeSelectedFile(selectedFile: SelectedSnapshotFile): void {
+    this.revokePreviewUrl(selectedFile.previewUrl);
+
+    this.selectedFiles.set(
+      this.selectedFiles().filter(item => item.id !== selectedFile.id)
+    );
+  }
+
+  clearSelectedFiles(): void {
+    this.selectedFiles().forEach(item => {
+      this.revokePreviewUrl(item.previewUrl);
+    });
+
+    this.selectedFiles.set([]);
   }
 
   uploadPhoto(): void {
-    const file = this.selectedFile();
+    const files = [...this.selectedFiles()];
 
-    if (!file || this.isUploading() || this.isLocked) return;
+    if (files.length === 0 || this.isUploading() || this.isLocked) return;
 
     const caption = this.captionControl.value.trim();
+    const initialSortOrder = this.photos.length + 1;
 
     this.isUploading.set(true);
 
-    this.fileUploadService.upload({
-      file,
-      folder: 'authorization-meter-snapshots'
-    }).subscribe({
-      next: uploadResponse => {
-        if (!uploadResponse.succeed || !uploadResponse.result) {
-          this.isUploading.set(false);
-          this.toast.error(uploadResponse.message ?? 'No se pudo subir la imagen.');
-          return;
-        }
-
-        const uploaded = uploadResponse.result;
-
-        const dto: CreateAuthorizationMeterSnapshotPhotoRequest = {
-          fileName: uploaded.fileName || file.name,
-          contentType: file.type || 'application/octet-stream',
-          fileSize: file.size,
-          storageKey: uploaded.relativeUrl,
-          fileUrl: uploaded.absoluteUrl,
-          caption: caption || null,
-          sortOrder: this.photos.length + 1
-        };
-
-        this.service.addMeterSnapshotPhoto(this.authorization.id, dto).subscribe({
-          next: response => {
-            this.isUploading.set(false);
-
-            if (!response.succeed) {
-              this.toast.error(response.message ?? 'No se pudo registrar la foto.');
-              return;
-            }
-
-            this.toast.success('Foto de configuración registrada correctamente.');
-            this.clearSelectedFile();
-            this.captionControl.setValue('Foto de configuración del medidor antes de la calibración');
-            this.loadSnapshot();
-          },
-          error: () => {
-            this.isUploading.set(false);
-            this.toast.error('Error al registrar la foto de configuración.');
-          }
-        });
-      },
-      error: () => {
-        this.isUploading.set(false);
-        this.toast.error('Error al subir la imagen.');
-      }
-    });
+    this.uploadSelectedFileAt(files, 0, caption, initialSortOrder, 0);
   }
 
   deletePhoto(photo: AuthorizationMeterSnapshotPhoto): void {
@@ -286,18 +296,144 @@ readonly captionControl = new FormControl<string>(
   close(): void {
     if (this.isUploading() || this.isAuthorizing() || this.isDeleting()) return;
 
-    this.clearSelectedFile();
+    this.clearSelectedFiles();
     this.closed.emit();
   }
 
-  clearSelectedFile(): void {
-    const currentPreview = this.previewUrl();
+  private uploadSelectedFileAt(
+    files: SelectedSnapshotFile[],
+    index: number,
+    caption: string,
+    initialSortOrder: number,
+    uploadedCount: number
+  ): void {
+    if (index >= files.length) {
+      this.isUploading.set(false);
 
-    if (currentPreview) {
-      URL.revokeObjectURL(currentPreview);
+      if (uploadedCount > 0) {
+        this.toast.success(
+          uploadedCount === 1
+            ? 'Foto de configuración registrada correctamente.'
+            : `${uploadedCount} fotos de configuración registradas correctamente.`
+        );
+
+        this.captionControl.setValue('Foto de configuración del medidor antes de la calibración');
+        this.clearSelectedFiles();
+        this.loadSnapshot();
+      }
+
+      return;
     }
 
-    this.previewUrl.set(null);
-    this.selectedFile.set(null);
+    const selectedFile = files[index];
+    const file = selectedFile.file;
+
+    this.fileUploadService.upload({
+      file,
+      folder: 'authorization-meter-snapshots'
+    }).subscribe({
+      next: uploadResponse => {
+        if (!uploadResponse.succeed || !uploadResponse.result) {
+          this.isUploading.set(false);
+          this.toast.error(uploadResponse.message ?? `No se pudo subir la imagen "${file.name}".`);
+          return;
+        }
+
+        const uploaded = uploadResponse.result;
+
+        const dto: CreateAuthorizationMeterSnapshotPhotoRequest = {
+          fileName: uploaded.fileName || file.name,
+          contentType: file.type || 'application/octet-stream',
+          fileSize: file.size,
+          storageKey: uploaded.relativeUrl,
+          fileUrl: uploaded.absoluteUrl,
+          caption: this.buildCaption(caption, files.length, index),
+          sortOrder: initialSortOrder + index
+        };
+
+        this.service.addMeterSnapshotPhoto(this.authorization.id, dto).subscribe({
+          next: response => {
+            if (!response.succeed) {
+              this.isUploading.set(false);
+              this.toast.error(response.message ?? `No se pudo registrar la foto "${file.name}".`);
+              return;
+            }
+
+            this.removeSelectedFile(selectedFile);
+
+            this.uploadSelectedFileAt(
+              files,
+              index + 1,
+              caption,
+              initialSortOrder,
+              uploadedCount + 1
+            );
+          },
+          error: () => {
+            this.isUploading.set(false);
+            this.toast.error(`Error al registrar la foto "${file.name}".`);
+          }
+        });
+      },
+      error: () => {
+        this.isUploading.set(false);
+        this.toast.error(`Error al subir la imagen "${file.name}".`);
+      }
+    });
+  }
+
+  private isAllowedImage(file: File): boolean {
+    const validMimeTypes = [
+      'image/png',
+      'image/jpeg',
+      'image/jpg'
+    ];
+
+    const lowerName = file.name.toLowerCase();
+
+    return validMimeTypes.includes(file.type) ||
+      lowerName.endsWith('.png') ||
+      lowerName.endsWith('.jpg') ||
+      lowerName.endsWith('.jpeg');
+  }
+
+  private buildCaption(
+    caption: string,
+    totalFiles: number,
+    index: number
+  ): string | null {
+    const normalized = caption.trim();
+
+    if (!normalized) {
+      return null;
+    }
+
+    if (totalFiles <= 1) {
+      return normalized;
+    }
+
+    return `${normalized} ${index + 1}`;
+  }
+
+  private createClientFileId(file: File, index: number): string {
+    return `${file.name}-${file.size}-${file.lastModified}-${Date.now()}-${index}`;
+  }
+
+  private revokePreviewUrl(previewUrl: string): void {
+    URL.revokeObjectURL(previewUrl);
+  }
+
+  private formatFileSize(size: number): string {
+    if (size <= 0) return '0 B';
+
+    if (size < 1024) {
+      return `${size} B`;
+    }
+
+    if (size < 1024 * 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 }

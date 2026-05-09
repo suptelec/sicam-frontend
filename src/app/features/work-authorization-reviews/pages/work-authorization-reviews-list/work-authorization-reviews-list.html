@@ -16,71 +16,69 @@
       (refresh)="refresh()"
     />
 
-    <div class="filters-panel__controls">
-      <div class="filter-field filter-field--company">
-        <span class="filter-field__label">Empresa</span>
+    <div class="filter-field filter-field--company">
+      <span class="filter-field__label">Empresa</span>
 
-        <app-searchable-select
-          class="filter-field__control"
-          placeholder="Todas las empresas"
-          emptyLabel="Todas las empresas"
-          noResultsText="No se encontraron empresas"
-          [options]="pmseCompanies()"
-          displayKey="name"
-          valueKey="id"
-          [searchKeys]="['name', 'externalCode', 'ruc']"
-          [allowEmpty]="true"
-          [showLabel]="false"
-          [compact]="true"
-          [formControl]="pmseCompanyIdControl"
-        />
-      </div>
+      <app-searchable-select
+        class="filter-field__control"
+        placeholder="Todas las empresas"
+        emptyLabel="Todas las empresas"
+        noResultsText="No se encontraron empresas"
+        [options]="pmseCompanies()"
+        displayKey="name"
+        valueKey="id"
+        [searchKeys]="['name', 'externalCode', 'ruc']"
+        [allowEmpty]="true"
+        [showLabel]="false"
+        [compact]="true"
+        [formControl]="pmseCompanyIdControl"
+      />
+    </div>
 
-      <div class="filter-field filter-field--date-range">
-        <span class="filter-field__label">Fecha solicitada</span>
+    <div class="filter-field filter-field--date-range">
+      <span class="filter-field__label">Fecha solicitada</span>
 
-        <mat-form-field
-          appearance="outline"
-          class="filter-field__control date-range-control"
-        >
-          <mat-date-range-input [rangePicker]="requestedWorkDatePicker">
-            <input
-              matStartDate
-              placeholder="Inicio"
-              [value]="requestedWorkDateStart()"
-              (dateChange)="onRequestedWorkDateStartChange($event.value)"
-            />
-
-            <input
-              matEndDate
-              placeholder="Fin"
-              [value]="requestedWorkDateEnd()"
-              (dateChange)="onRequestedWorkDateEndChange($event.value)"
-            />
-          </mat-date-range-input>
-
-          @if (hasRequestedWorkDateFilter) {
-            <button
-              mat-icon-button
-              matSuffix
-              type="button"
-              class="filter-field__clear"
-              aria-label="Limpiar filtro de fechas"
-              (mousedown)="$event.preventDefault()"
-              (click)="clearRequestedWorkDateFilter($event)"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-
-          <mat-datepicker-toggle
-            matIconSuffix
-            [for]="requestedWorkDatePicker"
+      <mat-form-field
+        appearance="outline"
+        class="filter-field__control date-range-control"
+      >
+        <mat-date-range-input [rangePicker]="requestedWorkDatePicker">
+          <input
+            matStartDate
+            placeholder="Inicio"
+            [value]="requestedWorkDateStart()"
+            (dateChange)="onRequestedWorkDateStartChange($event.value)"
           />
 
-          <mat-date-range-picker #requestedWorkDatePicker />
-        </mat-form-field>
-      </div>
+          <input
+            matEndDate
+            placeholder="Fin"
+            [value]="requestedWorkDateEnd()"
+            (dateChange)="onRequestedWorkDateEndChange($event.value)"
+          />
+        </mat-date-range-input>
+
+        @if (hasRequestedWorkDateFilter) {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            class="filter-field__clear"
+            aria-label="Limpiar filtro de fechas"
+            (mousedown)="$event.preventDefault()"
+            (click)="clearRequestedWorkDateFilter($event)"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+
+        <mat-datepicker-toggle
+          matIconSuffix
+          [for]="requestedWorkDatePicker"
+        />
+
+        <mat-date-range-picker #requestedWorkDatePicker />
+      </mat-form-field>
     </div>
   </section>
 
@@ -131,25 +129,6 @@
             <strong>{{ row.requestedWorkDate ?? '—' }}</strong>
             <span>{{ row.requestedStartTime }} - {{ row.requestedEndTime }}</span>
           </div>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="document">
-        <th mat-header-cell *matHeaderCellDef>Documento</th>
-
-        <td mat-cell *matCellDef="let row">
-          @if (row.requestDocumentUrl) {
-            <a
-              class="document-link"
-              [href]="row.requestDocumentUrl"
-              target="_blank"
-              rel="noopener"
-            >
-              Ver solicitud
-            </a>
-          } @else {
-            <span class="muted">Sin documento</span>
-          }
         </td>
       </ng-container>
 

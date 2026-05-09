@@ -46,7 +46,6 @@ import { DrawerShellComponent } from '../../../../shared/components/drawer-shell
   styleUrl: './my-schedule-submissions-list.scss'
 })
 export class MyScheduleSubmissionsListComponent implements OnInit {
-
   private readonly service = inject(CalibrationScheduleSubmissionsService);
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
@@ -63,7 +62,8 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
   displayedColumns = [
     'plan',
     'itemsCount',
-    'document',
+    'excelDocument',
+    'officialDocument',
     'submissionStatus',
     'submittedAt',
     'review',
@@ -141,16 +141,27 @@ export class MyScheduleSubmissionsListComponent implements OnInit {
     this.load();
   }
 
+  getExcelUrl(row: CalibrationScheduleSubmission): string | null {
+    const value = row.documentUrl?.trim();
+    return value || null;
+  }
+
+  getOfficializationDocumentUrl(row: CalibrationScheduleSubmission): string | null {
+    const value = row.officializationDocumentUrl?.trim();
+    return value || null;
+  }
+
   canSubmit(row: CalibrationScheduleSubmission): boolean {
     return Number(row.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
       (row.itemsCount ?? 0) > 0 &&
-      !!row.documentUrl;
+      !!this.getExcelUrl(row) &&
+      !!this.getOfficializationDocumentUrl(row);
   }
 
-canGenerateExcel(row: CalibrationScheduleSubmission): boolean {
-  return Number(row.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
-    (row.itemsCount ?? 0) > 0;
-}
+  canGenerateExcel(row: CalibrationScheduleSubmission): boolean {
+    return Number(row.submissionStatus) === CalibrationScheduleSubmissionStatus.Draft &&
+      (row.itemsCount ?? 0) > 0;
+  }
 
   onCreateClicked(): void {
     this.createDrawerOpen.set(true);
@@ -166,48 +177,48 @@ canGenerateExcel(row: CalibrationScheduleSubmission): boolean {
     this.load();
   }
 
-onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
-  if (!this.canGenerateExcel(row)) {
-    this.toast.warning('El cronograma debe estar en borrador y tener al menos un ítem.');
-    return;
-  }
+  onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
+    if (!this.canGenerateExcel(row)) {
+      this.toast.warning('El cronograma debe estar en borrador y tener al menos un ítem.');
+      return;
+    }
 
-  this.confirmDialog.confirm({
-    title: row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial',
-    message: row.documentUrl
-      ? 'Se generará nuevamente el Excel oficial del cronograma. ¿Deseas continuar?'
-      : 'Se generará el Excel oficial del cronograma con los ítems agregados. ¿Deseas continuar?',
-    confirmText: row.documentUrl ? 'Regenerar' : 'Generar',
-    cancelText: 'Cancelar',
-    type: 'info'
-  }).subscribe(confirmed => {
-    if (!confirmed) return;
+    this.confirmDialog.confirm({
+      title: row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial',
+      message: row.documentUrl
+        ? 'Se generará nuevamente el Excel oficial del cronograma. ¿Deseas continuar?'
+        : 'Se generará el Excel oficial del cronograma con los ítems agregados. ¿Deseas continuar?',
+      confirmText: row.documentUrl ? 'Regenerar' : 'Generar',
+      cancelText: 'Cancelar',
+      type: 'info'
+    }).subscribe(confirmed => {
+      if (!confirmed) return;
 
-    this.generatingDocumentId.set(row.id);
+      this.generatingDocumentId.set(row.id);
 
-    this.service.generateOfficialDocument(row.id).subscribe({
-      next: response => {
-        this.generatingDocumentId.set(null);
+      this.service.generateOfficialDocument(row.id).subscribe({
+        next: response => {
+          this.generatingDocumentId.set(null);
 
-        if (!response.succeed || !response.result) {
-          this.toast.error(response.message ?? 'No se pudo generar el Excel oficial.');
-          return;
+          if (!response.succeed || !response.result) {
+            this.toast.error(response.message ?? 'No se pudo generar el Excel oficial.');
+            return;
+          }
+
+          this.toast.success('Excel oficial generado correctamente.');
+          this.load();
+        },
+        error: () => {
+          this.generatingDocumentId.set(null);
+          this.toast.error('Error al generar el Excel oficial.');
         }
-
-        this.toast.success('Excel oficial generado correctamente.');
-        this.load();
-      },
-      error: () => {
-        this.generatingDocumentId.set(null);
-        this.toast.error('Error al generar el Excel oficial.');
-      }
+      });
     });
-  });
-}
+  }
 
   onSubmit(row: CalibrationScheduleSubmission): void {
     if (!this.canSubmit(row)) {
-      this.toast.warning('El cronograma debe estar en borrador, tener ítems y documento oficial.');
+      this.toast.warning('El cronograma debe estar en borrador, tener ítems, Excel oficial y documento oficial.');
       return;
     }
 
@@ -254,7 +265,7 @@ onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
 
       case CalibrationScheduleSubmissionStatus.Rejected:
         return 'Rechazado';
-      
+
       case CalibrationScheduleSubmissionStatus.Cancelled:
         return 'Cancelado';
 
@@ -309,31 +320,31 @@ onGenerateOfficialDocument(row: CalibrationScheduleSubmission): void {
     }
   }
 
-formatDateTimeMinute(value?: string | null): string {
-  if (!value) {
-    return '—';
+  formatDateTimeMinute(value?: string | null): string {
+    if (!value) {
+      return '—';
+    }
+
+    const normalized = value.replace('T', ' ').trim();
+
+    const match = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})/.exec(normalized);
+
+    if (match) {
+      return `${match[1]} ${match[2]}:${match[3]}`;
+    }
+
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    const year = parsed.getFullYear();
+    const month = `${parsed.getMonth() + 1}`.padStart(2, '0');
+    const day = `${parsed.getDate()}`.padStart(2, '0');
+    const hours = `${parsed.getHours()}`.padStart(2, '0');
+    const minutes = `${parsed.getMinutes()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
-
-  const normalized = value.replace('T', ' ').trim();
-
-  const match = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})/.exec(normalized);
-
-  if (match) {
-    return `${match[1]} ${match[2]}:${match[3]}`;
-  }
-
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  const year = parsed.getFullYear();
-  const month = `${parsed.getMonth() + 1}`.padStart(2, '0');
-  const day = `${parsed.getDate()}`.padStart(2, '0');
-  const hours = `${parsed.getHours()}`.padStart(2, '0');
-  const minutes = `${parsed.getMinutes()}`.padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-}
 }

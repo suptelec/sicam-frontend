@@ -21,6 +21,14 @@ import {
   CalibrationScheduleSubmissionStatus
 } from '../../../my-calibration-items/domain/calibration-schedule-submission.model';
 
+type ScheduleSubmissionExtended = CalibrationScheduleSubmission & {
+  officializationDocumentUrl?: string | null;
+  submittedByFullName?: string | null;
+  submittedUserFullName?: string | null;
+  submittedByName?: string | null;
+  submittedByDisplayName?: string | null;
+};
+
 @Component({
   selector: 'app-schedule-submission-reviews-list',
   standalone: true,
@@ -52,7 +60,8 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
     'plan',
     'pmse',
     'itemsCount',
-    'document',
+    'excelDocument',
+    'officialDocument',
     'submissionStatus',
     'submittedAt',
     'actions'
@@ -127,6 +136,49 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
     this.router.navigate(['/schedule-submission-reviews', row.id]);
   }
 
+  getExcelUrl(row: CalibrationScheduleSubmission): string | null {
+    const value = row.documentUrl?.trim();
+    return value || null;
+  }
+
+  getOfficializationDocumentUrl(row: CalibrationScheduleSubmission): string | null {
+    const extended = row as ScheduleSubmissionExtended;
+    const value = extended.officializationDocumentUrl?.trim();
+    return value || null;
+  }
+
+  formatSubmittedAt(value?: string | null): string {
+    const normalized = value?.trim();
+
+    if (!normalized) {
+      return '—';
+    }
+
+    const [date, rawTime] = normalized.replace('T', ' ').split(' ');
+    const time = this.formatTime(rawTime);
+
+    if (!date) {
+      return '—';
+    }
+
+    return time
+      ? `${date} ${time}`
+      : date;
+  }
+
+  getSubmittedByDisplayName(row: CalibrationScheduleSubmission): string | null {
+    const extended = row as ScheduleSubmissionExtended;
+
+    const fullName =
+      extended.submittedByFullName ??
+      extended.submittedUserFullName ??
+      extended.submittedByName ??
+      extended.submittedByDisplayName ??
+      null;
+
+    return this.normalizeText(fullName);
+  }
+
   getStatusLabel(status: CalibrationScheduleSubmissionStatus): string {
     switch (Number(status)) {
       case CalibrationScheduleSubmissionStatus.Draft:
@@ -190,5 +242,26 @@ export class ScheduleSubmissionReviewsListComponent implements OnInit {
       default:
         return 'info';
     }
+  }
+
+  private formatTime(value?: string | null): string | null {
+    const normalized = value?.trim();
+
+    if (!normalized) {
+      return null;
+    }
+
+    const match = normalized.match(/^(\d{1,2}):(\d{2})/);
+
+    if (!match) {
+      return null;
+    }
+
+    return `${match[1].padStart(2, '0')}:${match[2]}`;
+  }
+
+  private normalizeText(value?: string | null): string | null {
+    const normalized = value?.trim();
+    return normalized || null;
   }
 }

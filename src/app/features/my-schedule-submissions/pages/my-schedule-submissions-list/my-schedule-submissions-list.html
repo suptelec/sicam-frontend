@@ -1,12 +1,12 @@
 <section class="page">
-<app-page-header
-  eyebrow="Cronogramas PMSE"
-  title="Mis cronogramas"
-  [description]="'Revisa los cronogramas de calibración creados por ' + pmseCompanyName + ' y envíalos a CENACE.'"
-  actionText="Nuevo cronograma"
-  actionIcon="add"
-  (actionClicked)="onCreateClicked()"
-/>
+  <app-page-header
+    eyebrow="Cronogramas PMSE"
+    title="Mis cronogramas"
+    [description]="'Revisa los cronogramas de calibración creados por ' + pmseCompanyName + ' y envíalos a CENACE.'"
+    actionText="Nuevo cronograma"
+    actionIcon="add"
+    (actionClicked)="onCreateClicked()"
+  />
 
   <app-search-toolbar
     [(value)]="searchTerm"
@@ -55,21 +55,40 @@
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="document">
-        <th mat-header-cell *matHeaderCellDef>Documento</th>
+      <ng-container matColumnDef="excelDocument">
+        <th mat-header-cell *matHeaderCellDef>Excel oficial</th>
 
         <td mat-cell *matCellDef="let row">
-          @if (row.documentUrl) {
+          @if (getExcelUrl(row); as excelUrl) {
             <a
               class="document-link"
-              [href]="row.documentUrl"
+              [href]="excelUrl"
               target="_blank"
               rel="noopener"
             >
-              Ver documento
+              Abrir Excel
             </a>
           } @else {
-            <span class="muted">Pendiente</span>
+            <span class="document-pending">Pendiente</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="officialDocument">
+        <th mat-header-cell *matHeaderCellDef>Documento oficial</th>
+
+        <td mat-cell *matCellDef="let row">
+          @if (getOfficializationDocumentUrl(row); as officialDocumentUrl) {
+            <a
+              class="document-link"
+              [href]="officialDocumentUrl"
+              target="_blank"
+              rel="noopener"
+            >
+              Ver PDF
+            </a>
+          } @else {
+            <span class="document-pending">Pendiente</span>
           }
         </td>
       </ng-container>
@@ -91,8 +110,7 @@
 
         <td mat-cell *matCellDef="let row">
           <div class="stacked-cell">
-{{ formatDateTimeMinute(row.submittedAt) }}
-            <span>{{ row.submittedBy ?? 'Sin envío' }}</span>
+            <strong>{{ formatDateTimeMinute(row.submittedAt) }}</strong>
           </div>
         </td>
       </ng-container>
@@ -102,8 +120,7 @@
 
         <td mat-cell *matCellDef="let row">
           <div class="stacked-cell">
-{{ formatDateTimeMinute(row.reviewedAt) }}
-            <span>{{ row.reviewedBy ?? 'Sin revisión' }}</span>
+            <strong>{{ formatDateTimeMinute(row.reviewedAt) }}</strong>
           </div>
         </td>
       </ng-container>
@@ -123,30 +140,29 @@
               <mat-icon>visibility</mat-icon>
             </button>
 
-@if (row.submissionStatus === CalibrationScheduleSubmissionStatus.Draft) {
-  <button
-    mat-icon-button
-    type="button"
-    class="row-actions__btn"
-    [matTooltip]="canGenerateExcel(row) ? (row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial') : 'Debe tener ítems para generar Excel'"
-    [disabled]="!canGenerateExcel(row) || generatingDocumentId() === row.id"
-    (click)="onGenerateOfficialDocument(row)"
-  >
-    <mat-icon>description</mat-icon>
-  </button>
+            @if (row.submissionStatus === CalibrationScheduleSubmissionStatus.Draft) {
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                [matTooltip]="canGenerateExcel(row) ? (row.documentUrl ? 'Regenerar Excel oficial' : 'Generar Excel oficial') : 'Debe tener ítems para generar Excel'"
+                [disabled]="!canGenerateExcel(row) || generatingDocumentId() === row.id"
+                (click)="onGenerateOfficialDocument(row)"
+              >
+                <mat-icon>description</mat-icon>
+              </button>
 
-  <button
-    mat-icon-button
-    type="button"
-    class="row-actions__btn"
-    [matTooltip]="canSubmit(row) ? 'Enviar a CENACE' : 'Debe generar el Excel oficial antes de enviar'"
-    [disabled]="!canSubmit(row)"
-    (click)="onSubmit(row)"
-  >
-    <mat-icon>send</mat-icon>
-  </button>
-}
-            
+              <button
+                mat-icon-button
+                type="button"
+                class="row-actions__btn"
+                [matTooltip]="canSubmit(row) ? 'Enviar a CENACE' : 'Debe generar el Excel oficial y adjuntar el documento oficial antes de enviar'"
+                [disabled]="!canSubmit(row)"
+                (click)="onSubmit(row)"
+              >
+                <mat-icon>send</mat-icon>
+              </button>
+            }
           </div>
         </td>
       </ng-container>

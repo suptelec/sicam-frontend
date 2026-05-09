@@ -13,7 +13,7 @@
     <app-page-header
       eyebrow="Proceso de calibración"
       [title]="current.meterCode ?? 'Proceso #' + current.id"
-      description="Completa los datos del certificado de calibración, certificado PDF, evento técnico y acta SICAM para enviar el proceso a revisión CENACE."
+      description="Primero crea el acta, descarga el Excel generado, sube el acta firmada en PDF y completa los certificados para enviar el proceso a revisión CENACE."
       [showAction]="false"
     />
 
@@ -37,7 +37,7 @@
 
         <div>
           <span>Fecha de ejecución</span>
-          <strong>{{ current.executionDate  }}</strong>
+          <strong>{{ current.executionDate }}</strong>
           <small>Fecha autorizada / registrada</small>
         </div>
       </article>
@@ -50,6 +50,7 @@
         <div>
           <span>Certificado de calibración</span>
           <strong>{{ current.certificateNumber ?? 'Pendiente' }}</strong>
+
           <small>
             @if (hasFinalData) {
               Válido hasta {{ current.certificateValidUntil }}
@@ -60,24 +61,23 @@
         </div>
       </article>
 
-<article class="summary-card summary-card--status">
-  <div class="summary-card__icon">
-    <mat-icon>fact_check</mat-icon>
-  </div>
+      <article class="summary-card summary-card--status">
+        <div class="summary-card__icon">
+          <mat-icon>fact_check</mat-icon>
+        </div>
 
-  <div class="summary-card__content">
-    <span>Estado</span>
+        <div class="summary-card__content">
+          <span>Estado</span>
 
-    <div class="summary-card__status-chip">
-      <app-status-chip
-        [label]="getProcessStatusLabel(current.processStatus)"
-        [tone]="getProcessStatusTone(current.processStatus)"
-        icon="fact_check"
-      />
-    </div>
-  </div>
-</article>
-
+          <div class="summary-card__status-chip">
+            <app-status-chip
+              [label]="getProcessStatusLabel(current.processStatus)"
+              [tone]="getProcessStatusTone(current.processStatus)"
+              icon="fact_check"
+            />
+          </div>
+        </div>
+      </article>
     </section>
 
     @if (current.processStatus === CalibrationProcessStatus.Approved) {
@@ -117,243 +117,142 @@
       </section>
     }
 
-<section class="process-result-grid">
-  <article class="process-result-card">
-    <div class="process-result-card__icon">
-      <mat-icon>verified</mat-icon>
-    </div>
 
-    <div class="process-result-card__content">
-      <span>Resultado</span>
-      <strong>{{ getCalibrationResultLabel(current.calibrationResult) }}</strong>
-      <small>Resultado técnico final</small>
-    </div>
-  </article>
-
-  <article class="process-result-card">
-    <div class="process-result-card__icon">
-      <mat-icon>workspace_premium</mat-icon>
-    </div>
-
-    <div class="process-result-card__content">
-      <span>Emisión certificado</span>
-      <strong>{{ current.certificateIssueDate ?? '—' }}</strong>
-      <small>Fecha registrada por PMSE</small>
-    </div>
-  </article>
-
-  <article class="process-result-card">
-    <div class="process-result-card__icon">
-      <mat-icon>assignment_turned_in</mat-icon>
-    </div>
-
-    <div class="process-result-card__content">
-      <span>Acta SICAM</span>
-      <strong>{{ hasActa ? 'Creada' : 'Pendiente' }}</strong>
-      <small>
-        @if (hasGeneratedActaFile) {
-          Archivo oficial generado
-        } @else {
-          Se genera al enviar a revisión
-        }
-      </small>
-    </div>
-  </article>
-
-  <article class="process-result-card">
-    <div class="process-result-card__icon">
-      <mat-icon>lock</mat-icon>
-    </div>
-
-    <div class="process-result-card__content">
-      <span>Sellos del acta</span>
-      <strong>{{ actaSeals.length }}</strong>
-      <small>
-        @if (allActaSealsHavePhotos) {
-          Todos con fotos
-        } @else {
-          Pendiente de fotos
-        }
-      </small>
-    </div>
-  </article>
-</section>
 
     @if (current.notes) {
- <section class="process-notes-card">
-    <div class="process-notes-card__icon">
-      <mat-icon>notes</mat-icon>
-    </div>
-
-    <div>
-      <span>Observaciones</span>
-      <p>{{ current.notes }}</p>
-    </div>
-  </section>
-    }
-
-    <section class="checklist-section">
-      <div class="section-heading">
-        <div>
-          <p>Checklist del proceso</p>
-          <h3>Requisitos para enviar a revisión</h3>
+      <section class="process-notes-card">
+        <div class="process-notes-card__icon">
+          <mat-icon>notes</mat-icon>
         </div>
 
-        <span class="section-heading__hint">
-          El backend validará nuevamente todos los requisitos.
+        <div>
+          <span>Observaciones</span>
+          <p>{{ current.notes }}</p>
+        </div>
+      </section>
+    }
+
+<section class="process-flow-card">
+  <div class="process-flow-card__header">
+    <div>
+      <p>Flujo del proceso</p>
+      <h3>Avance para enviar a revisión CENACE</h3>
+    </div>
+
+    <span>
+      {{ canSubmitToReview ? 'Listo para enviar' : 'Completa los pasos pendientes' }}
+    </span>
+  </div>
+
+  <div class="process-flow process-flow--four">
+    <article
+      class="flow-step"
+      [class.flow-step--done]="hasCompleteActa"
+      [class.flow-step--active]="!hasCompleteActa"
+    >
+      <div class="flow-step__marker">
+        <mat-icon>{{ hasCompleteActa ? 'check' : 'assignment' }}</mat-icon>
+      </div>
+
+      <div class="flow-step__content">
+        <strong>Acta</strong>
+
+        <span>
+          @if (hasCompleteActa) {
+            Acta, sellos y fotos completas
+          } @else if (hasActa && hasActaSeals && !allActaSealsHavePhotos) {
+            Faltan fotos de sellos
+          } @else if (hasActa && !hasActaSeals) {
+            Faltan sellos
+          } @else if (hasActa && !hasActaChecks) {
+            Faltan validaciones
+          } @else {
+            Crear acta
+          }
         </span>
       </div>
+    </article>
 
-      <div class="checklist-grid">
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="hasFinalData"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ hasFinalData ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
+    <div
+      class="flow-connector"
+      [class.flow-connector--done]="hasCompleteActa"
+    ></div>
 
-          <div>
-            <strong>Certificado de calibración</strong>
-            <span>{{ hasFinalData ? 'Registrado' : 'Pendiente' }}</span>
-          </div>
-        </article>
-
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="hasCertificate"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ hasCertificate ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
-
-          <div>
-            <strong>Certificado PDF</strong>
-            <span>{{ hasCertificate ? 'Cargado' : 'Pendiente' }}</span>
-          </div>
-        </article>
-
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="hasCalibrationExecutedEvent"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ hasCalibrationExecutedEvent ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
-
-          <div>
-            <strong>Evento ejecutado</strong>
-            <span>{{ hasCalibrationExecutedEvent ? 'Registrado' : 'Pendiente' }}</span>
-          </div>
-        </article>
-
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="hasActa"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ hasActa ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
-
-          <div>
-            <strong>Acta SICAM</strong>
-            <span>{{ hasActa ? 'Creada' : 'Pendiente' }}</span>
-          </div>
-        </article>
-
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="hasActaSeals"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ hasActaSeals ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
-
-          <div>
-            <strong>Sellos del acta</strong>
-            <span>{{ hasActaSeals ? 'Registrados' : 'Pendientes' }}</span>
-          </div>
-        </article>
-
-        <article
-          class="checklist-item"
-          [class.checklist-item--done]="allActaSealsHavePhotos"
-        >
-          <div class="checklist-item__icon">
-            <mat-icon>
-              {{ allActaSealsHavePhotos ? 'check_circle' : 'radio_button_unchecked' }}
-            </mat-icon>
-          </div>
-
-          <div>
-            <strong>Fotos de sellos</strong>
-            <span>{{ allActaSealsHavePhotos ? 'Completas' : 'Pendientes' }}</span>
-          </div>
-        </article>
-
-        @if (current.processStatus === CalibrationProcessStatus.Corrected) {
-          <article
-            class="checklist-item"
-            [class.checklist-item--done]="hasCorrectionEvent"
-          >
-            <div class="checklist-item__icon">
-              <mat-icon>
-                {{ hasCorrectionEvent ? 'check_circle' : 'radio_button_unchecked' }}
-              </mat-icon>
-            </div>
-
-            <div>
-              <strong>Evento de corrección</strong>
-              <span>{{ hasCorrectionEvent ? 'Registrado' : 'Pendiente' }}</span>
-            </div>
-          </article>
-        }
+    <article
+      class="flow-step"
+      [class.flow-step--done]="hasSignedActaPdf"
+      [class.flow-step--active]="hasCompleteActa && !hasSignedActaPdf"
+      [class.flow-step--locked]="!hasCompleteActa"
+    >
+      <div class="flow-step__marker">
+        <mat-icon>{{ hasSignedActaPdf ? 'check' : 'picture_as_pdf' }}</mat-icon>
       </div>
-    </section>
+
+      <div class="flow-step__content">
+        <strong>Acta firmada</strong>
+        <span>{{ hasSignedActaPdf ? 'PDF cargado' : 'Subir PDF firmado' }}</span>
+      </div>
+    </article>
+
+    <div
+      class="flow-connector"
+      [class.flow-connector--done]="hasSignedActaPdf"
+    ></div>
+
+    <article
+      class="flow-step"
+      [class.flow-step--done]="hasFinalData && hasCertificate"
+      [class.flow-step--active]="hasCompleteActa && hasSignedActaPdf && (!hasFinalData || !hasCertificate)"
+      [class.flow-step--locked]="!hasCompleteActa || !hasSignedActaPdf"
+    >
+      <div class="flow-step__marker">
+        <mat-icon>{{ hasFinalData && hasCertificate ? 'check' : 'workspace_premium' }}</mat-icon>
+      </div>
+
+      <div class="flow-step__content">
+        <strong>Certificado</strong>
+
+        <span>
+          @if (hasFinalData && hasCertificate) {
+            Datos y PDF cargados
+          } @else if (hasFinalData) {
+            Falta PDF
+          } @else {
+            Registrar datos
+          }
+        </span>
+      </div>
+    </article>
+
+    <div
+      class="flow-connector"
+      [class.flow-connector--done]="hasFinalData && hasCertificate"
+    ></div>
+
+    <article
+      class="flow-step"
+      [class.flow-step--done]="canSubmitToReview"
+      [class.flow-step--active]="canSubmitToReview"
+      [class.flow-step--locked]="!canSubmitToReview"
+    >
+      <div class="flow-step__marker">
+        <mat-icon>{{ canSubmitToReview ? 'send' : 'hourglass_empty' }}</mat-icon>
+      </div>
+
+      <div class="flow-step__content">
+        <strong>Revisión</strong>
+        <span>{{ canSubmitToReview ? 'Puede enviarse' : 'Pendiente' }}</span>
+      </div>
+    </article>
+  </div>
+</section>
 
     <section class="actions-bar">
       @if (canEditProcess) {
-<button
-  mat-stroked-button
-  type="button"
-  class="actions-bar__btn"
-  (click)="onEditDataClicked()"
->
-  <mat-icon>edit</mat-icon>
-  Registrar certificado de calibración
-</button>
-      }
-
-
-      
-
-      @if (canEditProcess) {
         <button
           mat-stroked-button
           type="button"
-          class="actions-bar__btn"
-          (click)="onAddEvent()"
-        >
-          <mat-icon>event_available</mat-icon>
-          {{ current.processStatus === CalibrationProcessStatus.Corrected ? 'Registrar corrección' : 'Registrar evento' }}
-        </button>
-      }
-
-      @if (canEditProcess) {
-        <button
-          mat-stroked-button
-          type="button"
-          class="actions-bar__btn"
+          class="actions-bar__btn actions-bar__btn--primary"
           (click)="onOpenActa()"
         >
           <mat-icon>assignment</mat-icon>
@@ -361,18 +260,52 @@
         </button>
       }
 
-      @if (actaDownloadUrl) {
-        <a
-          mat-stroked-button
-          class="actions-bar__btn"
-          [href]="actaDownloadUrl"
-          target="_blank"
-          rel="noopener"
-        >
-          <mat-icon>download</mat-icon>
-          Descargar acta
-        </a>
-      }
+<button
+  mat-stroked-button
+  type="button"
+  class="actions-bar__btn"
+  [disabled]="!canDownloadGeneratedActa"
+  [matTooltip]="hasCompleteActa ? 'Descargar acta en Excel' : 'Primero debes completar el acta con validaciones, sellos y fotos'"
+  (click)="onDownloadGeneratedActa()"
+>
+  @if (isDownloadingActa()) {
+    <mat-spinner diameter="18" />
+  } @else {
+    <mat-icon>download</mat-icon>
+  }
+
+  Descargar acta
+</button>
+
+@if (canEditProcess) {
+  <button
+    mat-stroked-button
+    type="button"
+    class="actions-bar__btn"
+    [disabled]="!hasCompleteActa"
+    [matTooltip]="hasCompleteActa ? 'Subir acta firmada en PDF' : 'Primero debes completar el acta con validaciones, sellos y fotos'"
+    (click)="onAddSignedActaClicked()"
+  >
+    <mat-icon>picture_as_pdf</mat-icon>
+    {{ hasSignedActaPdf ? 'Reemplazar acta firmada' : 'Subir acta firmada' }}
+  </button>
+}
+
+@if (canEditProcess) {
+  <button
+    mat-stroked-button
+    type="button"
+    class="actions-bar__btn"
+    [disabled]="!canRegisterCertificate"
+    [matTooltip]="registerCertificateTooltip"
+    (click)="onEditDataClicked()"
+  >
+    <mat-icon>workspace_premium</mat-icon>
+    Registrar certificado
+  </button>
+}
+
+
 
       <button
         mat-flat-button
@@ -402,8 +335,8 @@
       [empty]="documentsDataSource.data.length === 0"
       loadingText="Cargando documentos..."
       emptyIcon="description"
-      emptyTitle="No hay certificado PDF cargado"
-      emptyDescription="El PDF del certificado de calibración debe cargarse antes de enviar a revisión."
+      emptyTitle="No hay documentos cargados"
+      emptyDescription="Debes cargar el acta firmada PDF y al menos un certificado PDF antes de enviar a revisión."
     >
       <table
         table-content
@@ -416,7 +349,9 @@
 
           <td mat-cell *matCellDef="let row">
             <div class="document-type">
-              <mat-icon>description</mat-icon>
+              <mat-icon>
+                {{ row.documentType === CalibrationProcessDocumentType.CalibrationAct ? 'picture_as_pdf' : 'description' }}
+              </mat-icon>
               <strong>{{ getDocumentTypeLabel(row.documentType) }}</strong>
             </div>
           </td>
@@ -462,73 +397,6 @@
         <tr mat-row *matRowDef="let row; columns: documentColumns"></tr>
       </table>
     </app-table-card>
-
-    <app-table-card
-      [loading]="isLoading()"
-      [empty]="eventsDataSource.data.length === 0"
-      loadingText="Cargando eventos..."
-      emptyIcon="event_note"
-      emptyTitle="No hay eventos técnicos"
-      emptyDescription="El PMSE debe registrar el evento de calibración ejecutada antes de enviar a revisión."
-    >
-      <table
-        table-content
-        mat-table
-        [dataSource]="eventsDataSource"
-        class="events-table"
-      >
-        <ng-container matColumnDef="eventType">
-          <th mat-header-cell *matHeaderCellDef>Evento</th>
-
-          <td mat-cell *matCellDef="let row">
-            <div class="event-type">
-              <mat-icon>event_available</mat-icon>
-              <strong>{{ getEventTypeLabel(row.eventType) }}</strong>
-            </div>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="occurredAt">
-          <th mat-header-cell *matHeaderCellDef>Fecha</th>
-
-          <td mat-cell *matCellDef="let row">
-            <strong>{{ row.occurredAt ?? '—' }}</strong>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="description">
-          <th mat-header-cell *matHeaderCellDef>Descripción</th>
-
-          <td mat-cell *matCellDef="let row">
-            <span class="muted">{{ row.description ?? '—' }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="attachment">
-          <th mat-header-cell *matHeaderCellDef>Adjunto</th>
-
-          <td mat-cell *matCellDef="let row" class="actions-cell">
-            @if (row.attachmentUrl) {
-              <a
-                mat-icon-button
-                class="row-actions__btn"
-                [href]="row.attachmentUrl"
-                target="_blank"
-                rel="noopener"
-                matTooltip="Ver adjunto"
-              >
-                <mat-icon>open_in_new</mat-icon>
-              </a>
-            } @else {
-              <span class="muted">—</span>
-            }
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="eventColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: eventColumns"></tr>
-      </table>
-    </app-table-card>
   } @else {
     <section class="loading-page">
       <mat-spinner diameter="36" />
@@ -536,25 +404,6 @@
     </section>
   }
 </section>
-
-
-
-@if (eventDrawerOpen()) {
-  <app-drawer-shell
-    [open]="eventDrawerOpen()"
-    width="620px"
-    (closed)="onEventDrawerClosed()"
-  >
-    <app-process-event-drawer
-      [processId]="processId"
-[eventType]="process()?.processStatus === CalibrationProcessStatus.Corrected
-  ? CalibrationProcessEventType.CorrectionRegistered
-  : CalibrationProcessEventType.CalibrationExecuted"
-      (closed)="onEventDrawerClosed()"
-      (created)="onEventCreated()"
-    />
-  </app-drawer-shell>
-}
 
 @if (updateDataDrawerOpen()) {
   <app-drawer-shell
@@ -584,7 +433,6 @@
   </app-drawer-shell>
 }
 
-
 @if (actaDrawerOpen()) {
   <app-drawer-shell
     [open]="actaDrawerOpen()"
@@ -596,6 +444,21 @@
       [processId]="processId"
       (closed)="onActaDrawerClosed()"
       (saved)="onActaSaved()"
+    />
+  </app-drawer-shell>
+}
+
+@if (documentDrawerOpen()) {
+  <app-drawer-shell
+    [open]="documentDrawerOpen()"
+    width="620px"
+    (closed)="onDocumentDrawerClosed()"
+  >
+    <app-process-document-drawer
+      [processId]="processId"
+      [documentType]="selectedDocumentType()"
+      (closed)="onDocumentDrawerClosed()"
+      (created)="onDocumentCreated()"
     />
   </app-drawer-shell>
 }
