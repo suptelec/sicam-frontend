@@ -1,10 +1,16 @@
 import { SelectionModel } from '@angular/cdk/collections';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatNativeDateModule } from '@angular/material/core';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -14,6 +20,7 @@ import { SearchToolbarComponent } from '../../../../shared/components/search-too
 import { TableCardComponent } from '../../../../shared/components/table-card/table-card';
 import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
 import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
+import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select';
 
 import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -25,6 +32,12 @@ import {
   CalibrationPlanItemStatus,
   CalibrationPlanItemStatusLabels
 } from '../../../calibration-plans/domain/calibration-plan.model';
+
+import { MetersService } from '../../../meters/data-access/meters.service';
+import {
+  EntityStatus as MeterEntityStatus,
+  Meter
+} from '../../../meters/domain/meter.model';
 
 import { ScheduleProposalDrawerComponent } from '../../ui/schedule-proposal-drawer/schedule-proposal-drawer';
 import { DateChangeRequestDrawerComponent } from '../../ui/date-change-request-drawer/date-change-request-drawer';
@@ -38,17 +51,23 @@ type BulkActionType = 'schedule' | 'authorization';
   selector: 'app-my-calibration-items-list',
   standalone: true,
   imports: [
+    ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
     MatCheckboxModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
+    MatNativeDateModule,
     MatTooltipModule,
     PageHeaderComponent,
     SearchToolbarComponent,
     TableCardComponent,
     StatusChipComponent,
     DrawerShellComponent,
+    SearchableSelectComponent,
     ScheduleProposalDrawerComponent,
     DateChangeRequestDrawerComponent,
     WorkAuthorizationDrawerComponent,
@@ -57,13 +76,16 @@ type BulkActionType = 'schedule' | 'authorization';
   templateUrl: './my-calibration-items-list.html',
   styleUrl: './my-calibration-items-list.scss'
 })
-export class MyCalibrationItemsListComponent implements OnInit {
+export class MyCalibrationItemsListComponent implements OnInit, OnDestroy {
   private readonly service = inject(CalibrationPlanItemsService);
+  private readonly metersService = inject(MetersService);
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
   private readonly router = inject(Router);
   private readonly processesService = inject(CalibrationProcessesService);
+
+  private readonly subscriptions = new Subscription();
 
   readonly CalibrationPlanItemStatus = CalibrationPlanItemStatus;
 
@@ -88,6 +110,13 @@ export class MyCalibrationItemsListComponent implements OnInit {
   searchTerm = '';
   isLoading = signal(false);
 
+  meterOptions = signal<Meter[]>([]);
+  selectedMeterId = signal<number | null>(null);
+  meterIdControl = new FormControl<number | null>(null);
+
+  plannedRangeStart = signal<Date | null>(null);
+  plannedRangeEnd = signal<Date | null>(null);
+
   scheduleDrawerOpen = signal(false);
   selectedScheduleItems = signal<CalibrationPlanItem[]>([]);
 
@@ -101,7 +130,19 @@ export class MyCalibrationItemsListComponent implements OnInit {
   selectedStartProcessItem = signal<CalibrationPlanItem | null>(null);
 
   ngOnInit(): void {
+    this.subscriptions.add(
+      this.meterIdControl.valueChanges.subscribe(meterId => {
+        this.selectedMeterId.set(meterId);
+        this.resetPaginationAndLoad();
+      })
+    );
+
+    this.loadMeters();
     this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   get pmseCompanyName(): string {
@@ -110,6 +151,18 @@ export class MyCalibrationItemsListComponent implements OnInit {
 
   get selectedItemsCount(): number {
     return this.selection.selected.length;
+  }
+
+  get hasAnySelection(): boolean {
+    return this.selectedItemsCount > 0;
+  }
+
+  get hasMultipleSelection(): boolean {
+    return this.selectedItemsCount > 1;
+  }
+
+  get hasPlannedRangeFilter(): boolean {
+    return !!this.plannedRangeStart() || !!this.plannedRangeEnd();
   }
 
   get selectedBulkAction(): BulkActionType | null {
@@ -145,7 +198,7 @@ export class MyCalibrationItemsListComponent implements OnInit {
   }
 
   get selectableRows(): CalibrationPlanItem[] {
-    const action = this.activeBulkAction;
+    const action = this.selectedBulkAction ?? this.defaultBulkAction;
 
     if (action === 'schedule') {
       return this.dataSource.data.filter(item => this.canAddToSchedule(item));
@@ -155,19 +208,14 @@ export class MyCalibrationItemsListComponent implements OnInit {
       return this.dataSource.data.filter(item => this.canRequestWorkAuthorization(item));
     }
 
-    return [];
+    return this.dataSource.data.filter(item =>
+      this.canAddToSchedule(item) ||
+      this.canRequestWorkAuthorization(item)
+    );
   }
 
   get bulkActionText(): string {
-    if (this.selectedBulkAction === 'schedule') {
-      return 'Proponer cronograma';
-    }
-
-    if (this.selectedBulkAction === 'authorization') {
-      return 'Solicitar autorización';
-    }
-
-    return this.defaultBulkAction === 'authorization'
+    return this.activeBulkAction === 'authorization'
       ? 'Solicitar autorización'
       : 'Proponer cronograma';
   }
@@ -200,27 +248,10 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.isLoading.set(true);
     this.selection.clear();
 
-    const searchFilter = this.odata.searchInFields(
-      [
-        'MeterCode',
-        'MeterSerial',
-        'CertificateNumber',
-        'PmseCompanyName'
-      ],
-      this.searchTerm
-    );
-
-    const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
-
-    const filter = [searchFilter, pmseFilter]
-      .filter(Boolean)
-      .map(value => `(${value})`)
-      .join(' and ');
-
     this.service.getAll({
       page: this.pageIndex + 1,
       take: this.pageSize,
-      filter: filter || undefined,
+      filter: this.buildFilter(),
       orderBy: 'PlannedStartDate asc, MeterCode asc'
     }).subscribe({
       next: response => {
@@ -244,15 +275,39 @@ export class MyCalibrationItemsListComponent implements OnInit {
     });
   }
 
-  onSearch(): void {
-    this.pageIndex = 0;
+  refresh(): void {
+    this.loadMeters();
     this.load();
+  }
+
+  onSearch(): void {
+    this.resetPaginationAndLoad();
   }
 
   onPageChange(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
     this.load();
+  }
+
+  onPlannedRangeStartChange(value: Date | null): void {
+    this.plannedRangeStart.set(value);
+    this.resetPaginationAndLoad();
+  }
+
+  onPlannedRangeEndChange(value: Date | null): void {
+    this.plannedRangeEnd.set(value);
+    this.resetPaginationAndLoad();
+  }
+
+  clearPlannedRangeFilter(event?: MouseEvent): void {
+    event?.stopPropagation();
+
+    if (!this.hasPlannedRangeFilter) return;
+
+    this.plannedRangeStart.set(null);
+    this.plannedRangeEnd.set(null);
+    this.resetPaginationAndLoad();
   }
 
   canRequestDateChange(item: CalibrationPlanItem): boolean {
@@ -265,6 +320,11 @@ export class MyCalibrationItemsListComponent implements OnInit {
 
   canRequestWorkAuthorization(item: CalibrationPlanItem): boolean {
     return Number(item.itemStatus) === CalibrationPlanItemStatus.ScheduleApproved &&
+      !!item.scheduledDate;
+  }
+
+  canStartCalibrationProcess(item: CalibrationPlanItem): boolean {
+    return Number(item.itemStatus) === CalibrationPlanItemStatus.Authorized &&
       !!item.scheduledDate;
   }
 
@@ -284,6 +344,38 @@ export class MyCalibrationItemsListComponent implements OnInit {
     }
 
     return this.canAddToSchedule(item) || this.canRequestWorkAuthorization(item);
+  }
+
+  canUseRowPrimaryAction(item: CalibrationPlanItem): boolean {
+    if (!this.hasAnySelection) {
+      return true;
+    }
+
+    return this.selection.isSelected(item);
+  }
+
+  getScheduleRowTooltip(item: CalibrationPlanItem): string {
+    if (this.hasMultipleSelection && this.selection.isSelected(item)) {
+      return `Agregar ${this.selectedItemsCount} ítems seleccionados al cronograma`;
+    }
+
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      return 'Acción bloqueada mientras hay otros ítems seleccionados';
+    }
+
+    return 'Agregar a cronograma';
+  }
+
+  getWorkAuthorizationRowTooltip(item: CalibrationPlanItem): string {
+    if (this.hasMultipleSelection && this.selection.isSelected(item)) {
+      return `Solicitar autorización para ${this.selectedItemsCount} ítems seleccionados`;
+    }
+
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      return 'Acción bloqueada mientras hay otros ítems seleccionados';
+    }
+
+    return 'Solicitar autorización de inicio';
   }
 
   isAllSelected(): boolean {
@@ -312,14 +404,14 @@ export class MyCalibrationItemsListComponent implements OnInit {
   toggleRowSelection(row: CalibrationPlanItem): void {
     if (!this.canSelectRow(row)) return;
 
-    const actionBeforeToggle = this.selectedBulkAction;
+    const selectedAction = this.selectedBulkAction;
 
-    if (!this.selection.isSelected(row) && actionBeforeToggle === 'schedule' && !this.canAddToSchedule(row)) {
+    if (!this.selection.isSelected(row) && selectedAction === 'schedule' && !this.canAddToSchedule(row)) {
       this.toast.warning('No puedes mezclar ítems pendientes con ítems de otra etapa.');
       return;
     }
 
-    if (!this.selection.isSelected(row) && actionBeforeToggle === 'authorization' && !this.canRequestWorkAuthorization(row)) {
+    if (!this.selection.isSelected(row) && selectedAction === 'authorization' && !this.canRequestWorkAuthorization(row)) {
       this.toast.warning('No puedes mezclar ítems con cronograma aprobado con ítems de otra etapa.');
       return;
     }
@@ -349,6 +441,16 @@ export class MyCalibrationItemsListComponent implements OnInit {
       return;
     }
 
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      this.toast.warning('Limpia la selección actual antes de accionar un ítem diferente.');
+      return;
+    }
+
+    if (this.hasMultipleSelection) {
+      this.toast.warning('El cambio de rango se solicita por ítem individual.');
+      return;
+    }
+
     this.selectedDateChangeItem.set(item);
     this.dateChangeDrawerOpen.set(true);
   }
@@ -362,6 +464,20 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.dateChangeDrawerOpen.set(false);
     this.selectedDateChangeItem.set(null);
     this.load();
+  }
+
+  onScheduleRowActionClicked(item: CalibrationPlanItem): void {
+    if (this.hasMultipleSelection && this.selection.isSelected(item)) {
+      this.onScheduleSelectedClicked();
+      return;
+    }
+
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      this.toast.warning('Limpia la selección actual antes de accionar un ítem diferente.');
+      return;
+    }
+
+    this.onScheduleClicked(item);
   }
 
   onScheduleClicked(item: CalibrationPlanItem): void {
@@ -408,9 +524,18 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.load();
   }
 
-  private openScheduleDrawer(items: CalibrationPlanItem[]): void {
-    this.selectedScheduleItems.set(items);
-    this.scheduleDrawerOpen.set(true);
+  onWorkAuthorizationRowActionClicked(item: CalibrationPlanItem): void {
+    if (this.hasMultipleSelection && this.selection.isSelected(item)) {
+      this.onWorkAuthorizationSelectedClicked();
+      return;
+    }
+
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      this.toast.warning('Limpia la selección actual antes de accionar un ítem diferente.');
+      return;
+    }
+
+    this.onWorkAuthorizationClicked(item);
   }
 
   onWorkAuthorizationClicked(item: CalibrationPlanItem): void {
@@ -445,11 +570,6 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.openWorkAuthorizationDrawer(selectedItems);
   }
 
-  private openWorkAuthorizationDrawer(items: CalibrationPlanItem[]): void {
-    this.selectedWorkAuthorizationItems.set(items);
-    this.workAuthorizationDrawerOpen.set(true);
-  }
-
   onWorkAuthorizationDrawerClosed(): void {
     this.workAuthorizationDrawerOpen.set(false);
     this.selectedWorkAuthorizationItems.set([]);
@@ -462,14 +582,19 @@ export class MyCalibrationItemsListComponent implements OnInit {
     this.load();
   }
 
-  canStartCalibrationProcess(item: CalibrationPlanItem): boolean {
-    return Number(item.itemStatus) === CalibrationPlanItemStatus.Authorized &&
-      !!item.scheduledDate;
-  }
-
   onStartProcessClicked(item: CalibrationPlanItem): void {
     if (!this.canStartCalibrationProcess(item)) {
       this.toast.warning('Solo puedes iniciar calibración cuando el ítem está autorizado.');
+      return;
+    }
+
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      this.toast.warning('Limpia la selección actual antes de accionar un ítem diferente.');
+      return;
+    }
+
+    if (this.hasMultipleSelection) {
+      this.toast.warning('El proceso de calibración se inicia por ítem individual.');
       return;
     }
 
@@ -491,6 +616,11 @@ export class MyCalibrationItemsListComponent implements OnInit {
   }
 
   onContinueProcessClicked(item: CalibrationPlanItem): void {
+    if (this.hasAnySelection && !this.selection.isSelected(item)) {
+      this.toast.warning('Limpia la selección actual antes de accionar un ítem diferente.');
+      return;
+    }
+
     this.processesService.findActiveByPlanItem(item.id).subscribe({
       next: process => {
         if (!process) {
@@ -586,5 +716,93 @@ export class MyCalibrationItemsListComponent implements OnInit {
       default:
         return 'flag';
     }
+  }
+
+  private openScheduleDrawer(items: CalibrationPlanItem[]): void {
+    this.selectedScheduleItems.set(items);
+    this.scheduleDrawerOpen.set(true);
+  }
+
+  private openWorkAuthorizationDrawer(items: CalibrationPlanItem[]): void {
+    this.selectedWorkAuthorizationItems.set(items);
+    this.workAuthorizationDrawerOpen.set(true);
+  }
+
+  private loadMeters(): void {
+    const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
+
+    this.metersService.getAll({
+      page: 1,
+      take: 1000,
+      filter: this.odata.and(
+        pmseFilter,
+        this.odata.eqNumber('Status', MeterEntityStatus.Active)
+      ),
+      orderBy: 'Code asc'
+    }).subscribe({
+      next: response => {
+        if (response.succeed) {
+          this.meterOptions.set(response.result ?? []);
+          return;
+        }
+
+        this.toast.warning(response.message ?? 'No se pudieron cargar los medidores.');
+      },
+      error: () => {
+        this.toast.warning('No se pudieron cargar los medidores.');
+      }
+    });
+  }
+
+  private buildFilter(): string | undefined {
+    const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
+
+    const searchFilter = this.odata.searchInFields(
+      [
+        'MeterCode',
+        'MeterSerial',
+        'CertificateNumber',
+        'SuggestedLaboratoryName'
+      ],
+      this.searchTerm
+    );
+
+    const meterId = this.selectedMeterId();
+
+    const meterFilter = meterId
+      ? this.odata.eqNumber('MeterId', meterId)
+      : undefined;
+
+    const plannedStart = this.plannedRangeStart();
+    const plannedEnd = this.plannedRangeEnd();
+
+    const plannedStartFilter = plannedStart
+      ? `PlannedStartDate ge ${this.formatDateForOData(plannedStart)}`
+      : undefined;
+
+    const plannedEndFilter = plannedEnd
+      ? `PlannedEndDate le ${this.formatDateForOData(plannedEnd)}`
+      : undefined;
+
+    return this.odata.and(
+      pmseFilter,
+      searchFilter,
+      meterFilter,
+      plannedStartFilter,
+      plannedEndFilter
+    );
+  }
+
+  private resetPaginationAndLoad(): void {
+    this.pageIndex = 0;
+    this.load();
+  }
+
+  private formatDateForOData(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

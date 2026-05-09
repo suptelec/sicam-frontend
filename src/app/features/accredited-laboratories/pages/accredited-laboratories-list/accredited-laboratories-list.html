@@ -2,10 +2,11 @@
   <app-page-header
     eyebrow="Catálogos técnicos"
     title="Laboratorios acreditados"
-    description="Gestiona los laboratorios autorizados para emitir certificados de calibración de medidores."
+    [description]="pageDescription"
     actionText="Nuevo laboratorio"
     actionIcon="add"
-    (actionClicked)="drawerOpen.set(true)"
+    [showAction]="canManageLaboratories()"
+    (actionClicked)="onCreateClicked()"
   />
 
   <app-search-toolbar
@@ -22,10 +23,11 @@
     loadingText="Cargando laboratorios acreditados..."
     emptyIcon="science"
     emptyTitle="No hay laboratorios acreditados"
-    emptyDescription="Registra un laboratorio acreditado para asociarlo a certificados, cronogramas y procesos de calibración."
+    [emptyDescription]="emptyDescription"
     emptyActionText="Crear laboratorio"
     emptyActionIcon="add"
-    (emptyActionClicked)="drawerOpen.set(true)"
+    [showEmptyAction]="canManageLaboratories()"
+    (emptyActionClicked)="onCreateClicked()"
   >
     <table
       table-content
@@ -88,25 +90,27 @@
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
+      @if (canManageLaboratories()) {
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
 
-        <td mat-cell *matCellDef="let row" class="actions-cell">
-          <button
-            mat-icon-button
-            type="button"
-            [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
-            (click)="onToggleStatus(row)"
-          >
-            <mat-icon
-              [class.action-danger]="row.status === EntityStatus.Active"
-              [class.action-success]="row.status !== EntityStatus.Active"
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            <button
+              mat-icon-button
+              type="button"
+              [matTooltip]="row.status === EntityStatus.Active ? 'Inactivar' : 'Activar'"
+              (click)="onToggleStatus(row)"
             >
-              {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
-            </mat-icon>
-          </button>
-        </td>
-      </ng-container>
+              <mat-icon
+                [class.action-danger]="row.status === EntityStatus.Active"
+                [class.action-success]="row.status !== EntityStatus.Active"
+              >
+                {{ row.status === EntityStatus.Active ? 'block' : 'check_circle' }}
+              </mat-icon>
+            </button>
+          </td>
+        </ng-container>
+      }
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
@@ -124,12 +128,15 @@
   </app-table-card>
 </section>
 
-<app-drawer-shell
-  [open]="drawerOpen()"
-  width="540px"
-  (closed)="drawerOpen.set(false)">
-  <app-accredited-laboratory-drawer
-    (created)="onLaboratoryCreated()"
+@if (drawerOpen() && canManageLaboratories()) {
+  <app-drawer-shell
+    [open]="drawerOpen()"
+    width="540px"
     (closed)="drawerOpen.set(false)"
-  />
-</app-drawer-shell>
+  >
+    <app-accredited-laboratory-drawer
+      (created)="onLaboratoryCreated()"
+      (closed)="drawerOpen.set(false)"
+    />
+  </app-drawer-shell>
+}

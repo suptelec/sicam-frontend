@@ -58,8 +58,8 @@ export class ShellComponent {
 
       'pmse-companies': 'Empresas PMSE',
       'external-clients': 'Clientes M2M',
-      'accredited-laboratories': 'Laboratorios',
-      'pmse-laboratories': 'Mis laboratorios',
+      'accredited-laboratories': 'Laboratorios acreditados',
+      'pmse-laboratories': 'Laboratorios acreditados',
       meters: 'Medidores',
       'meter-calibration-certificates': 'Certificados',
       'system-users': 'Usuarios',

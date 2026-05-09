@@ -4,7 +4,7 @@
       <p class="drawer__eyebrow">CRONOGRAMA PMSE</p>
       <h2>Proponer cronograma</h2>
       <p class="drawer__description">
-        Selecciona la fecha propuesta y el laboratorio acreditado que ejecutará la calibración.
+        Selecciona la fecha propuesta y el laboratorio acreditado activo del catálogo global administrado por CENACE.
         @if (isBulkMode) {
           La misma información se aplicará a los ítems seleccionados.
         }
@@ -106,38 +106,53 @@
               </div>
             }
 
-<div class="drawer__field">
-  <app-date-field
-    formControlName="scheduledDate"
-    label="Fecha y hora propuesta"
-    hint="Selecciona la fecha y registra la hora de inicio programada."
-    [min]="minDate"
-    [max]="maxDate"
-    [withTime]="true"
-    [minuteStep]="1"
-  />
+          <div class="proposal-field-group">
+            <div class="schedule-field">
+              <app-date-field
+                formControlName="scheduledDate"
+                label="Fecha y hora propuesta"
+                [min]="minDate"
+                [max]="maxDate"
+                [withTime]="true"
+                [minuteStep]="1"
+              />
 
-  @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
-    <div class="form-error">La fecha y hora propuesta es obligatoria.</div>
-  }
+              <div class="field-helper">
+                <mat-icon>schedule</mat-icon>
+                <span>Selecciona la fecha y registra la hora de inicio programada.</span>
+              </div>
 
-  @if (form.hasError('scheduledTimeRequired') && form.controls.scheduledDate.touched) {
-    <div class="form-error">La hora propuesta es obligatoria.</div>
-  }
+              @if (form.controls.scheduledDate.hasError('required') && form.controls.scheduledDate.touched) {
+                <div class="form-error">La fecha y hora propuesta es obligatoria.</div>
+              }
 
-  @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
-    <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
-  }
-</div>
+              @if (form.hasError('scheduledTimeRequired') && form.controls.scheduledDate.touched) {
+                <div class="form-error">La hora propuesta es obligatoria.</div>
+              }
+
+              @if (form.hasError('scheduledDateOutsideRange') && form.controls.scheduledDate.touched) {
+                <div class="form-error">La fecha debe estar dentro del rango planificado de todos los ítems seleccionados.</div>
+              }
+            </div>
 
             <mat-form-field appearance="outline" class="drawer__field">
               <mat-label>Laboratorio acreditado</mat-label>
 
               <mat-select formControlName="accreditedLaboratoryId">
-                @for (laboratory of laboratories(); track laboratory.id) {
-                  <mat-option [value]="laboratory.accreditedLaboratoryId">
-                    {{ getLaboratoryLabel(laboratory) }}
+                @if (loadingCatalogs()) {
+                  <mat-option disabled>
+                    Cargando laboratorios acreditados...
                   </mat-option>
+                } @else if (laboratories().length === 0) {
+                  <mat-option disabled>
+                    No hay laboratorios acreditados activos
+                  </mat-option>
+                } @else {
+                  @for (laboratory of laboratories(); track laboratory.id) {
+                    <mat-option [value]="laboratory.id">
+                      {{ getLaboratoryLabel(laboratory) }}
+                    </mat-option>
+                  }
                 }
               </mat-select>
 
@@ -145,6 +160,7 @@
                 <mat-error>El laboratorio es obligatorio.</mat-error>
               }
             </mat-form-field>
+      </div> 
 
             <mat-form-field appearance="outline" class="drawer__field drawer__textarea">
               <mat-label>Observaciones</mat-label>
@@ -153,7 +169,7 @@
                 matInput
                 rows="4"
                 formControlName="notes"
-                placeholder="Ejemplo: coordinación preliminar con SUPTELEC, disponibilidad de cuadrilla, restricciones operativas..."
+                placeholder="Ejemplo: coordinación preliminar con el laboratorio, disponibilidad de cuadrilla, restricciones operativas..."
               ></textarea>
             </mat-form-field>
           </section>

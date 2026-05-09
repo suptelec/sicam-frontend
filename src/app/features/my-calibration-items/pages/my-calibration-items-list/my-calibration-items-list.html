@@ -6,36 +6,94 @@
     [showAction]="false"
   />
 
-  <app-search-toolbar
-    [(value)]="searchTerm"
-    placeholder="Buscar por medidor, serial o certificado..."
-    [loading]="isLoading()"
-    (search)="onSearch()"
-    (refresh)="load()"
-  />
+  <section class="filters-panel">
+    <app-search-toolbar
+      class="filters-panel__search"
+      [(value)]="searchTerm"
+      placeholder="Buscar por medidor, serial o certificado..."
+      [loading]="isLoading()"
+      (search)="onSearch()"
+      (refresh)="refresh()"
+    />
 
-  <section class="bulk-actions">
-    <div class="bulk-actions__info">
-      <mat-icon>{{ bulkActionIcon }}</mat-icon>
-      <span>{{ bulkActionDescription }}</span>
+    <div class="filter-field filter-field--meter">
+      <span class="filter-field__label">Medidor</span>
+
+      <app-searchable-select
+        class="filter-field__control"
+        placeholder="Todos los medidores"
+        emptyLabel="Todos los medidores"
+        noResultsText="No se encontraron medidores"
+        [options]="meterOptions()"
+        displayKey="code"
+        valueKey="id"
+        [searchKeys]="['code', 'serial', 'tplCode', 'cenaceCode']"
+        [allowEmpty]="true"
+        [showLabel]="false"
+        [compact]="true"
+        [formControl]="meterIdControl"
+      />
     </div>
 
-    <button
-      mat-stroked-button
-      type="button"
-      class="bulk-actions__btn"
-      [disabled]="selectedItemsCount === 0"
-      [matTooltip]="bulkActionText"
-      (click)="onBulkActionClicked()"
-    >
-      <mat-icon>{{ bulkActionIcon }}</mat-icon>
-      {{ bulkActionText }}
+    <div class="filter-field filter-field--date-range">
+      <span class="filter-field__label">Rango planificado</span>
 
-      @if (selectedItemsCount > 0) {
-        <span class="selected-count">{{ selectedItemsCount }}</span>
-      }
-    </button>
+      <mat-form-field
+        appearance="outline"
+        class="filter-field__control date-range-control"
+      >
+        <mat-date-range-input [rangePicker]="plannedRangePicker">
+          <input
+            matStartDate
+            placeholder="Inicio"
+            [value]="plannedRangeStart()"
+            (dateChange)="onPlannedRangeStartChange($event.value)"
+          />
+
+          <input
+            matEndDate
+            placeholder="Fin"
+            [value]="plannedRangeEnd()"
+            (dateChange)="onPlannedRangeEndChange($event.value)"
+          />
+        </mat-date-range-input>
+
+        @if (hasPlannedRangeFilter) {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            class="filter-field__clear"
+            aria-label="Limpiar filtro de fechas"
+            (mousedown)="$event.preventDefault()"
+            (click)="clearPlannedRangeFilter($event)"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+
+        <mat-datepicker-toggle
+          matIconSuffix
+          [for]="plannedRangePicker"
+        />
+
+        <mat-date-range-picker #plannedRangePicker />
+      </mat-form-field>
+    </div>
   </section>
+
+  @if (selectedItemsCount > 0) {
+    <section class="selection-summary">
+      <div class="selection-summary__content">
+        <mat-icon>checklist</mat-icon>
+
+        <span>
+          {{ selectedItemsCount }} ítem(s) seleccionado(s).
+          Usa el ícono resaltado en cualquiera de las filas seleccionadas para ejecutar la acción en lote.
+        </span>
+      </div>
+    </section>
+  }
 
   <app-table-card
     [loading]="isLoading()"
@@ -144,20 +202,25 @@
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Solicitar cambio de rango"
-                (click)="onDateChangeClicked(row)"
+                [class.row-actions__btn--bulk]="hasMultipleSelection && selection.isSelected(row)"
+                [matTooltip]="getScheduleRowTooltip(row)"
+                [disabled]="!canUseRowPrimaryAction(row)"
+                (click)="onScheduleRowActionClicked(row)"
               >
-                <mat-icon>date_range</mat-icon>
+                <mat-icon>
+                  {{ hasMultipleSelection && selection.isSelected(row) ? 'playlist_add_check' : 'event_available' }}
+                </mat-icon>
               </button>
 
               <button
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Agregar a cronograma"
-                (click)="onScheduleClicked(row)"
+                matTooltip="Solicitar cambio de rango"
+                [disabled]="hasMultipleSelection || (hasAnySelection && !selection.isSelected(row))"
+                (click)="onDateChangeClicked(row)"
               >
-                <mat-icon>event_available</mat-icon>
+                <mat-icon>date_range</mat-icon>
               </button>
             }
 
@@ -190,11 +253,14 @@
                 mat-icon-button
                 type="button"
                 class="row-actions__btn"
-                matTooltip="Solicitar autorización de inicio"
-                [disabled]="!canRequestWorkAuthorization(row)"
-                (click)="onWorkAuthorizationClicked(row)"
+                [class.row-actions__btn--bulk]="hasMultipleSelection && selection.isSelected(row)"
+                [matTooltip]="getWorkAuthorizationRowTooltip(row)"
+                [disabled]="!canUseRowPrimaryAction(row) || !canRequestWorkAuthorization(row)"
+                (click)="onWorkAuthorizationRowActionClicked(row)"
               >
-                <mat-icon>approval</mat-icon>
+                <mat-icon>
+                  {{ hasMultipleSelection && selection.isSelected(row) ? 'playlist_add_check' : 'approval' }}
+                </mat-icon>
               </button>
             }
 
@@ -216,7 +282,7 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Iniciar proceso de calibración"
-                [disabled]="!canStartCalibrationProcess(row)"
+                [disabled]="!canStartCalibrationProcess(row) || (hasAnySelection && !selection.isSelected(row))"
                 (click)="onStartProcessClicked(row)"
               >
                 <mat-icon>engineering</mat-icon>
@@ -229,6 +295,7 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Continuar proceso de calibración"
+                [disabled]="hasAnySelection && !selection.isSelected(row)"
                 (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>play_circle</mat-icon>
@@ -241,6 +308,7 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Ver proceso en revisión"
+                [disabled]="hasAnySelection && !selection.isSelected(row)"
                 (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>fact_check</mat-icon>
@@ -253,6 +321,7 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Ver proceso aprobado"
+                [disabled]="hasAnySelection && !selection.isSelected(row)"
                 (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>check_circle</mat-icon>
@@ -265,6 +334,7 @@
                 type="button"
                 class="row-actions__btn"
                 matTooltip="Ver rechazo / iniciar corrección"
+                [disabled]="hasAnySelection && !selection.isSelected(row)"
                 (click)="onContinueProcessClicked(row)"
               >
                 <mat-icon>error</mat-icon>
@@ -310,7 +380,7 @@
 @if (scheduleDrawerOpen()) {
   <app-drawer-shell
     [open]="scheduleDrawerOpen()"
-    width="680px"
+    width="660px"
     (closed)="onScheduleDrawerClosed()"
   >
     <app-schedule-proposal-drawer

@@ -22,8 +22,11 @@ import { DrawerActionsComponent } from '../../../../shared/components/drawer-act
 import { ToastService } from '../../../../core/services/toast.service';
 import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
-import { PmseLaboratoriesService } from '../../../pmse-laboratories/data-access/pmse-laboratories.service';
-import { PmseLaboratory } from '../../../pmse-laboratories/domain/pmse-laboratory.model';
+import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
+import {
+  AccreditedLaboratory,
+  EntityStatus
+} from '../../../accredited-laboratories/domain/accredited-laboratory.model';
 
 import { CalibrationPlanItem } from '../../../calibration-plans/domain/calibration-plan.model';
 
@@ -33,6 +36,7 @@ import {
   CalibrationScheduleSubmission,
   CalibrationScheduleSubmissionStatus
 } from '../../domain/calibration-schedule-submission.model';
+
 import { DateFieldComponent } from '../../../../shared/components/date-field/date-field';
 
 @Component({
@@ -61,27 +65,27 @@ export class ScheduleProposalDrawerComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationScheduleSubmissionsService);
-  private readonly laboratoriesService = inject(PmseLaboratoriesService);
+  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
   loading = false;
   loadingCatalogs = signal(false);
-  laboratories = signal<PmseLaboratory[]>([]);
+  laboratories = signal<AccreditedLaboratory[]>([]);
 
-readonly form = this.fb.group(
-  {
-    scheduledDate: ['', Validators.required],
-    accreditedLaboratoryId: [null as number | null, Validators.required],
-    notes: ['', [Validators.maxLength(1000)]]
-  },
-  {
-    validators: [
-      this.scheduledDateTimeRequiredValidator(),
-      this.scheduledDateInsidePlannedRangeValidator()
-    ]
-  }
-);
+  readonly form = this.fb.group(
+    {
+      scheduledDate: ['', Validators.required],
+      accreditedLaboratoryId: [null as number | null, Validators.required],
+      notes: ['', [Validators.maxLength(1000)]]
+    },
+    {
+      validators: [
+        this.scheduledDateTimeRequiredValidator(),
+        this.scheduledDateInsidePlannedRangeValidator()
+      ]
+    }
+  );
 
   constructor() {
     this.loadLaboratories();
@@ -104,7 +108,8 @@ readonly form = this.fb.group(
       this.loadingCatalogs() ||
       this.form.invalid ||
       this.currentItems.length === 0 ||
-      !this.hasCommonRange;
+      !this.hasCommonRange ||
+      this.laboratories().length === 0;
   }
 
   get minDate(): string | null {
@@ -150,11 +155,11 @@ readonly form = this.fb.group(
     return !!start && !!end && start <= end;
   }
 
-  getLaboratoryLabel(laboratory: PmseLaboratory): string {
-    const name = laboratory.accreditedLaboratoryName ?? 'Laboratorio';
+  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
+    const name = laboratory.name?.trim() || 'Laboratorio';
 
-    const code = laboratory.accreditationCode
-      ? ` · ${laboratory.accreditationCode}`
+    const code = laboratory.accreditationCode?.trim()
+      ? ` · ${laboratory.accreditationCode.trim()}`
       : '';
 
     return `${name}${code}`;
@@ -173,7 +178,7 @@ readonly form = this.fb.group(
       return;
     }
 
-    if (this.form.invalid || this.loading) {
+    if (this.form.invalid || this.loading || this.loadingCatalogs()) {
       this.form.markAllAsTouched();
       this.toast.warning('Revisa los campos obligatorios antes de guardar.');
       return;
@@ -186,24 +191,22 @@ readonly form = this.fb.group(
       return;
     }
 
-    const planIds = new Set(items.map(item => item.calibrationPlanId));
+    const raw = this.form.getRawValue();
 
-    if (planIds.size > 1) {
-      this.toast.warning('Los ítems seleccionados deben pertenecer al mismo plan anual.');
+    const accreditedLaboratoryId = Number(raw.accreditedLaboratoryId);
+    const proposedCalibrationDate = this.extractDateValue(raw.scheduledDate);
+    const proposedCalibrationTime = this.extractTimeValue(raw.scheduledDate);
+    const notes = this.normalize(raw.notes);
+
+    if (!accreditedLaboratoryId) {
+      this.toast.warning('Selecciona un laboratorio acreditado.');
       return;
     }
 
-const raw = this.form.getRawValue();
-const notes = this.normalize(raw.notes);
-const proposedCalibrationDate = this.normalizeDateValue(raw.scheduledDate);
-const proposedCalibrationTime = this.normalizeTimeValue(raw.scheduledDate);
-const accreditedLaboratoryId = Number(raw.accreditedLaboratoryId);
-
-if (!proposedCalibrationDate || !proposedCalibrationTime || proposedCalibrationTime === '00:00:00') {
-  this.form.markAllAsTouched();
-  this.toast.warning('Selecciona la fecha y hora propuesta.');
-  return;
-}
+    if (!proposedCalibrationDate || !proposedCalibrationTime) {
+      this.toast.warning('Selecciona la fecha y hora propuesta de calibración.');
+      return;
+    }
 
     const calibrationPlanId = items[0].calibrationPlanId;
 
@@ -216,13 +219,13 @@ if (!proposedCalibrationDate || !proposedCalibrationTime || proposedCalibrationT
     ).pipe(
       switchMap(submission => {
         const requests = items.map(item => {
-const dto: AddCalibrationScheduleSubmissionItemRequest = {
-  calibrationPlanItemId: item.id,
-  accreditedLaboratoryId,
-  proposedCalibrationDate,
-  proposedCalibrationTime,
-  notes
-};
+          const dto: AddCalibrationScheduleSubmissionItemRequest = {
+            calibrationPlanItemId: item.id,
+            accreditedLaboratoryId,
+            proposedCalibrationDate,
+            proposedCalibrationTime,
+            notes
+          };
 
           return this.service.addItem(submission.id, dto);
         });
@@ -269,21 +272,11 @@ const dto: AddCalibrationScheduleSubmissionItemRequest = {
   private loadLaboratories(): void {
     this.loadingCatalogs.set(true);
 
-    const pmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
-
-    const filter = [
-      'Status eq 1',
-      pmseFilter
-    ]
-      .filter(Boolean)
-      .map(value => `(${value})`)
-      .join(' and ');
-
     this.laboratoriesService.getAll({
       page: 1,
-      take: 300,
-      filter,
-      orderBy: 'AccreditedLaboratoryName asc'
+      take: 500,
+      filter: `Status eq ${EntityStatus.Active}`,
+      orderBy: 'Name asc'
     }).subscribe({
       next: response => {
         this.loadingCatalogs.set(false);
@@ -293,11 +286,11 @@ const dto: AddCalibrationScheduleSubmissionItemRequest = {
           return;
         }
 
-        this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+        this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios acreditados.');
       },
       error: () => {
         this.loadingCatalogs.set(false);
-        this.toast.warning('No se pudieron cargar los laboratorios contratados.');
+        this.toast.warning('No se pudieron cargar los laboratorios acreditados.');
       }
     });
   }
@@ -320,85 +313,48 @@ const dto: AddCalibrationScheduleSubmissionItemRequest = {
     return normalized ? normalized : null;
   }
 
-private normalizeDateValue(value: unknown): string {
-  if (value instanceof Date) {
-    return this.formatDate(value);
+  private extractDateValue(value: unknown): string {
+    const normalized = this.normalizeDateTimeValue(value);
+
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(normalized);
+
+    return match?.[1] ?? '';
   }
 
-  if (typeof value !== 'string') {
-    return '';
+  private extractTimeValue(value: unknown): string | null {
+    const normalized = this.normalizeDateTimeValue(value);
+
+    const match = /(?:T|\s)(\d{2}:\d{2})(?::\d{2})?/.exec(normalized);
+
+    return match?.[1] ?? null;
   }
 
-  const normalized = value.trim();
-
-  if (!normalized) {
-    return '';
-  }
-
-  const isoDateMatch = /^(\d{4}-\d{2}-\d{2})/.exec(normalized);
-
-  if (isoDateMatch?.[1]) {
-    return isoDateMatch[1];
-  }
-
-  const parsed = new Date(normalized);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return '';
-  }
-
-  return this.formatDate(parsed);
-}
-
-private normalizeTimeValue(value: unknown): string | null {
-  if (value instanceof Date) {
-    return this.formatTime(value);
-  }
-
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim();
-
-  if (!normalized) {
-    return null;
-  }
-
-  const timeMatch = /(?:T|\s)(\d{2}):(\d{2})(?::(\d{2}))?/.exec(normalized);
-
-  if (timeMatch) {
-    const hours = timeMatch[1];
-    const minutes = timeMatch[2];
-    const seconds = timeMatch[3] ?? '00';
-
-    return `${hours}:${minutes}:${seconds}`;
-  }
-
-  const parsed = new Date(normalized);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  return this.formatTime(parsed);
-}
-
-private scheduledDateTimeRequiredValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const scheduledDate = control.get('scheduledDate')?.value;
-
-    if (!scheduledDate) {
-      return null;
+  private normalizeDateTimeValue(value: unknown): string {
+    if (value instanceof Date) {
+      return `${this.formatDate(value)}T${this.formatTime(value)}`;
     }
 
-    const proposedTime = this.normalizeTimeValue(scheduledDate);
+    if (typeof value !== 'string') {
+      return '';
+    }
 
-    return !proposedTime || proposedTime === '00:00:00'
-      ? { scheduledTimeRequired: true }
-      : null;
-  };
-}
+    return value.trim();
+  }
+
+  private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private formatTime(date: Date): string {
+    const hour = `${date.getHours()}`.padStart(2, '0');
+    const minute = `${date.getMinutes()}`.padStart(2, '0');
+
+    return `${hour}:${minute}`;
+  }
 
   private getOrCreateDraftSubmission(
     calibrationPlanId: number,
@@ -427,49 +383,50 @@ private scheduledDateTimeRequiredValidator(): ValidatorFn {
     );
   }
 
-private scheduledDateInsidePlannedRangeValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const scheduledDate = control.get('scheduledDate')?.value;
-    const items = this.currentItems;
+  private scheduledDateTimeRequiredValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const scheduledDate = control.get('scheduledDate')?.value;
 
-    if (!scheduledDate || items.length === 0) {
-      return null;
-    }
-
-    const scheduledDateOnly = this.normalizeDateValue(scheduledDate);
-
-    if (!scheduledDateOnly) {
-      return null;
-    }
-
-    const isOutsideAnyRange = items.some(item => {
-      if (!item.plannedStartDate || !item.plannedEndDate) {
-        return false;
+      if (!scheduledDate) {
+        return null;
       }
 
-      return scheduledDateOnly < item.plannedStartDate ||
-             scheduledDateOnly > item.plannedEndDate;
-    });
+      const date = this.extractDateValue(scheduledDate);
+      const time = this.extractTimeValue(scheduledDate);
 
-    return isOutsideAnyRange
-      ? { scheduledDateOutsideRange: true }
-      : null;
-  };
-}
+      return date && time
+        ? null
+        : { scheduledTimeRequired: true };
+    };
+  }
 
-private formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
+  private scheduledDateInsidePlannedRangeValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const scheduledDate = control.get('scheduledDate')?.value;
+      const items = this.currentItems;
 
-  return `${year}-${month}-${day}`;
-}
+      if (!scheduledDate || items.length === 0) {
+        return null;
+      }
 
-private formatTime(date: Date): string {
-  const hours = `${date.getHours()}`.padStart(2, '0');
-  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+      const normalizedDate = this.extractDateValue(scheduledDate);
 
-  return `${hours}:${minutes}:00`;
-}
-  
+      if (!normalizedDate) {
+        return null;
+      }
+
+      const isOutsideAnyRange = items.some(item => {
+        if (!item.plannedStartDate || !item.plannedEndDate) {
+          return false;
+        }
+
+        return normalizedDate < item.plannedStartDate ||
+          normalizedDate > item.plannedEndDate;
+      });
+
+      return isOutsideAnyRange
+        ? { scheduledDateOutsideRange: true }
+        : null;
+    };
+  }
 }

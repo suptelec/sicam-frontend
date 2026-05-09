@@ -14,6 +14,7 @@ import { getEntityStatusChip } from '../../../../shared/utils/status-chip.util';
 import { ODataQueryBuilder } from '../../../../core/http/odata-query-builder.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { UserScopeService } from '../../../../core/auth/services/user-scope.service';
 
 import { AccreditedLaboratoriesService } from '../../data-access/accredited-laboratories.service';
 import {
@@ -22,7 +23,6 @@ import {
 } from '../../domain/accredited-laboratory.model';
 
 import { AccreditedLaboratoryDrawerComponent } from '../../ui/accredited-laboratory-drawer/accredited-laboratory-drawer';
-
 import { DrawerShellComponent } from '../../../../shared/components/drawer-shell/drawer-shell';
 
 @Component({
@@ -49,19 +49,15 @@ export class AccreditedLaboratoriesListComponent implements OnInit {
   private readonly odata = inject(ODataQueryBuilder);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly userScope = inject(UserScopeService);
 
   readonly getEntityStatusChip = getEntityStatusChip;
   readonly EntityStatus = EntityStatus;
 
+  readonly canManageLaboratories = this.userScope.isCenaceUser;
+  readonly isPmseUser = this.userScope.isPmseUser;
+
   dataSource = new MatTableDataSource<AccreditedLaboratory>([]);
-  displayedColumns = [
-    'name',
-    'accreditationCode',
-    'contactEmail',
-    'phone',
-    'status',
-    'actions'
-  ];
 
   totalRecords = 0;
   pageSize = 10;
@@ -76,17 +72,48 @@ export class AccreditedLaboratoriesListComponent implements OnInit {
     this.load();
   }
 
+  get displayedColumns(): string[] {
+    const columns = [
+      'name',
+      'accreditationCode',
+      'contactEmail',
+      'phone',
+      'status'
+    ];
+
+    if (this.canManageLaboratories()) {
+      columns.push('actions');
+    }
+
+    return columns;
+  }
+
+  get pageDescription(): string {
+    if (this.canManageLaboratories()) {
+      return 'Gestiona el catálogo global de laboratorios acreditados que los PMSE podrán escoger en sus cronogramas de calibración.';
+    }
+
+    return 'Consulta los laboratorios acreditados activos disponibles para seleccionar en los cronogramas de calibración.';
+  }
+
+  get emptyDescription(): string {
+    if (this.canManageLaboratories()) {
+      return 'Registra un laboratorio acreditado para que pueda ser usado en certificados, cronogramas y procesos de calibración.';
+    }
+
+    return 'CENACE aún no tiene laboratorios acreditados activos disponibles para selección.';
+  }
+
   load(): void {
     this.isLoading.set(true);
 
     this.service.getAll({
       page: this.pageIndex + 1,
       take: this.pageSize,
-      filter: this.odata.searchInFields(
-        ['Name', 'AccreditationCode', 'ContactEmail'],
-        this.searchTerm
-      ),
-      orderBy: 'CreatedAt desc'
+      filter: this.buildFilter(),
+      orderBy: this.canManageLaboratories()
+        ? 'CreatedAt desc'
+        : 'Name asc'
     }).subscribe({
       next: response => {
         if (response.succeed) {
@@ -116,6 +143,15 @@ export class AccreditedLaboratoriesListComponent implements OnInit {
     this.load();
   }
 
+  onCreateClicked(): void {
+    if (!this.canManageLaboratories()) {
+      this.toast.warning('Solo CENACE puede crear laboratorios acreditados.');
+      return;
+    }
+
+    this.drawerOpen.set(true);
+  }
+
   onLaboratoryCreated(): void {
     this.drawerOpen.set(false);
     this.toast.success('Laboratorio acreditado creado correctamente.');
@@ -124,6 +160,11 @@ export class AccreditedLaboratoriesListComponent implements OnInit {
   }
 
   onToggleStatus(laboratory: AccreditedLaboratory): void {
+    if (!this.canManageLaboratories()) {
+      this.toast.warning('Solo CENACE puede activar o inactivar laboratorios.');
+      return;
+    }
+
     const action = laboratory.status === EntityStatus.Active
       ? 'inactivar'
       : 'activar';
@@ -152,5 +193,18 @@ export class AccreditedLaboratoriesListComponent implements OnInit {
         }
       });
     });
+  }
+
+  private buildFilter(): string | undefined {
+    const searchFilter = this.odata.searchInFields(
+      ['Name', 'AccreditationCode', 'ContactEmail'],
+      this.searchTerm
+    );
+
+    const activeOnlyFilter = this.isPmseUser()
+      ? this.odata.eqNumber('Status', EntityStatus.Active)
+      : undefined;
+
+    return this.odata.and(searchFilter, activeOnlyFilter);
   }
 }

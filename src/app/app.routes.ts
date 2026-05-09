@@ -94,10 +94,15 @@ export const routes: Routes = [
             .then(m => m.CALIBRATION_PROCESS_REVIEWS_ROUTES)
       },
       {
-        path: 'pmse-laboratories',
+        path: 'accredited-laboratories',
         loadChildren: () =>
-          import('./features/pmse-laboratories/pmse-laboratories.routes')
-            .then(m => m.PMSE_LABORATORIES_ROUTES)
+          import('./features/accredited-laboratories/accredited-laboratories.routes')
+            .then(m => m.ACCREDITED_LABORATORIES_ROUTES)
+      },
+      {
+        path: 'pmse-laboratories',
+        redirectTo: 'accredited-laboratories',
+        pathMatch: 'full'
       },
       
     ]

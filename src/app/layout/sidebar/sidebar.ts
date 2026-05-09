@@ -172,6 +172,14 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
+        label: 'Laboratorios',
+        route: '/accredited-laboratories',
+        icon: 'science',
+        section: null,
+        permission: 'calibrationPlan',
+        action: PermissionAction.Read
+      },
+      {
         label: 'Usuarios',
         route: '/system-users',
         icon: 'user',
@@ -245,10 +253,10 @@ export class SidebarComponent {
         action: PermissionAction.Read
       },
       {
-        label: 'Mis laboratorios',
-        route: '/pmse-laboratories',
+        label: 'Laboratorios acreditados',
+        route: '/accredited-laboratories',
         icon: 'science',
-        section: null,
+        section: 'Catálogos técnicos',
         permission: 'calibrationProcess',
         action: PermissionAction.Read
       },
@@ -300,6 +308,14 @@ export class SidebarComponent {
         route: '/procesos',
         icon: 'clock',
         section: null,
+        permission: 'calibrationProcess',
+        action: PermissionAction.Read
+      },
+      {
+        label: 'Laboratorios acreditados',
+        route: '/accredited-laboratories',
+        icon: 'science',
+        section: 'Catálogos técnicos',
         permission: 'calibrationProcess',
         action: PermissionAction.Read
       },

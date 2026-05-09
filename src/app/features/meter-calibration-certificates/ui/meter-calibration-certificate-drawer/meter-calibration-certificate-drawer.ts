@@ -25,8 +25,11 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { MetersService } from '../../../meters/data-access/meters.service';
 import { Meter } from '../../../meters/domain/meter.model';
 
-import { PmseLaboratoriesService } from '../../../pmse-laboratories/data-access/pmse-laboratories.service';
-import { PmseLaboratory } from '../../../pmse-laboratories/domain/pmse-laboratory.model';
+import { AccreditedLaboratoriesService } from '../../../accredited-laboratories/data-access/accredited-laboratories.service';
+import {
+  AccreditedLaboratory,
+  EntityStatus
+} from '../../../accredited-laboratories/domain/accredited-laboratory.model';
 
 import { MeterCalibrationCertificatesService } from '../../data-access/meter-calibration-certificates.service';
 import {
@@ -61,7 +64,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(MeterCalibrationCertificatesService);
   private readonly metersService = inject(MetersService);
-  private readonly laboratoriesService = inject(PmseLaboratoriesService);
+  private readonly laboratoriesService = inject(AccreditedLaboratoriesService);
   private readonly toast = inject(ToastService);
   private readonly userScope = inject(UserScopeService);
 
@@ -72,7 +75,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   loadingCatalogs = signal(false);
 
   meters = signal<Meter[]>([]);
-  laboratories = signal<PmseLaboratory[]>([]);
+  laboratories = signal<AccreditedLaboratory[]>([]);
 
   readonly CalibrationResult = CalibrationResult;
   readonly CalibrationResultLabels = CalibrationResultLabels;
@@ -86,7 +89,7 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
       accreditedLaboratoryId: [null as number | null, Validators.required],
 
       certificateNumber: ['', [Validators.required, Validators.maxLength(120)]],
-      secondaryCertificateNumber: ['', [Validators.maxLength(120)]],
+      secondaryCertificateNumber: ['', [Validators.maxLength(250)]],
 
       issueDate: ['', Validators.required],
       validUntil: ['', Validators.required],
@@ -114,7 +117,10 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
   }
 
   get saveDisabled(): boolean {
-    return this.loading || this.loadingCatalogs() || this.form.invalid;
+    return this.loading ||
+      this.loadingCatalogs() ||
+      this.form.invalid ||
+      this.laboratories().length === 0;
   }
 
   get selectedMeter(): Meter | null {
@@ -140,10 +146,11 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
     return `${meter.code}${serial}${company}`;
   }
 
-  getLaboratoryLabel(laboratory: PmseLaboratory): string {
-    const name = laboratory.accreditedLaboratoryName ?? 'Laboratorio';
-    const code = laboratory.accreditationCode
-      ? ` · ${laboratory.accreditationCode}`
+  getLaboratoryLabel(laboratory: AccreditedLaboratory): string {
+    const name = laboratory.name?.trim() || 'Laboratorio';
+
+    const code = laboratory.accreditationCode?.trim()
+      ? ` · ${laboratory.accreditationCode.trim()}`
       : '';
 
     return `${name}${code}`;
@@ -222,7 +229,6 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
     this.loadingCatalogs.set(true);
 
     const meterFilter = this.userScope.getPmseFilter('PmseCompanyId');
-    const laboratoryPmseFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
     let completed = 0;
 
@@ -257,39 +263,24 @@ export class MeterCalibrationCertificateDrawerComponent implements OnInit {
 
     this.laboratoriesService.getAll({
       page: 1,
-      take: 300,
-      filter: this.buildLaboratoryFilter(laboratoryPmseFilter),
-      orderBy: 'AccreditedLaboratoryName asc'
+      take: 500,
+      filter: `Status eq ${EntityStatus.Active}`,
+      orderBy: 'Name asc'
     }).subscribe({
       next: response => {
         if (response.succeed) {
           this.laboratories.set(response.result ?? []);
         } else {
-          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios contratados.');
+          this.toast.warning(response.message ?? 'No se pudieron cargar los laboratorios acreditados.');
         }
 
         finish();
       },
       error: () => {
-        this.toast.warning('No se pudieron cargar los laboratorios contratados.');
+        this.toast.warning('No se pudieron cargar los laboratorios acreditados.');
         finish();
       }
     });
-  }
-
-  private buildLaboratoryFilter(pmseFilter: string | null): string {
-    return this.userScope.isPmseUser()
-      ? this.userScope.currentUser()
-        ? this.joinFilters('Status eq 1', pmseFilter)
-        : 'Status eq 1'
-      : 'Status eq 1';
-  }
-
-  private joinFilters(...filters: Array<string | null | undefined>): string {
-    return filters
-      .filter(Boolean)
-      .map(filter => `(${filter})`)
-      .join(' and ');
   }
 
   private reset(): void {
