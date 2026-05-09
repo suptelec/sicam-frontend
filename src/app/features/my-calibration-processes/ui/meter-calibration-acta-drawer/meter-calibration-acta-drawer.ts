@@ -1,7 +1,9 @@
 import {
   Component,
+  ElementRef,
   EventEmitter,
   Output,
+  ViewChild,
   effect,
   inject,
   input,
@@ -48,8 +50,8 @@ import {
 } from '../../../my-calibration-items/domain/calibration-process.model';
 
 type ActaStep = 'acta' | 'photos';
+type ActaSection = 'datos' | 'validaciones' | 'finalizacion' | 'sellos';
 type ActaCheckSource = 'manual';
-
 type InstallationFormOption = '9S' | '32S';
 
 interface ActaCheckDefinition {
@@ -257,6 +259,18 @@ export class MeterCalibrationActaDrawerComponent {
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<void>();
 
+  @ViewChild('datosGeneralesSection')
+  private datosGeneralesSection?: ElementRef<HTMLElement>;
+
+  @ViewChild('validacionesTecnicasSection')
+  private validacionesTecnicasSection?: ElementRef<HTMLElement>;
+
+  @ViewChild('finalizacionSection')
+  private finalizacionSection?: ElementRef<HTMLElement>;
+
+  @ViewChild('sellosSection')
+  private sellosSection?: ElementRef<HTMLElement>;
+
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CalibrationProcessesService);
   private readonly fileUploadService = inject(FileUploadService);
@@ -268,6 +282,7 @@ export class MeterCalibrationActaDrawerComponent {
   readonly meterInstallationFormOptions = METER_INSTALLATION_FORM_OPTIONS;
 
   readonly currentStep = signal<ActaStep>('acta');
+  readonly activeActaSection = signal<ActaSection>('datos');
   readonly formData = signal<MeterCalibrationActaFormResponse | null>(null);
   readonly existingActa = signal<MeterCalibrationActa | null>(null);
   readonly checkDefinitions = signal<ActaCheckDefinition[]>([]);
@@ -277,28 +292,28 @@ export class MeterCalibrationActaDrawerComponent {
   readonly uploadingSealPhotoId = signal<number | null>(null);
   readonly deletingPhotoId = signal<number | null>(null);
 
-readonly form = this.fb.group(
-  {
-    pmseTechnicalDelegateName: ['', [Validators.required, Validators.maxLength(200)]],
-    pmsePhone: ['', [Validators.maxLength(50)]],
-    actaDate: ['', Validators.required],
+  readonly form = this.fb.group(
+    {
+      pmseTechnicalDelegateName: ['', [Validators.required, Validators.maxLength(200)]],
+      pmsePhone: ['', [Validators.maxLength(50)]],
+      actaDate: ['', Validators.required],
 
-    calibrationStartDateTime: ['', Validators.required],
-    meterRestorationEndDateTime: ['', Validators.required],
+      calibrationStartDateTime: ['', Validators.required],
+      meterRestorationEndDateTime: ['', Validators.required],
 
-    activeEnergyEndDateTime: [''],
-    activeEnergyEventualities: ['', [Validators.maxLength(1000)]],
+      activeEnergyEndDateTime: [''],
+      activeEnergyEventualities: ['', [Validators.maxLength(1000)]],
 
-    reactiveEnergyEndDateTime: [''],
-    reactiveEnergyEventualities: ['', [Validators.maxLength(1000)]],
+      reactiveEnergyEndDateTime: [''],
+      reactiveEnergyEventualities: ['', [Validators.maxLength(1000)]],
 
-    checks: this.fb.array([]),
-    seals: this.fb.array([])
-  },
-  {
-    validators: [this.energyEndDatesWithinCalibrationWindowValidator()]
-  }
-);
+      checks: this.fb.array([]),
+      seals: this.fb.array([])
+    },
+    {
+      validators: [this.energyEndDatesWithinCalibrationWindowValidator()]
+    }
+  );
 
   constructor() {
     effect(() => {
@@ -306,30 +321,11 @@ readonly form = this.fb.group(
 
       if (currentProcessId) {
         this.currentStep.set('acta');
+        this.activeActaSection.set('datos');
         this.load(currentProcessId);
       }
     });
   }
-
-get calibrationWindowStartDateTime(): string | null {
-  return this.normalize(this.form.controls.calibrationStartDateTime.value);
-}
-
-get calibrationWindowEndDateTime(): string | null {
-  return this.normalize(this.form.controls.meterRestorationEndDateTime.value);
-}
-
-get activeEnergyEndOutOfWindow(): boolean {
-  return this.form.hasError('activeEnergyEndOutOfWindow');
-}
-
-get reactiveEnergyEndOutOfWindow(): boolean {
-  return this.form.hasError('reactiveEnergyEndOutOfWindow');
-}
-
-get calibrationEndBeforeStart(): boolean {
-  return this.form.hasError('calibrationEndBeforeStart');
-}
 
   get checks(): FormArray {
     return this.form.controls.checks as FormArray;
@@ -354,6 +350,26 @@ get calibrationEndBeforeStart(): boolean {
   get allSavedSealsHavePhotos(): boolean {
     return this.actaSeals.length > 0 &&
       this.actaSeals.every(seal => (seal.photos?.length ?? 0) > 0);
+  }
+
+  get calibrationWindowStartDateTime(): string | null {
+    return this.normalize(this.form.controls.calibrationStartDateTime.value);
+  }
+
+  get calibrationWindowEndDateTime(): string | null {
+    return this.normalize(this.form.controls.meterRestorationEndDateTime.value);
+  }
+
+  get activeEnergyEndOutOfWindow(): boolean {
+    return this.form.hasError('activeEnergyEndOutOfWindow');
+  }
+
+  get reactiveEnergyEndOutOfWindow(): boolean {
+    return this.form.hasError('reactiveEnergyEndOutOfWindow');
+  }
+
+  get calibrationEndBeforeStart(): boolean {
+    return this.form.hasError('calibrationEndBeforeStart');
   }
 
   get groupedChecks(): GroupedActaCheckSection[] {
@@ -395,6 +411,24 @@ get calibrationEndBeforeStart(): boolean {
     return METER_INSTALLATION_FORM_CODES.includes(Number(checkCode));
   }
 
+  setCheckResult(
+    index: number,
+    result: MeterCalibrationActaCheckResult
+  ): void {
+    const control = this.getCheckGroup(index).controls['checkResult'];
+
+    control.setValue(result);
+    control.markAsDirty();
+    control.markAsTouched();
+  }
+
+  isCheckResultSelected(
+    index: number,
+    result: MeterCalibrationActaCheckResult
+  ): boolean {
+    return Number(this.getCheckGroup(index).controls['checkResult'].value) === Number(result);
+  }
+
   onInstallationFormSelected(index: number): void {
     this.getCheckGroup(index).patchValue(
       {
@@ -408,6 +442,7 @@ get calibrationEndBeforeStart(): boolean {
     if (this.isSaving() || this.uploadingSealPhotoId()) return;
 
     this.currentStep.set('acta');
+    this.activeActaSection.set('datos');
   }
 
   goToPhotos(): void {
@@ -419,6 +454,25 @@ get calibrationEndBeforeStart(): boolean {
     }
 
     this.currentStep.set('photos');
+  }
+
+  goToActaSection(section: ActaSection): void {
+    if (this.currentStep() !== 'acta') {
+      this.currentStep.set('acta');
+    }
+
+    this.activeActaSection.set(section);
+
+    setTimeout(() => {
+      const target = this.getActaSectionElement(section);
+
+      if (!target) return;
+
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    });
   }
 
   load(processId = this.processId(), goToPhotosAfterLoad = false): void {
@@ -483,27 +537,27 @@ get calibrationEndBeforeStart(): boolean {
       return;
     }
 
-if (this.form.invalid || this.isSaving()) {
-  this.form.markAllAsTouched();
+    if (this.form.invalid || this.isSaving()) {
+      this.form.markAllAsTouched();
 
-  if (this.calibrationEndBeforeStart) {
-    this.toast.warning('La fecha y hora de fin no puede ser anterior al inicio de calibración.');
-    return;
-  }
+      if (this.calibrationEndBeforeStart) {
+        this.toast.warning('La fecha y hora de fin no puede ser anterior al inicio de calibración.');
+        return;
+      }
 
-  if (this.activeEnergyEndOutOfWindow) {
-    this.toast.warning('La finalización de energía activa debe estar dentro de la fecha y hora de inicio y fin del cronograma.');
-    return;
-  }
+      if (this.activeEnergyEndOutOfWindow) {
+        this.toast.warning('La finalización de energía activa debe estar dentro de la fecha y hora de inicio y fin del cronograma.');
+        return;
+      }
 
-  if (this.reactiveEnergyEndOutOfWindow) {
-    this.toast.warning('La finalización de energía reactiva debe estar dentro de la fecha y hora de inicio y fin del cronograma.');
-    return;
-  }
+      if (this.reactiveEnergyEndOutOfWindow) {
+        this.toast.warning('La finalización de energía reactiva debe estar dentro de la fecha y hora de inicio y fin del cronograma.');
+        return;
+      }
 
-  this.toast.warning('Revisa los campos obligatorios del acta.');
-  return;
-}
+      this.toast.warning('Revisa los campos obligatorios del acta.');
+      return;
+    }
 
     if (this.seals.length === 0) {
       this.toast.warning('Registra al menos un sello colocado después de la calibración.');
@@ -821,6 +875,24 @@ if (this.form.invalid || this.isSaving()) {
         })
       );
     }
+
+    this.form.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private getActaSectionElement(section: ActaSection): HTMLElement | null {
+    switch (section) {
+      case 'datos':
+        return this.datosGeneralesSection?.nativeElement ?? null;
+
+      case 'validaciones':
+        return this.validacionesTecnicasSection?.nativeElement ?? null;
+
+      case 'finalizacion':
+        return this.finalizacionSection?.nativeElement ?? null;
+
+      case 'sellos':
+        return this.sellosSection?.nativeElement ?? null;
+    }
   }
 
   private buildCheckDefinitions(): ActaCheckDefinition[] {
@@ -924,6 +996,74 @@ if (this.form.invalid || this.isSaving()) {
     return `${datePart}T${timePart}`;
   }
 
+  private energyEndDatesWithinCalibrationWindowValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const start = this.parseDateTimeForComparison(
+        control.get('calibrationStartDateTime')?.value
+      );
+
+      const end = this.parseDateTimeForComparison(
+        control.get('meterRestorationEndDateTime')?.value
+      );
+
+      const activeEnergyEnd = this.parseDateTimeForComparison(
+        control.get('activeEnergyEndDateTime')?.value
+      );
+
+      const reactiveEnergyEnd = this.parseDateTimeForComparison(
+        control.get('reactiveEnergyEndDateTime')?.value
+      );
+
+      const errors: ValidationErrors = {};
+
+      if (start && end && end < start) {
+        errors['calibrationEndBeforeStart'] = true;
+      }
+
+      if (
+        start &&
+        end &&
+        activeEnergyEnd &&
+        (activeEnergyEnd < start || activeEnergyEnd > end)
+      ) {
+        errors['activeEnergyEndOutOfWindow'] = true;
+      }
+
+      if (
+        start &&
+        end &&
+        reactiveEnergyEnd &&
+        (reactiveEnergyEnd < start || reactiveEnergyEnd > end)
+      ) {
+        errors['reactiveEnergyEndOutOfWindow'] = true;
+      }
+
+      return Object.keys(errors).length > 0 ? errors : null;
+    };
+  }
+
+  private parseDateTimeForComparison(value: unknown): Date | null {
+    const normalized = this.normalize(value);
+
+    if (!normalized) return null;
+
+    const match = normalized.match(
+      /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/
+    );
+
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const hour = Number(match[4] ?? '0');
+    const minute = Number(match[5] ?? '0');
+
+    const parsed = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
   private normalize(value: unknown): string | null {
     if (typeof value !== 'string') return null;
 
@@ -943,72 +1083,4 @@ if (this.form.invalid || this.isSaving()) {
       CENACE_MANUAL_CHECK_CODES.includes(checkCode) ||
       (checkCode >= 50 && checkCode <= 56);
   }
-
-private energyEndDatesWithinCalibrationWindowValidator(): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const start = this.parseDateTimeForComparison(
-      control.get('calibrationStartDateTime')?.value
-    );
-
-    const end = this.parseDateTimeForComparison(
-      control.get('meterRestorationEndDateTime')?.value
-    );
-
-    const activeEnergyEnd = this.parseDateTimeForComparison(
-      control.get('activeEnergyEndDateTime')?.value
-    );
-
-    const reactiveEnergyEnd = this.parseDateTimeForComparison(
-      control.get('reactiveEnergyEndDateTime')?.value
-    );
-
-    const errors: ValidationErrors = {};
-
-    if (start && end && end < start) {
-      errors['calibrationEndBeforeStart'] = true;
-    }
-
-    if (
-      start &&
-      end &&
-      activeEnergyEnd &&
-      (activeEnergyEnd < start || activeEnergyEnd > end)
-    ) {
-      errors['activeEnergyEndOutOfWindow'] = true;
-    }
-
-    if (
-      start &&
-      end &&
-      reactiveEnergyEnd &&
-      (reactiveEnergyEnd < start || reactiveEnergyEnd > end)
-    ) {
-      errors['reactiveEnergyEndOutOfWindow'] = true;
-    }
-
-    return Object.keys(errors).length > 0 ? errors : null;
-  };
-}
-
-private parseDateTimeForComparison(value: unknown): Date | null {
-  const normalized = this.normalize(value);
-
-  if (!normalized) return null;
-
-  const match = normalized.match(
-    /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/
-  );
-
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const hour = Number(match[4] ?? '0');
-  const minute = Number(match[5] ?? '0');
-
-  const parsed = new Date(year, month - 1, day, hour, minute, 0, 0);
-
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
 }

@@ -1,13 +1,13 @@
 <section class="drawer">
   <header class="drawer__header">
-    <div>
-      <p class="drawer__eyebrow">ACTA</p>
+    <div class="drawer__title-block">
+      <p class="drawer__eyebrow">ACTA SICAM</p>
 
       <h2>Acta de calibración</h2>
 
       <p class="drawer__description">
-        Completa el acta técnica, registra las validaciones del formato oficial,
-        eventualidades y sellos colocados después de la calibración.
+        Registra la información técnica que alimentará el acta oficial. Completa primero
+        el acta y los sellos; luego adjunta las fotos de respaldo.
       </p>
     </div>
 
@@ -24,6 +24,32 @@
   </header>
 
   <mat-divider />
+
+  @if (formData(); as data) {
+    <section class="acta-context">
+      <article>
+        <span>PMSE</span>
+        <strong>{{ data.pmseCompanyName ?? '—' }}</strong>
+      </article>
+
+      <article>
+        <span>Medidor</span>
+        <strong>{{ data.meterCode ?? '—' }}</strong>
+        <small>Serial: {{ data.meterSerial ?? '—' }}</small>
+      </article>
+
+      <article>
+        <span>Código externo</span>
+        <strong>{{ data.externalMeasurementPointCode ?? '—' }}</strong>
+      </article>
+
+      <article>
+        <span>Autorización</span>
+        <strong>{{ data.hasAuthorizedWork ? 'Aprobada' : 'Pendiente' }}</strong>
+        <small>{{ data.authorizationReviewedAt ?? '—' }}</small>
+      </article>
+    </section>
+  }
 
   <nav class="acta-stepper">
     <button
@@ -91,33 +117,69 @@
       [formGroup]="form"
       (ngSubmit)="submitActaAndContinue()"
     >
+      @if (currentStep() === 'acta') {
+        <nav class="acta-guide">
+          <button
+            type="button"
+            class="acta-guide__item"
+            [class.acta-guide__item--active]="activeActaSection() === 'datos'"
+            (click)="goToActaSection('datos')"
+          >
+            <span>01</span>
+
+            <div>
+              <strong>Datos generales</strong>
+              <small>Delegado, fechas y jornada</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="acta-guide__item"
+            [class.acta-guide__item--active]="activeActaSection() === 'validaciones'"
+            (click)="goToActaSection('validaciones')"
+          >
+            <span>02</span>
+
+            <div>
+              <strong>Validaciones técnicas</strong>
+              <small>Preguntas del formato oficial</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="acta-guide__item"
+            [class.acta-guide__item--active]="activeActaSection() === 'finalizacion'"
+            (click)="goToActaSection('finalizacion')"
+          >
+            <span>03</span>
+
+            <div>
+              <strong>Finalización</strong>
+              <small>Energía activa y reactiva</small>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="acta-guide__item"
+            [class.acta-guide__item--active]="activeActaSection() === 'sellos'"
+            (click)="goToActaSection('sellos')"
+          >
+            <span>04</span>
+
+            <div>
+              <strong>Sellos colocados</strong>
+              <small>Códigos y tipo de sello</small>
+            </div>
+          </button>
+        </nav>
+      }
+
       <div class="drawer__body">
         @if (currentStep() === 'acta') {
           @if (formData(); as data) {
-            <section class="summary-grid">
-              <article>
-                <span>PMSE</span>
-                <strong>{{ data.pmseCompanyName ?? '—' }}</strong>
-              </article>
-
-              <article>
-                <span>Medidor</span>
-                <strong>{{ data.meterCode ?? '—' }}</strong>
-                <small>Serial: {{ data.meterSerial ?? '—' }}</small>
-              </article>
-
-              <article>
-                <span>Código externo</span>
-                <strong>{{ data.externalMeasurementPointCode ?? '—' }}</strong>
-              </article>
-
-              <article>
-                <span>Autorización</span>
-                <strong>{{ data.hasAuthorizedWork ? 'Aprobada' : 'Pendiente' }}</strong>
-                <small>{{ data.authorizationReviewedAt ?? '—' }}</small>
-              </article>
-            </section>
-
             @if (!data.hasAuthorizationMeterSnapshotPhotos) {
               <section class="warning-card">
                 <mat-icon>warning</mat-icon>
@@ -133,449 +195,507 @@
             }
           }
 
-          <section class="form-section form-section--general">
-            <div class="section-heading">
-              <div>
-                <p>Datos generales</p>
-                <h3>Información del acta</h3>
-              </div>
-            </div>
-
-            <div class="general-form-grid">
-              <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Delegado técnico PMSE</mat-label>
-
-                <input
-                  matInput
-                  formControlName="pmseTechnicalDelegateName"
-                  autocomplete="off"
-                />
-
-                @if (
-                  form.controls.pmseTechnicalDelegateName.hasError('required') &&
-                  form.controls.pmseTechnicalDelegateName.touched
-                ) {
-                  <mat-error>El delegado técnico es obligatorio.</mat-error>
-                }
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="drawer__field">
-                <mat-label>Teléfono PMSE</mat-label>
-
-                <input
-                  matInput
-                  formControlName="pmsePhone"
-                  autocomplete="off"
-                />
-
-                @if (form.controls.pmsePhone.hasError('maxlength')) {
-                  <mat-error>Máximo 50 caracteres.</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-            <div class="acta-timeline">
-              <article class="timeline-field timeline-field--acta">
-                <div class="timeline-field__header">
-                  <span>Acta</span>
-                  <strong>Fecha del acta</strong>
-                </div>
-
-                <app-date-field
-                  class="drawer__field"
-                  formControlName="actaDate"
-                  label="Fecha del acta"
-                />
-              </article>
-
-              <article class="timeline-field timeline-field--calibration">
-                <div class="timeline-field__header">
-                  <span>Calibración</span>
-                  <strong>Inicio y fin de calibración</strong>
-                </div>
-
-                <div class="timeline-field__dates">
+          <section class="acta-workspace">
+            <main class="acta-content">
+              <section
+                #datosGeneralesSection
+                class="form-section form-section--general acta-anchor-section"
+              >
+                <div class="section-heading">
                   <div>
-                    <app-date-field
-                      class="drawer__field"
-                      formControlName="calibrationStartDateTime"
-                      label="Fecha y hora de inicio"
-                      [withTime]="true"
-                      [minuteStep]="1"
+                    <p>Datos generales</p>
+                    <h3>Información del acta</h3>
+                  </div>
+                </div>
+
+                <div class="general-form-grid">
+                  <mat-form-field appearance="outline" class="drawer__field">
+                    <mat-label>Delegado técnico PMSE</mat-label>
+
+                    <input
+                      matInput
+                      formControlName="pmseTechnicalDelegateName"
+                      autocomplete="off"
                     />
 
                     @if (
-                      form.controls.calibrationStartDateTime.hasError('required') &&
-                      form.controls.calibrationStartDateTime.touched
+                      form.controls.pmseTechnicalDelegateName.hasError('required') &&
+                      form.controls.pmseTechnicalDelegateName.touched
                     ) {
-                      <p class="field-error">
-                        La fecha y hora de inicio es obligatoria.
-                      </p>
+                      <mat-error>El delegado técnico es obligatorio.</mat-error>
                     }
-                  </div>
+                  </mat-form-field>
 
-                  <div>
-                    <app-date-field
-                      class="drawer__field"
-                      formControlName="meterRestorationEndDateTime"
-                      label="Fecha y hora de fin"
-                      [withTime]="true"
-                      [minuteStep]="1"
+                  <mat-form-field appearance="outline" class="drawer__field">
+                    <mat-label>Teléfono PMSE</mat-label>
+
+                    <input
+                      matInput
+                      formControlName="pmsePhone"
+                      autocomplete="off"
                     />
 
-                    @if (
-                      form.controls.meterRestorationEndDateTime.hasError('required') &&
-                      form.controls.meterRestorationEndDateTime.touched
-                    ) {
-                      <p class="field-error">
-                        La fecha y hora de fin es obligatoria.
-                      </p>
+                    @if (form.controls.pmsePhone.hasError('maxlength')) {
+                      <mat-error>Máximo 50 caracteres.</mat-error>
                     }
-
-                    @if (
-                      calibrationEndBeforeStart &&
-                      form.controls.meterRestorationEndDateTime.touched
-                    ) {
-                      <p class="field-error">
-                        La fecha y hora de fin no puede ser anterior al inicio de calibración.
-                      </p>
-                    }
-                  </div>
+                  </mat-form-field>
                 </div>
-              </article>
-            </div>
-          </section>
 
-          <section class="form-section">
-            <div class="section-heading">
-              <div>
-                <p>Formato oficial</p>
-                <h3>Validaciones del acta</h3>
-              </div>
-            </div>
+                <div class="timeline-grid">
+                  <article class="timeline-card">
+                    <div class="timeline-card__header">
+                      <mat-icon>event</mat-icon>
 
-            <div class="check-sections">
-              @for (section of groupedChecks; track section.key) {
-                <section class="check-section">
-                  <header class="check-section__header">
-                    <div>
-                      <p>{{ section.subtitle }}</p>
-                      <h4>{{ section.title }}</h4>
+                      <div>
+                        <span>Acta</span>
+                        <strong>Fecha del acta</strong>
+                      </div>
                     </div>
-                  </header>
 
-                  <div formArrayName="checks" class="check-rows">
-                    @for (item of section.items; track item.definition.checkCode) {
-                      <article
-                        class="check-row"
-                        [class.check-row--installation]="isInstallationFormCheck(item.definition.checkCode)"
-                        [formGroupName]="item.index"
-                      >
-                        <div class="check-row__question">
-                          <span>{{ item.order }}.-</span>
-                          <strong>{{ item.definition.label }}</strong>
+                    <app-date-field
+                      class="drawer__field"
+                      formControlName="actaDate"
+                      label="Fecha del acta"
+                    />
+                  </article>
+
+                  <article class="timeline-card timeline-card--calibration">
+                    <div class="timeline-card__header">
+                      <mat-icon>schedule</mat-icon>
+
+                      <div>
+                        <span>Calibración</span>
+                        <strong>Inicio y fin de calibración</strong>
+                      </div>
+                    </div>
+
+                    <div class="timeline-card__dates">
+                      <div>
+                        <app-date-field
+                          class="drawer__field"
+                          formControlName="calibrationStartDateTime"
+                          label="Fecha y hora de inicio"
+                          [withTime]="true"
+                          [minuteStep]="1"
+                        />
+
+                        @if (
+                          form.controls.calibrationStartDateTime.hasError('required') &&
+                          form.controls.calibrationStartDateTime.touched
+                        ) {
+                          <p class="field-error">
+                            La fecha y hora de inicio es obligatoria.
+                          </p>
+                        }
+                      </div>
+
+                      <div>
+                        <app-date-field
+                          class="drawer__field"
+                          formControlName="meterRestorationEndDateTime"
+                          label="Fecha y hora de fin"
+                          [withTime]="true"
+                          [minuteStep]="1"
+                        />
+
+                        @if (
+                          form.controls.meterRestorationEndDateTime.hasError('required') &&
+                          form.controls.meterRestorationEndDateTime.touched
+                        ) {
+                          <p class="field-error">
+                            La fecha y hora de fin es obligatoria.
+                          </p>
+                        }
+
+                        @if (
+                          calibrationEndBeforeStart &&
+                          form.controls.meterRestorationEndDateTime.touched
+                        ) {
+                          <p class="field-error">
+                            La fecha y hora de fin no puede ser anterior al inicio de calibración.
+                          </p>
+                        }
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section
+                #validacionesTecnicasSection
+                class="form-section acta-anchor-section"
+              >
+                <div class="section-heading">
+                  <div>
+                    <p>Formato oficial</p>
+                    <h3>Validaciones técnicas del acta</h3>
+                  </div>
+
+                  <span class="section-pill">
+                    Completa cada grupo
+                  </span>
+                </div>
+
+                <div class="validation-groups">
+                  @for (section of groupedChecks; track section.key; let first = $first) {
+                    <details
+                      class="validation-group"
+                      [open]="first"
+                    >
+                      <summary class="validation-group__summary">
+                        <div>
+                          <span>{{ section.subtitle }}</span>
+                          <strong>{{ section.title }}</strong>
                         </div>
 
-                        @if (isInstallationFormCheck(item.definition.checkCode)) {
-                          <mat-form-field appearance="outline" class="drawer__field check-row__result">
-                            <mat-label>Forma de instalación</mat-label>
+                        <mat-icon>expand_more</mat-icon>
+                      </summary>
 
-                            <mat-select
-                              formControlName="installationForm"
-                              (selectionChange)="onInstallationFormSelected(item.index)"
-                            >
-                              @for (option of meterInstallationFormOptions; track option) {
-                                <mat-option [value]="option">{{ option }}</mat-option>
-                              }
-                            </mat-select>
-
-                            @if (
-                              getCheckGroup(item.index).controls['installationForm'].hasError('required') &&
-                              getCheckGroup(item.index).controls['installationForm'].touched
-                            ) {
-                              <mat-error>Selecciona 9S o 32S.</mat-error>
-                            }
-                          </mat-form-field>
-
-                          <mat-form-field
-                            appearance="outline"
-                            class="drawer__field drawer__textarea check-row__observation"
+                      <div formArrayName="checks" class="validation-list">
+                        @for (item of section.items; track item.definition.checkCode) {
+                          <article
+                            class="validation-row"
+                            [class.validation-row--installation]="isInstallationFormCheck(item.definition.checkCode)"
+                            [formGroupName]="item.index"
                           >
-                            <mat-label>Observación</mat-label>
+                            <div class="validation-row__question">
+                              <span>{{ item.order }}</span>
+                              <strong>{{ item.definition.label }}</strong>
+                            </div>
 
-                            <textarea
-                              matInput
-                              rows="1"
-                              formControlName="observation"
-                              placeholder="Observación"
-                            ></textarea>
+                            @if (isInstallationFormCheck(item.definition.checkCode)) {
+                              <div class="validation-row__controls validation-row__controls--installation">
+                                <mat-form-field appearance="outline" class="drawer__field validation-row__result">
+                                  <mat-label>Forma de instalación</mat-label>
 
-                            @if (getCheckGroup(item.index).controls['observation'].hasError('maxlength')) {
-                              <mat-error>Máximo 500 caracteres.</mat-error>
+                                  <mat-select
+                                    formControlName="installationForm"
+                                    (selectionChange)="onInstallationFormSelected(item.index)"
+                                  >
+                                    @for (option of meterInstallationFormOptions; track option) {
+                                      <mat-option [value]="option">{{ option }}</mat-option>
+                                    }
+                                  </mat-select>
+
+                                  @if (
+                                    getCheckGroup(item.index).controls['installationForm'].hasError('required') &&
+                                    getCheckGroup(item.index).controls['installationForm'].touched
+                                  ) {
+                                    <mat-error>Selecciona 9S o 32S.</mat-error>
+                                  }
+                                </mat-form-field>
+
+                                <mat-form-field
+                                  appearance="outline"
+                                  class="drawer__field validation-row__observation"
+                                >
+                                  <mat-label>Observación</mat-label>
+
+                                  <input
+                                    matInput
+                                    formControlName="observation"
+                                    placeholder="Opcional, agrega detalle si aplica"
+                                  />
+
+                                  @if (getCheckGroup(item.index).controls['observation'].hasError('maxlength')) {
+                                    <mat-error>Máximo 500 caracteres.</mat-error>
+                                  }
+                                </mat-form-field>
+                              </div>
+                            } @else {
+                              <div class="validation-row__controls">
+                                <div class="validation-row__result check-result-toggle">
+                                  <span class="check-result-toggle__label">Resultado</span>
+
+                                  <div class="check-result-toggle__options">
+                                    <button
+                                      type="button"
+                                      class="check-result-option check-result-option--yes"
+                                      [class.check-result-option--active]="isCheckResultSelected(item.index, MeterCalibrationActaCheckResult.Yes)"
+                                      (click)="setCheckResult(item.index, MeterCalibrationActaCheckResult.Yes)"
+                                    >
+                                      <mat-icon>check_circle</mat-icon>
+                                      Sí
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      class="check-result-option check-result-option--no"
+                                      [class.check-result-option--active]="isCheckResultSelected(item.index, MeterCalibrationActaCheckResult.No)"
+                                      (click)="setCheckResult(item.index, MeterCalibrationActaCheckResult.No)"
+                                    >
+                                      <mat-icon>cancel</mat-icon>
+                                      No
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      class="check-result-option check-result-option--na"
+                                      [class.check-result-option--active]="isCheckResultSelected(item.index, MeterCalibrationActaCheckResult.NotApplicable)"
+                                      (click)="setCheckResult(item.index, MeterCalibrationActaCheckResult.NotApplicable)"
+                                    >
+                                      <mat-icon>remove_circle</mat-icon>
+                                      N/A
+                                    </button>
+                                  </div>
+
+                                  @if (isCheckResultSelected(item.index, MeterCalibrationActaCheckResult.Pending)) {
+                                    <small class="check-result-toggle__hint">
+                                      Pendiente de selección
+                                    </small>
+                                  }
+                                </div>
+
+                                <mat-form-field
+                                  appearance="outline"
+                                  class="drawer__field validation-row__observation"
+                                >
+                                  <mat-label>Observación</mat-label>
+
+                                  <input
+                                    matInput
+                                    formControlName="observation"
+                                    placeholder="Opcional, agrega detalle si aplica"
+                                  />
+
+                                  @if (getCheckGroup(item.index).controls['observation'].hasError('maxlength')) {
+                                    <mat-error>Máximo 500 caracteres.</mat-error>
+                                  }
+                                </mat-form-field>
+                              </div>
                             }
-                          </mat-form-field>
-                        } @else {
-                          <mat-form-field appearance="outline" class="drawer__field check-row__result">
-                            <mat-label>Resultado</mat-label>
-
-                            <mat-select formControlName="checkResult">
-                              <mat-option [value]="MeterCalibrationActaCheckResult.Pending">
-                                Pendiente
-                              </mat-option>
-
-                              <mat-option [value]="MeterCalibrationActaCheckResult.Yes">
-                                Sí
-                              </mat-option>
-
-                              <mat-option [value]="MeterCalibrationActaCheckResult.No">
-                                No
-                              </mat-option>
-
-                              <mat-option [value]="MeterCalibrationActaCheckResult.NotApplicable">
-                                No aplica
-                              </mat-option>
-                            </mat-select>
-
-                            @if (
-                              getCheckGroup(item.index).controls['checkResult'].hasError('required') &&
-                              getCheckGroup(item.index).controls['checkResult'].touched
-                            ) {
-                              <mat-error>El resultado es obligatorio.</mat-error>
-                            }
-                          </mat-form-field>
-
-                          <mat-form-field
-                            appearance="outline"
-                            class="drawer__field drawer__textarea check-row__observation"
-                          >
-                            <mat-label>Observación</mat-label>
-
-                            <textarea
-                              matInput
-                              rows="1"
-                              formControlName="observation"
-                              placeholder="Observación"
-                            ></textarea>
-
-                            @if (getCheckGroup(item.index).controls['observation'].hasError('maxlength')) {
-                              <mat-error>Máximo 500 caracteres.</mat-error>
-                            }
-                          </mat-form-field>
+                          </article>
                         }
-                      </article>
+                      </div>
+                    </details>
+
+                    @if (section.key === 'cenace-activa') {
+                      <section
+                        #finalizacionSection
+                        class="event-card acta-anchor-section"
+                      >
+                        <div class="event-card__header">
+                          <mat-icon>bolt</mat-icon>
+
+                          <div>
+                            <span>PMSE</span>
+                            <strong>4. Finalización de calibración del medidor - Energía activa</strong>
+                          </div>
+                        </div>
+
+                        <div class="event-card__body">
+                          <div>
+                            <app-date-field
+                              class="drawer__field"
+                              formControlName="activeEnergyEndDateTime"
+                              label="Fin energía activa"
+                              [withTime]="true"
+                              [minuteStep]="1"
+                              [min]="calibrationWindowStartDateTime"
+                              [max]="calibrationWindowEndDateTime"
+                            />
+
+                            @if (
+                              activeEnergyEndOutOfWindow &&
+                              form.controls.activeEnergyEndDateTime.touched
+                            ) {
+                              <p class="field-error">
+                                La finalización de energía activa debe estar dentro de la fecha y hora de inicio y fin del cronograma.
+                              </p>
+                            }
+                          </div>
+
+                          <mat-form-field
+                            appearance="outline"
+                            class="drawer__field drawer__textarea"
+                          >
+                            <mat-label>Eventualidades energía activa</mat-label>
+
+                            <textarea
+                              matInput
+                              rows="3"
+                              formControlName="activeEnergyEventualities"
+                            ></textarea>
+
+                            @if (form.controls.activeEnergyEventualities.hasError('maxlength')) {
+                              <mat-error>Máximo 1000 caracteres.</mat-error>
+                            }
+                          </mat-form-field>
+                        </div>
+                      </section>
                     }
-                  </div>
-                </section>
 
-                @if (section.key === 'cenace-activa') {
-                  <section class="check-section check-section--eventuality">
-                    <header class="check-section__header">
-                      <div>
-                        <p>PMSE</p>
-                        <h4>4. Finalización de calibración del medidor - Energía activa</h4>
-                      </div>
-                    </header>
+                    @if (section.key === 'cenace-reactiva') {
+                      <section class="event-card">
+                        <div class="event-card__header">
+                          <mat-icon>offline_bolt</mat-icon>
 
-                    <div class="eventuality-fields">
-                      <div>
-                        <app-date-field
-                          class="drawer__field eventuality-date-field"
-                          formControlName="activeEnergyEndDateTime"
-                          label="Fin energía activa"
-                          [withTime]="true"
-                          [minuteStep]="1"
-                          [min]="calibrationWindowStartDateTime"
-                          [max]="calibrationWindowEndDateTime"
-                        />
+                          <div>
+                            <span>PMSE</span>
+                            <strong>6. Finalización de calibración del medidor - Energía reactiva</strong>
+                          </div>
+                        </div>
 
-                        @if (
-                          activeEnergyEndOutOfWindow &&
-                          form.controls.activeEnergyEndDateTime.touched
-                        ) {
-                          <p class="field-error">
-                            La finalización de energía activa debe estar dentro de la fecha y hora de inicio y fin del cronograma.
-                          </p>
-                        }
-                      </div>
+                        <div class="event-card__body">
+                          <div>
+                            <app-date-field
+                              class="drawer__field"
+                              formControlName="reactiveEnergyEndDateTime"
+                              label="Fin energía reactiva"
+                              [withTime]="true"
+                              [minuteStep]="1"
+                              [min]="calibrationWindowStartDateTime"
+                              [max]="calibrationWindowEndDateTime"
+                            />
 
-                      <mat-form-field
-                        appearance="outline"
-                        class="drawer__field drawer__textarea eventuality-observation-field"
-                      >
-                        <mat-label>Eventualidades energía activa</mat-label>
+                            @if (
+                              reactiveEnergyEndOutOfWindow &&
+                              form.controls.reactiveEnergyEndDateTime.touched
+                            ) {
+                              <p class="field-error">
+                                La finalización de energía reactiva debe estar dentro de la fecha y hora de inicio y fin del cronograma.
+                              </p>
+                            }
+                          </div>
 
-                        <textarea
-                          matInput
-                          rows="3"
-                          formControlName="activeEnergyEventualities"
-                        ></textarea>
+                          <mat-form-field
+                            appearance="outline"
+                            class="drawer__field drawer__textarea"
+                          >
+                            <mat-label>Eventualidades energía reactiva</mat-label>
 
-                        @if (form.controls.activeEnergyEventualities.hasError('maxlength')) {
-                          <mat-error>Máximo 1000 caracteres.</mat-error>
-                        }
-                      </mat-form-field>
-                    </div>
-                  </section>
-                }
+                            <textarea
+                              matInput
+                              rows="3"
+                              formControlName="reactiveEnergyEventualities"
+                            ></textarea>
 
-                @if (section.key === 'cenace-reactiva') {
-                  <section class="check-section check-section--eventuality">
-                    <header class="check-section__header">
-                      <div>
-                        <p>PMSE</p>
-                        <h4>6. Finalización de calibración del medidor - Energía reactiva</h4>
-                      </div>
-                    </header>
-
-                    <div class="eventuality-fields">
-                      <div>
-                        <app-date-field
-                          class="drawer__field eventuality-date-field"
-                          formControlName="reactiveEnergyEndDateTime"
-                          label="Fin energía reactiva"
-                          [withTime]="true"
-                          [minuteStep]="1"
-                          [min]="calibrationWindowStartDateTime"
-                          [max]="calibrationWindowEndDateTime"
-                        />
-
-                        @if (
-                          reactiveEnergyEndOutOfWindow &&
-                          form.controls.reactiveEnergyEndDateTime.touched
-                        ) {
-                          <p class="field-error">
-                            La finalización de energía reactiva debe estar dentro de la fecha y hora de inicio y fin del cronograma.
-                          </p>
-                        }
-                      </div>
-
-                      <mat-form-field
-                        appearance="outline"
-                        class="drawer__field drawer__textarea eventuality-observation-field"
-                      >
-                        <mat-label>Eventualidades energía reactiva</mat-label>
-
-                        <textarea
-                          matInput
-                          rows="3"
-                          formControlName="reactiveEnergyEventualities"
-                        ></textarea>
-
-                        @if (form.controls.reactiveEnergyEventualities.hasError('maxlength')) {
-                          <mat-error>Máximo 1000 caracteres.</mat-error>
-                        }
-                      </mat-form-field>
-                    </div>
-                  </section>
-                }
-              }
-            </div>
-          </section>
-
-          <section class="form-section">
-            <div class="section-heading">
-              <div>
-                <p>Sellos de seguridad</p>
-                <h3>Sellos colocados después de la calibración</h3>
-              </div>
-
-              <button
-                mat-stroked-button
-                type="button"
-                class="small-action-btn"
-                [disabled]="isSaving()"
-                (click)="addSeal()"
-              >
-                <mat-icon>add</mat-icon>
-                Agregar sello
-              </button>
-            </div>
-
-            <div formArrayName="seals" class="dynamic-list">
-              @if (sealControls.length === 0) {
-                <div class="empty-inline empty-inline--danger">
-                  <mat-icon>warning</mat-icon>
-                  <span>Debes registrar al menos un sello.</span>
+                            @if (form.controls.reactiveEnergyEventualities.hasError('maxlength')) {
+                              <mat-error>Máximo 1000 caracteres.</mat-error>
+                            }
+                          </mat-form-field>
+                        </div>
+                      </section>
+                    }
+                  }
                 </div>
-              }
+              </section>
 
-              @for (sealGroup of sealControls; track $index; let i = $index) {
-                <article
-                  class="dynamic-card dynamic-card--seal"
-                  [formGroupName]="i"
-                >
-                  <div class="field-row field-row--seal">
-                    <mat-form-field appearance="outline" class="drawer__field">
-                      <mat-label>Tipo de sello</mat-label>
-
-                      <mat-select formControlName="sealType">
-                        <mat-option [value]="MeterSealType.MainMeter">
-                          Medidor
-                        </mat-option>
-
-                        <mat-option [value]="MeterSealType.TerminalBlock">
-                          Bornera
-                        </mat-option>
-                      </mat-select>
-
-                      @if (
-                        getSealGroup(i).controls['sealType'].hasError('required') &&
-                        getSealGroup(i).controls['sealType'].touched
-                      ) {
-                        <mat-error>El tipo de sello es obligatorio.</mat-error>
-                      }
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="drawer__field">
-                      <mat-label>Código del sello</mat-label>
-
-                      <input
-                        matInput
-                        formControlName="sealCode"
-                        autocomplete="off"
-                      />
-
-                      @if (
-                        getSealGroup(i).controls['sealCode'].hasError('required') &&
-                        getSealGroup(i).controls['sealCode'].touched
-                      ) {
-                        <mat-error>El código del sello es obligatorio.</mat-error>
-                      }
-
-                      @if (getSealGroup(i).controls['sealCode'].hasError('maxlength')) {
-                        <mat-error>Máximo 120 caracteres.</mat-error>
-                      }
-                    </mat-form-field>
-
-                    <button
-                      mat-icon-button
-                      type="button"
-                      class="remove-btn"
-                      matTooltip="Eliminar sello"
-                      [disabled]="isSaving()"
-                      (click)="removeSeal(i)"
-                    >
-                      <mat-icon>delete</mat-icon>
-                    </button>
+              <section
+                #sellosSection
+                class="form-section acta-anchor-section"
+              >
+                <div class="section-heading">
+                  <div>
+                    <p>Sellos de seguridad</p>
+                    <h3>Sellos colocados después de la calibración</h3>
                   </div>
-                </article>
-              }
-            </div>
+
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="small-action-btn"
+                    [disabled]="isSaving()"
+                    (click)="addSeal()"
+                  >
+                    <mat-icon>add</mat-icon>
+                    Agregar sello
+                  </button>
+                </div>
+
+                <div formArrayName="seals" class="seal-list">
+                  @if (sealControls.length === 0) {
+                    <div class="empty-inline empty-inline--danger">
+                      <mat-icon>warning</mat-icon>
+                      <span>Debes registrar al menos un sello.</span>
+                    </div>
+                  }
+
+                  @for (sealGroup of sealControls; track $index; let i = $index) {
+                    <article
+                      class="seal-row"
+                      [formGroupName]="i"
+                    >
+                      <div class="seal-row__index">
+                        {{ i + 1 }}
+                      </div>
+
+                      <mat-form-field appearance="outline" class="drawer__field">
+                        <mat-label>Tipo de sello</mat-label>
+
+                        <mat-select formControlName="sealType">
+                          <mat-option [value]="MeterSealType.MainMeter">
+                            Medidor
+                          </mat-option>
+
+                          <mat-option [value]="MeterSealType.TerminalBlock">
+                            Bornera
+                          </mat-option>
+                        </mat-select>
+
+                        @if (
+                          getSealGroup(i).controls['sealType'].hasError('required') &&
+                          getSealGroup(i).controls['sealType'].touched
+                        ) {
+                          <mat-error>El tipo de sello es obligatorio.</mat-error>
+                        }
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="drawer__field">
+                        <mat-label>Código del sello</mat-label>
+
+                        <input
+                          matInput
+                          formControlName="sealCode"
+                          autocomplete="off"
+                        />
+
+                        @if (
+                          getSealGroup(i).controls['sealCode'].hasError('required') &&
+                          getSealGroup(i).controls['sealCode'].touched
+                        ) {
+                          <mat-error>El código del sello es obligatorio.</mat-error>
+                        }
+
+                        @if (getSealGroup(i).controls['sealCode'].hasError('maxlength')) {
+                          <mat-error>Máximo 120 caracteres.</mat-error>
+                        }
+                      </mat-form-field>
+
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="remove-btn"
+                        matTooltip="Eliminar sello"
+                        [disabled]="isSaving()"
+                        (click)="removeSeal(i)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </article>
+                  }
+                </div>
+              </section>
+            </main>
           </section>
         }
 
         @if (currentStep() === 'photos') {
-          <section class="photos-step-card">
+          <section class="photos-step">
             <div class="section-heading">
               <div>
-                <p>Paso 2</p>
-                <h3>Fotos de sellos</h3>
+                <p>Fotos de sellos</p>
+                <h3>Respaldo visual de los sellos colocados</h3>
               </div>
+
+              <span class="section-pill">
+                Una foto mínima por sello
+              </span>
             </div>
 
-            <p class="photos-step-card__description">
-              Sube al menos una foto por cada sello registrado. Este requisito debe completarse
-              antes de enviar el proceso a revisión.
+            <p class="photos-step__description">
+              Adjunta evidencia visual por cada sello registrado. Estas fotos son requisito
+              para que el proceso pueda enviarse a revisión.
             </p>
 
             @if (actaSeals.length === 0) {
@@ -591,9 +711,15 @@
                     [class.seal-photo-card--complete]="(seal.photos?.length ?? 0) > 0"
                   >
                     <header>
-                      <div>
-                        <strong>{{ seal.sealCode }}</strong>
-                        <span>{{ getSealTypeLabel(seal.sealType) }}</span>
+                      <div class="seal-photo-card__title">
+                        <div class="seal-photo-card__icon">
+                          <mat-icon>lock</mat-icon>
+                        </div>
+
+                        <div>
+                          <strong>{{ seal.sealCode }}</strong>
+                          <span>{{ getSealTypeLabel(seal.sealType) }}</span>
+                        </div>
                       </div>
 
                       <label class="upload-photo-btn">
