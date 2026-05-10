@@ -34,16 +34,27 @@ type MeterMapTone =
   | 'no-date'
   | 'inactive';
 
+type PopupPlacement = 'top' | 'bottom';
+
 interface MeterSearchOption {
   id: number;
   displayName: string;
   meter: Meter;
 }
 
-const SOURCE_ID = 'meters-source';
-const LAYER_CLUSTERS = 'meters-clusters';
-const LAYER_CLUSTER_COUNT = 'meters-cluster-count';
-const LAYER_POINTS = 'meters-points';
+interface MeterMapMarkerRef {
+  coordinates: [number, number];
+  meters: Meter[];
+  groupKey: string;
+}
+
+interface MeterMapPopup {
+  left: number;
+  top: number;
+  placement: PopupPlacement;
+  coordinates: [number, number];
+  meters: Meter[];
+}
 
 @Component({
   selector: 'app-meter-map-card',
@@ -67,14 +78,23 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly pmseCompaniesService = inject(PmseCompaniesService);
   private readonly userScope = inject(UserScopeService);
 
+  private readonly sourceId = 'sicam-meter-map-source';
+  private readonly clusterLayerId = 'sicam-meter-map-clusters';
+  private readonly clusterCountLayerId = 'sicam-meter-map-cluster-count';
+  private readonly pointLayerId = 'sicam-meter-map-points';
+
   private map?: mapboxgl.Map;
-  private activePopup?: mapboxgl.Popup;
 
   private metersSubscription?: Subscription;
   private companiesSubscription?: Subscription;
   private companyFilterSubscription?: Subscription;
   private meterFilterSubscription?: Subscription;
   private resizeObserver?: ResizeObserver;
+
+  private mapLayerEventsRegistered = false;
+
+  private readonly meterGroupsByKey = new Map<string, Meter[]>();
+  private readonly markersByMeterCode = new Map<string, MeterMapMarkerRef>();
 
   readonly isLoading = signal(false);
   readonly isLoadingCompanies = signal(false);
@@ -83,6 +103,7 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly allMeters = signal<Meter[]>([]);
   readonly pmseCompanies = signal<PmseCompany[]>([]);
   readonly selectedPmseCompanyId = signal<number | null>(null);
+  readonly selectedPopup = signal<MeterMapPopup | null>(null);
 
   readonly selectedPmseCompanyControl = new FormControl<number | null>(null);
   readonly selectedMeterControl = new FormControl<number | null>(null);
@@ -91,44 +112,50 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly isCenaceUser = this.userScope.isCenaceUser;
   readonly pmseCompanyName = this.userScope.pmseCompanyName;
 
-  readonly metersWithCoordinates = computed(() =>
-    this.allMeters().filter(m => this.hasValidCoordinates(m))
-  );
+  readonly metersWithCoordinates = computed(() => {
+    return this.allMeters().filter(meter => this.hasValidCoordinates(meter));
+  });
 
-  readonly metersWithoutCoordinates = computed(() =>
-    this.allMeters().filter(m => !this.hasValidCoordinates(m))
-  );
+  readonly metersWithoutCoordinates = computed(() => {
+    return this.allMeters().filter(meter => !this.hasValidCoordinates(meter));
+  });
 
-  readonly expiredMeters = computed(() =>
-    this.allMeters().filter(m => this.getMeterTone(m) === 'expired')
-  );
+  readonly expiredMeters = computed(() => {
+    return this.allMeters().filter(meter => this.getMeterTone(meter) === 'expired');
+  });
 
-  readonly soonMeters = computed(() =>
-    this.allMeters().filter(m => this.getMeterTone(m) === 'soon')
-  );
+  readonly soonMeters = computed(() => {
+    return this.allMeters().filter(meter => this.getMeterTone(meter) === 'soon');
+  });
 
   readonly selectedPmseCompanyName = computed(() => {
     const selectedId = this.selectedPmseCompanyId();
-    if (!selectedId) return null;
-    return this.pmseCompanies().find(c => c.id === selectedId)?.name ?? null;
+
+    if (!selectedId) {
+      return null;
+    }
+
+    return this.pmseCompanies().find(company => company.id === selectedId)?.name ?? null;
   });
 
-  readonly meterSearchOptions = computed<MeterSearchOption[]>(() =>
-    this.metersWithCoordinates().map(meter => ({
+  readonly meterSearchOptions = computed<MeterSearchOption[]>(() => {
+    return this.metersWithCoordinates().map(meter => ({
       id: meter.id,
       displayName: this.buildMeterDisplayName(meter),
       meter
-    }))
-  );
-
-  // ─── Lifecycle ───────────────────────────────────────────────────────────
+    }));
+  });
 
   ngOnInit(): void {
     this.companyFilterSubscription = this.selectedPmseCompanyControl.valueChanges
-      .subscribe(value => this.onPmseCompanyChange(value));
+      .subscribe(value => {
+        this.onPmseCompanyChange(value);
+      });
 
     this.meterFilterSubscription = this.selectedMeterControl.valueChanges
-      .subscribe(value => this.onMeterSelected(value));
+      .subscribe(value => {
+        this.onMeterSelected(value);
+      });
   }
 
   ngAfterViewInit(): void {
@@ -151,10 +178,15 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.map.on('load', () => {
       this.map?.resize();
-      this.initLayers();
+      this.ensureMapSourceAndLayers(this.createFeatureCollection([]));
+      this.registerMapLayerEvents();
       this.loadPmseCompaniesIfNeeded();
       this.loadMeters();
     });
+
+    this.map.on('move', () => this.repositionPopup());
+    this.map.on('zoom', () => this.repositionPopup());
+    this.map.on('dragstart', () => this.closePopup());
   }
 
   ngOnDestroy(): void {
@@ -164,15 +196,13 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.meterFilterSubscription?.unsubscribe();
     this.resizeObserver?.disconnect();
 
-    this.activePopup?.remove();
+    this.clearSource();
 
     if (this.map) {
       this.map.remove();
       this.map = undefined;
     }
   }
-
-  // ─── Public ──────────────────────────────────────────────────────────────
 
   refresh(): void {
     this.loadMeters();
@@ -182,10 +212,13 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
     const parsed = Number(value);
 
     this.selectedPmseCompanyId.set(
-      Number.isFinite(parsed) && parsed > 0 ? parsed : null
+      Number.isFinite(parsed) && parsed > 0
+        ? parsed
+        : null
     );
 
     this.selectedMeterControl.setValue(null, { emitEvent: false });
+    this.closePopup();
     this.loadMeters();
   }
 
@@ -195,10 +228,19 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onMeterSelected(value: unknown | null): void {
     const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
 
-    const selected = this.meterSearchOptions().find(o => o.id === parsed);
-    if (selected) this.focusMeter(selected.meter);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return;
+    }
+
+    const selected = this.meterSearchOptions()
+      .find(option => option.id === parsed);
+
+    if (!selected) {
+      return;
+    }
+
+    this.focusMeter(selected.meter);
   }
 
   clearMeterFilter(): void {
@@ -206,17 +248,29 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   focusMeter(meter: Meter): void {
-    if (!this.map || !this.hasValidCoordinates(meter)) return;
+    const markerRef = this.markersByMeterCode.get(meter.code);
+
+    if (!markerRef || !this.map) {
+      return;
+    }
+
+    this.closePopup();
 
     this.map.flyTo({
-      center: [meter.longitude!, meter.latitude!],
+      center: markerRef.coordinates,
       zoom: 15,
       speed: 2,
       curve: 1.35,
       essential: true
     });
+  }
 
-    this.openPopup([meter.longitude!, meter.latitude!], this.buildPopupHtml(meter));
+  closePopup(): void {
+    this.selectedPopup.set(null);
+  }
+
+  formatDateForView(value?: string | null): string {
+    return this.formatDate(value);
   }
 
   getScopeText(): string {
@@ -226,9 +280,11 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.isCenaceUser()) {
       const selectedName = this.selectedPmseCompanyName();
+
       if (selectedName) {
         return `Mostrando medidores de la empresa PMSE ${selectedName}.`;
       }
+
       return 'Mostrando medidores registrados por todas las empresas PMSE.';
     }
 
@@ -236,170 +292,62 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getMeterTone(meter: Meter): MeterMapTone {
-    if (meter.status !== EntityStatus.Active) return 'inactive';
-    if (!meter.nextCalibrationDate) return 'no-date';
+    if (meter.status !== EntityStatus.Active) {
+      return 'inactive';
+    }
+
+    if (!meter.nextCalibrationDate) {
+      return 'no-date';
+    }
 
     const today = this.startOfDay(new Date());
     const nextCalibrationDate = this.startOfDay(new Date(meter.nextCalibrationDate));
 
-    if (Number.isNaN(nextCalibrationDate.getTime())) return 'no-date';
-    if (nextCalibrationDate < today) return 'expired';
+    if (Number.isNaN(nextCalibrationDate.getTime())) {
+      return 'no-date';
+    }
+
+    if (nextCalibrationDate < today) {
+      return 'expired';
+    }
 
     const limit = new Date(today);
     limit.setDate(limit.getDate() + 90);
-    if (nextCalibrationDate <= limit) return 'soon';
+
+    if (nextCalibrationDate <= limit) {
+      return 'soon';
+    }
 
     return 'valid';
   }
 
   getToneLabel(tone: MeterMapTone): string {
     switch (tone) {
-      case 'expired':  return 'Vencido';
-      case 'soon':     return 'Por vencer';
-      case 'valid':    return 'Vigente';
-      case 'no-date':  return 'Sin fecha';
-      case 'inactive': return 'Inactivo';
+      case 'expired':
+        return 'Vencido';
+
+      case 'soon':
+        return 'Por vencer';
+
+      case 'valid':
+        return 'Vigente';
+
+      case 'no-date':
+        return 'Sin fecha';
+
+      case 'inactive':
+        return 'Inactivo';
     }
   }
 
-  // ─── Map layers init ──────────────────────────────────────────────────────
-
-  private initLayers(): void {
-    if (!this.map) return;
-
-    this.map.addSource(SOURCE_ID, {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-      cluster: true,
-      clusterMaxZoom: 13,
-      clusterRadius: 45,
-      generateId: true
-    });
-
-    this.map.addLayer({
-      id: LAYER_CLUSTERS,
-      type: 'circle',
-      source: SOURCE_ID,
-      filter: ['has', 'point_count'],
-      paint: {
-        'circle-color': [
-          'step', ['get', 'point_count'],
-          '#3b82f6',
-          10, '#f59e0b',
-          50, '#ef4444'
-        ],
-        'circle-radius': [
-          'step', ['get', 'point_count'],
-          18,
-          10, 24,
-          50, 32
-        ],
-        'circle-opacity': 0.88,
-        'circle-stroke-width': 2,
-        'circle-stroke-color': 'rgba(255,255,255,0.2)'
-      }
-    });
-
-    this.map.addLayer({
-      id: LAYER_CLUSTER_COUNT,
-      type: 'symbol',
-      source: SOURCE_ID,
-      filter: ['has', 'point_count'],
-      layout: {
-        'text-field': '{point_count_abbreviated}',
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-        'text-size': 13
-      },
-      paint: { 'text-color': '#ffffff' }
-    });
-
-    this.map.addLayer({
-      id: LAYER_POINTS,
-      type: 'circle',
-      source: SOURCE_ID,
-      filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': ['get', 'color'],
-        'circle-radius': 7,
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': 'rgba(255,255,255,0.7)'
-      }
-    });
-
-    this.map.on('click', LAYER_CLUSTERS, e => this.onClusterClick(e));
-    this.map.on('click', LAYER_POINTS, e => this.onPointClick(e));
-
-    this.map.on('mouseenter', LAYER_CLUSTERS, () => this.setCursor('pointer'));
-    this.map.on('mouseleave', LAYER_CLUSTERS, () => this.setCursor(''));
-    this.map.on('mouseenter', LAYER_POINTS, () => this.setCursor('pointer'));
-    this.map.on('mouseleave', LAYER_POINTS, () => this.setCursor(''));
-  }
-
-  // ─── Map events ──────────────────────────────────────────────────────────
-
-  private onClusterClick(e: mapboxgl.MapMouseEvent): void {
-    if (!this.map) return;
-
-    const features = this.map.queryRenderedFeatures(e.point, { layers: [LAYER_CLUSTERS] });
-    if (!features.length) return;
-
-    const clusterId = (features[0].properties as any)['cluster_id'];
-    const source = this.map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource;
-
-    source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-      if (err || !this.map) return;
-      this.map.easeTo({
-        center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number],
-        zoom: zoom!
-      });
-    });
-  }
-
-  private onPointClick(e: mapboxgl.MapMouseEvent): void {
-    if (!this.map) return;
-
-    const features = this.map.queryRenderedFeatures(e.point, { layers: [LAYER_POINTS] });
-    if (!features.length) return;
-
-    const props = features[0].properties as any;
-    const coords = (features[0].geometry as GeoJSON.Point).coordinates as [number, number];
-
-    // popupHtml viene directo en las properties — sin lookup al cache
-    const html = props['popupHtml'] as string;
-    if (!html) return;
-
-    this.openPopup(coords, html);
-  }
-
-  private openPopup(coords: [number, number], html: string): void {
-    if (!this.map) return;
-
-    this.activePopup?.remove();
-    this.activePopup = new mapboxgl.Popup({
-      offset: 12,
-      closeButton: true,
-      closeOnClick: true,
-      focusAfterOpen: false,
-      maxWidth: '360px',
-      className: 'sicam-meter-popup'
-    })
-      .setLngLat(coords)
-      .setHTML(html)
-      .addTo(this.map);
-  }
-
-  private setCursor(cursor: string): void {
-    if (this.map) this.map.getCanvas().style.cursor = cursor;
-  }
-
-  // ─── Data loading ─────────────────────────────────────────────────────────
-
   private loadPmseCompaniesIfNeeded(): void {
-    if (!this.isCenaceUser()) return;
+    if (!this.isCenaceUser()) {
+      return;
+    }
 
     this.isLoadingCompanies.set(true);
-    this.companiesSubscription?.unsubscribe();
 
+    this.companiesSubscription?.unsubscribe();
     this.companiesSubscription = this.pmseCompaniesService.getAll({
       page: 1,
       take: 500,
@@ -418,12 +366,14 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadMeters(): void {
-    if (!this.map) return;
+    if (!this.map) {
+      return;
+    }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.metersSubscription?.unsubscribe();
 
+    this.metersSubscription?.unsubscribe();
     this.metersSubscription = this.metersService.getAll({
       page: 1,
       take: 1000,
@@ -440,6 +390,7 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         const meters = response.result ?? [];
+
         this.allMeters.set(meters);
         this.renderMarkers(meters);
         this.ensureSelectedMeterStillExists();
@@ -456,9 +407,13 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private buildMetersFilter(): string | undefined {
     const pmseScopeFilter = this.userScope.getPmseFilter('PmseCompanyId');
-    if (pmseScopeFilter) return pmseScopeFilter;
+
+    if (pmseScopeFilter) {
+      return pmseScopeFilter;
+    }
 
     const selectedCompanyId = this.selectedPmseCompanyId();
+
     if (this.isCenaceUser() && selectedCompanyId) {
       return `PmseCompanyId eq ${selectedCompanyId}`;
     }
@@ -466,108 +421,401 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
     return undefined;
   }
 
-  // ─── Rendering ───────────────────────────────────────────────────────────
-
   private renderMarkers(meters: Meter[]): void {
-    if (!this.map) return;
-
-    const metersWithCoords = meters.filter(m => this.hasValidCoordinates(m));
-
-    const geojson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: metersWithCoords.map(meter => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [meter.longitude!, meter.latitude!]
-        },
-        properties: {
-          color: this.getToneColor(this.getMeterTone(meter)),
-          // HTML completo en properties — el click no necesita ningún lookup
-          popupHtml: this.buildPopupHtml(meter)
-        }
-      }))
-    };
-
-    const source = this.map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
-    source?.setData(geojson);
-
-    this.fitMapToMeters(metersWithCoords);
-  }
-
-  private clearSource(): void {
-    const source = this.map?.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
-    source?.setData({ type: 'FeatureCollection', features: [] });
-  }
-
-  private fitMapToMeters(meters: Meter[]): void {
-    if (!this.map || meters.length === 0) return;
-
-    this.map.resize();
-
-    if (meters.length === 1) {
-      this.map.flyTo({
-        center: [meters[0].longitude!, meters[0].latitude!],
-        zoom: 14,
-        speed: 1.2,
-        essential: true
-      });
+    if (!this.map) {
       return;
     }
 
-    const bounds = new mapboxgl.LngLatBounds();
-    meters.forEach(m => bounds.extend([m.longitude!, m.latitude!]));
+    this.closePopup();
+    this.meterGroupsByKey.clear();
+    this.markersByMeterCode.clear();
 
-    this.map.fitBounds(bounds, {
-      padding: 55,
-      maxZoom: 11.5,
-      duration: 900
+    const metersWithCoordinates = meters.filter(meter => this.hasValidCoordinates(meter));
+    const locations: Array<[number, number]> = [];
+
+    const features = metersWithCoordinates.map(meter => {
+      const groupKey = `${meter.latitude!.toFixed(6)},${meter.longitude!.toFixed(6)}`;
+      const coordinates: [number, number] = [
+        meter.longitude!,
+        meter.latitude!
+      ];
+      const tone = this.getMeterTone(meter);
+      const color = this.getToneColor(tone);
+
+      const metersAtSameLocation = metersWithCoordinates.filter(item =>
+        item.latitude!.toFixed(6) === meter.latitude!.toFixed(6) &&
+        item.longitude!.toFixed(6) === meter.longitude!.toFixed(6)
+      );
+
+      this.meterGroupsByKey.set(groupKey, metersAtSameLocation);
+      locations.push(coordinates);
+
+      this.markersByMeterCode.set(meter.code, {
+        coordinates,
+        meters: metersAtSameLocation,
+        groupKey
+      });
+
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates
+        },
+        properties: {
+          meterId: meter.id,
+          groupKey,
+          code: meter.code,
+          color,
+          tone
+        }
+      };
     });
+
+    this.ensureMapSourceAndLayers(this.createFeatureCollection(features));
+    this.fitMapToLocations(locations);
   }
 
-  // ─── Popup HTML ──────────────────────────────────────────────────────────
+  private ensureMapSourceAndLayers(featureCollection: any): void {
+    if (!this.map) {
+      return;
+    }
 
-  private buildPopupHtml(meter: Meter): string {
-    const tone = this.getMeterTone(meter);
-    const toneLabel = this.getToneLabel(tone);
-    const toneColor = this.getToneColor(tone);
+    const existingSource = this.map.getSource(this.sourceId) as mapboxgl.GeoJSONSource | undefined;
 
-    return `
-      <section style="min-width:260px;background:#0f172a;color:#e5e7eb;">
-        <header style="padding-bottom:8px;">
-          <p style="margin:0 0 4px;color:#60a5fa;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;">SICAM · Medidores</p>
-          <h3 style="margin:0;color:#f8fafc;font-size:15px;font-weight:900;">${this.escapeHtml(meter.code)}</h3>
-        </header>
-        <article style="padding:10px 0;border-top:1px solid rgba(148,163,184,.25);">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <strong style="color:#f8fafc;font-size:13px;">${this.escapeHtml(meter.code)}</strong>
-            <span style="padding:4px 8px;border-radius:999px;background:${toneColor}22;color:${toneColor};font-size:11px;font-weight:800;">
-              ${toneLabel}
-            </span>
-          </div>
-          <p style="margin:6px 0 0;color:#cbd5e1;font-size:12px;">Serial: ${this.escapeHtml(meter.serial || '—')}</p>
-          <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">PMSE: ${this.escapeHtml(meter.pmseCompanyName || '—')}</p>
-          <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">${this.escapeHtml(meter.province || '—')} · ${this.escapeHtml(meter.sector || '—')}</p>
-          <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">Próx. calibración: ${this.escapeHtml(this.formatDate(meter.nextCalibrationDate))}</p>
-        </article>
-      </section>
-    `;
+    if (existingSource) {
+      existingSource.setData(featureCollection);
+      return;
+    }
+
+    this.map.addSource(this.sourceId, {
+      type: 'geojson',
+      data: featureCollection,
+      cluster: true,
+      clusterMaxZoom: 13,
+      clusterRadius: 45
+    });
+
+    this.map.addLayer({
+      id: this.clusterLayerId,
+      type: 'circle',
+      source: this.sourceId,
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': [
+          'step',
+          ['get', 'point_count'],
+          '#2563eb',
+          10,
+          '#1d4ed8',
+          30,
+          '#7c3aed'
+        ],
+        'circle-radius': [
+          'step',
+          ['get', 'point_count'],
+          17,
+          10,
+          21,
+          30,
+          25
+        ],
+        'circle-opacity': 0.95,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff'
+      }
+    });
+
+    this.map.addLayer({
+      id: this.clusterCountLayerId,
+      type: 'symbol',
+      source: this.sourceId,
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': 12,
+        'text-allow-overlap': true,
+        'text-ignore-placement': true
+      },
+      paint: {
+        'text-color': '#ffffff'
+      }
+    });
+
+    this.map.addLayer({
+      id: this.pointLayerId,
+      type: 'circle',
+      source: this.sourceId,
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-radius': 7,
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.96,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff'
+      }
+    });
+
+    this.registerMapLayerEvents();
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────
+  private registerMapLayerEvents(): void {
+    if (!this.map || this.mapLayerEventsRegistered) {
+      return;
+    }
 
-  private getToneColor(tone: MeterMapTone): string {
-    switch (tone) {
-      case 'expired':  return '#ef4444';
-      case 'soon':     return '#f59e0b';
-      case 'valid':    return '#22c55e';
-      case 'no-date':  return '#38bdf8';
-      case 'inactive': return '#64748b';
+    this.map.on('click', this.clusterLayerId, event => {
+      this.onClusterClick(event as any);
+    });
+
+    this.map.on('click', this.pointLayerId, event => {
+      this.onPointClick(event as any);
+    });
+
+    this.map.on('mouseenter', this.clusterLayerId, () => {
+      if (this.map) {
+        this.map.getCanvas().style.cursor = 'pointer';
+      }
+    });
+
+    this.map.on('mouseleave', this.clusterLayerId, () => {
+      if (this.map) {
+        this.map.getCanvas().style.cursor = '';
+      }
+    });
+
+    this.map.on('mouseenter', this.pointLayerId, () => {
+      if (this.map) {
+        this.map.getCanvas().style.cursor = 'pointer';
+      }
+    });
+
+    this.map.on('mouseleave', this.pointLayerId, () => {
+      if (this.map) {
+        this.map.getCanvas().style.cursor = '';
+      }
+    });
+
+    this.mapLayerEventsRegistered = true;
+  }
+
+  private onClusterClick(event: any): void {
+    if (!this.map) {
+      return;
+    }
+
+    const features = this.map.queryRenderedFeatures(event.point, {
+      layers: [this.clusterLayerId]
+    });
+
+    const clusterFeature = features[0];
+
+    if (!clusterFeature) {
+      return;
+    }
+
+    const clusterId = clusterFeature.properties?.['cluster_id'];
+
+    if (clusterId === null || clusterId === undefined) {
+      return;
+    }
+
+    const coordinates = (clusterFeature.geometry as any).coordinates as [number, number];
+    const source = this.map.getSource(this.sourceId) as any;
+
+    const zoomCallback = (error: Error | null, zoom: number): void => {
+      if (error || !this.map) {
+        return;
+      }
+
+      this.closePopup();
+
+      this.map.easeTo({
+        center: coordinates,
+        zoom,
+        duration: 500
+      });
+    };
+
+    const result = source.getClusterExpansionZoom(Number(clusterId), zoomCallback);
+
+    if (result && typeof result.then === 'function') {
+      result.then((zoom: number) => zoomCallback(null, zoom));
     }
   }
 
+  private onPointClick(event: any): void {
+    if (!this.map) {
+      return;
+    }
+
+    const feature = event.features?.[0];
+
+    if (!feature) {
+      return;
+    }
+
+    const groupKey = String(feature.properties?.groupKey ?? '');
+    const meters = this.meterGroupsByKey.get(groupKey);
+
+    if (!meters || meters.length === 0) {
+      return;
+    }
+
+    const coordinates = feature.geometry?.coordinates as [number, number] | undefined;
+
+    if (!coordinates) {
+      return;
+    }
+
+    this.openOverlayPopup(coordinates, meters);
+  }
+
+  private openOverlayPopup(coordinates: [number, number], meters: Meter[]): void {
+    if (!this.map) {
+      return;
+    }
+
+    const projected = this.map.project(coordinates);
+    const popupPosition = this.calculatePopupPosition(projected.x, projected.y);
+
+    this.selectedPopup.set({
+      ...popupPosition,
+      coordinates,
+      meters
+    });
+  }
+
+  private repositionPopup(): void {
+    if (!this.map) {
+      return;
+    }
+
+    const popup = this.selectedPopup();
+
+    if (!popup) {
+      return;
+    }
+
+    const projected = this.map.project(popup.coordinates);
+    const popupPosition = this.calculatePopupPosition(projected.x, projected.y);
+
+    this.selectedPopup.set({
+      ...popup,
+      ...popupPosition
+    });
+  }
+
+  private calculatePopupPosition(x: number, y: number): {
+    left: number;
+    top: number;
+    placement: PopupPlacement;
+  } {
+    const container = this.mapContainer.nativeElement;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const popupWidth = 320;
+    const edge = 16;
+
+    const left = this.clamp(
+      x,
+      popupWidth / 2 + edge,
+      Math.max(popupWidth / 2 + edge, width - popupWidth / 2 - edge)
+    );
+
+    const top = this.clamp(y, edge, Math.max(edge, height - edge));
+    const placement: PopupPlacement = y < 220 ? 'bottom' : 'top';
+
+    return {
+      left,
+      top,
+      placement
+    };
+  }
+
+private fitMapToLocations(locations: Array<[number, number]>): void {
+  if (!this.map || locations.length === 0) {
+    return;
+  }
+
+  this.map.resize();
+
+  if (locations.length === 1) {
+    this.map.flyTo({
+      center: locations[0],
+      zoom: 12,
+      speed: 1.2,
+      essential: true
+    });
+
+    return;
+  }
+
+  const bounds = new mapboxgl.LngLatBounds();
+
+  locations.forEach(location => bounds.extend(location));
+
+  const maxZoom =
+    locations.length <= 10
+      ? 11.2
+      : locations.length <= 35
+        ? 10.2
+        : locations.length <= 120
+          ? 9.2
+          : 8.3;
+
+  this.map.fitBounds(bounds, {
+    padding: 55,
+    maxZoom,
+    duration: 1000
+  });
+}
+
+  private createFeatureCollection(features: any[]): any {
+    return {
+      type: 'FeatureCollection',
+      features
+    };
+  }
+
+  private clearSource(): void {
+    this.closePopup();
+    this.meterGroupsByKey.clear();
+    this.markersByMeterCode.clear();
+
+    const source = this.map?.getSource(this.sourceId) as mapboxgl.GeoJSONSource | undefined;
+
+    source?.setData(this.createFeatureCollection([]));
+  }
+
+  private observeMapContainerResize(): void {
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (!this.map) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        this.map?.resize();
+        this.repositionPopup();
+      });
+    });
+
+    this.resizeObserver.observe(this.mapContainer.nativeElement);
+  }
+
   private hasValidCoordinates(meter: Meter): boolean {
-    if (meter.latitude == null || meter.longitude == null) return false;
+    if (meter.latitude === null || meter.latitude === undefined) {
+      return false;
+    }
+
+    if (meter.longitude === null || meter.longitude === undefined) {
+      return false;
+    }
 
     return (
       Number.isFinite(meter.latitude) &&
@@ -575,60 +823,112 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       meter.latitude >= -90 &&
       meter.latitude <= 90 &&
       meter.longitude >= -180 &&
-      meter.longitude <= 180 &&
-      !(meter.latitude === 0 && meter.longitude === 0)
+      meter.longitude <= 180
     );
-  }
-
-  private observeMapContainerResize(): void {
-    if (typeof ResizeObserver === 'undefined') return;
-
-    this.resizeObserver = new ResizeObserver(() => {
-      if (!this.map) return;
-      requestAnimationFrame(() => this.map?.resize());
-    });
-
-    this.resizeObserver.observe(this.mapContainer.nativeElement);
   }
 
   private ensureSelectedMeterStillExists(): void {
     const selectedMeterId = this.selectedMeterControl.value;
-    if (!selectedMeterId) return;
 
-    const exists = this.meterSearchOptions().some(o => o.id === selectedMeterId);
-    if (!exists) this.selectedMeterControl.setValue(null, { emitEvent: false });
+    if (!selectedMeterId) {
+      return;
+    }
+
+    const exists = this.meterSearchOptions()
+      .some(option => option.id === selectedMeterId);
+
+    if (!exists) {
+      this.selectedMeterControl.setValue(null, { emitEvent: false });
+    }
   }
 
   private buildMeterDisplayName(meter: Meter): string {
-    const parts = [meter.code, meter.serial]
-      .map(v => v?.trim())
-      .filter(Boolean) as string[];
+    const parts = [
+      meter.code,
+      meter.serial
+    ]
+      .map(value => value?.trim())
+      .filter(Boolean);
 
     if (this.isCenaceUser()) {
-      const name = meter.pmseCompanyName?.trim();
-      if (name) parts.push(name);
+      const pmseCompanyName = meter.pmseCompanyName?.trim();
+
+      if (pmseCompanyName) {
+        parts.push(pmseCompanyName);
+      }
     }
 
     return parts.join(' · ');
   }
 
+  private getGroupTone(meters: Meter[]): MeterMapTone {
+    const tones = meters.map(meter => this.getMeterTone(meter));
+
+    if (tones.includes('expired')) {
+      return 'expired';
+    }
+
+    if (tones.includes('soon')) {
+      return 'soon';
+    }
+
+    if (tones.includes('no-date')) {
+      return 'no-date';
+    }
+
+    if (tones.includes('inactive')) {
+      return 'inactive';
+    }
+
+    return 'valid';
+  }
+
+  private getToneColor(tone: MeterMapTone): string {
+    switch (tone) {
+      case 'expired':
+        return '#ef4444';
+
+      case 'soon':
+        return '#f59e0b';
+
+      case 'valid':
+        return '#22c55e';
+
+      case 'no-date':
+        return '#38bdf8';
+
+      case 'inactive':
+        return '#64748b';
+    }
+  }
+
   private startOfDay(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
   }
 
   private formatDate(value?: string | null): string {
-    if (!value) return '—';
+    if (!value) {
+      return '—';
+    }
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString('es-EC', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString('es-EC', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
   }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
   }
 }

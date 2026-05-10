@@ -54,50 +54,102 @@
     </article>
   </div>
 
-<div class="map-card__toolbar" [class.map-card__toolbar--cenace]="isCenaceUser()">
-  @if (isCenaceUser()) {
-    <div class="company-filter-shell">
+  <div
+    class="map-card__toolbar"
+    [class.map-card__toolbar--cenace]="isCenaceUser()"
+  >
+    @if (isCenaceUser()) {
+      <div class="company-filter-shell">
+        <app-searchable-select
+          class="company-filter"
+          [formControl]="selectedPmseCompanyControl"
+          placeholder="Buscar empresa PMSE..."
+          emptyLabel="Todas las empresas PMSE"
+          noResultsText="No se encontraron empresas"
+          prefixIcon="business"
+          [options]="pmseCompanies()"
+          displayKey="name"
+          valueKey="id"
+          [searchKeys]="['name', 'ruc', 'externalCode']"
+          [showLabel]="false"
+          [compact]="true"
+        />
+      </div>
+    }
+
+    <div class="meter-filter-shell">
       <app-searchable-select
-        class="company-filter"
-        [formControl]="selectedPmseCompanyControl"
-        placeholder="Buscar empresa PMSE..."
-        emptyLabel="Todas las empresas PMSE"
-        noResultsText="No se encontraron empresas"
-        prefixIcon="business"
-        [options]="pmseCompanies()"
-        displayKey="name"
+        class="meter-filter"
+        [formControl]="selectedMeterControl"
+        placeholder="Buscar medidor..."
+        emptyLabel="Todos los medidores"
+        noResultsText="No se encontraron medidores"
+        prefixIcon="speed"
+        [options]="meterSearchOptions()"
+        displayKey="displayName"
         valueKey="id"
-        [searchKeys]="['name', 'ruc', 'externalCode']"
+        [searchKeys]="['displayName']"
         [showLabel]="false"
         [compact]="true"
       />
     </div>
-  }
-
-  <div class="meter-filter-shell">
-    <app-searchable-select
-      class="meter-filter"
-      [formControl]="selectedMeterControl"
-      placeholder="Buscar medidor..."
-      emptyLabel="Todos los medidores"
-      noResultsText="No se encontraron medidores"
-      prefixIcon="speed"
-      [options]="meterSearchOptions()"
-      displayKey="displayName"
-      valueKey="id"
-      [searchKeys]="['displayName']"
-      [showLabel]="false"
-      [compact]="true"
-    />
   </div>
-</div>
 
   <div class="map-card__body">
     <div
       #mapContainer
       class="map-container"
     ></div>
-    <div #popupContainer class="popup-portal"></div> 
+
+    @if (selectedPopup(); as popup) {
+      <div
+        class="meter-map-popup"
+        [class.meter-map-popup--bottom]="popup.placement === 'bottom'"
+        [style.left.px]="popup.left"
+        [style.top.px]="popup.top"
+      >
+        <button
+          type="button"
+          class="meter-map-popup__close"
+          (click)="closePopup()"
+          aria-label="Cerrar popup"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+
+        <p class="meter-map-popup__eyebrow">SICAM · Medidores</p>
+
+        <h4>
+          @if (popup.meters.length === 1) {
+            {{ popup.meters[0].code }}
+          } @else {
+            {{ popup.meters.length }} medidores en esta ubicación
+          }
+        </h4>
+
+        <div class="meter-map-popup__list">
+          @for (meter of popup.meters.slice(0, 8); track meter.id) {
+            <article>
+              <div class="meter-map-popup__row">
+                <strong>{{ meter.code }}</strong>
+                <span [class]="'meter-map-popup__status meter-map-popup__status--' + getMeterTone(meter)">
+                  {{ getToneLabel(getMeterTone(meter)) }}
+                </span>
+              </div>
+
+              <p>Serial: {{ meter.serial || '—' }}</p>
+
+              @if (isCenaceUser()) {
+                <p>PMSE: {{ meter.pmseCompanyName || '—' }}</p>
+              }
+
+              <p>{{ meter.province || '—' }} · {{ meter.sector || '—' }}</p>
+              <p>Próx. calibración: {{ formatDateForView(meter.nextCalibrationDate) }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    }
 
     @if (isLoading()) {
       <div class="map-overlay">
@@ -111,6 +163,16 @@
         <mat-icon>map</mat-icon>
         <strong>No se pudo mostrar el mapa</strong>
         <p>{{ errorMessage() }}</p>
+      </div>
+    }
+
+    @if (!isLoading() && !errorMessage() && allMeters().length > 0 && metersWithCoordinates().length === 0) {
+      <div class="map-message">
+        <mat-icon>location_off</mat-icon>
+        <strong>No hay medidores con coordenadas</strong>
+        <p>
+          Se encontraron {{ allMeters().length }} medidores, pero ninguno tiene latitud y longitud registradas.
+        </p>
       </div>
     }
   </div>
