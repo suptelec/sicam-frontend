@@ -1,0 +1,125 @@
+<section class="map-card">
+  <div class="map-card__header">
+    <div>
+      <p class="map-card__eyebrow">Ubicación de medidores</p>
+      <h3>Mapa operativo de calibración</h3>
+      <p>{{ getScopeText() }}</p>
+    </div>
+
+    <div class="map-card__actions">
+      <a
+        class="map-card__link"
+        routerLink="/meters"
+      >
+        Ver catálogo
+      </a>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="map-card__refresh"
+        [disabled]="isLoading()"
+        (click)="refresh()"
+      >
+        <mat-icon>refresh</mat-icon>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="map-card__summary">
+    <article>
+      <span>Total</span>
+      <strong>{{ allMeters().length }}</strong>
+    </article>
+
+    <article>
+      <span>Con coordenadas</span>
+      <strong>{{ metersWithCoordinates().length }}</strong>
+    </article>
+
+    <article>
+      <span>Sin coordenadas</span>
+      <strong>{{ metersWithoutCoordinates().length }}</strong>
+    </article>
+
+    <article class="summary-danger">
+      <span>Vencidos</span>
+      <strong>{{ expiredMeters().length }}</strong>
+    </article>
+
+    <article class="summary-warning">
+      <span>Por vencer</span>
+      <strong>{{ soonMeters().length }}</strong>
+    </article>
+  </div>
+
+<div class="map-card__toolbar" [class.map-card__toolbar--cenace]="isCenaceUser()">
+  @if (isCenaceUser()) {
+    <div class="company-filter-shell">
+      <app-searchable-select
+        class="company-filter"
+        [formControl]="selectedPmseCompanyControl"
+        placeholder="Buscar empresa PMSE..."
+        emptyLabel="Todas las empresas PMSE"
+        noResultsText="No se encontraron empresas"
+        prefixIcon="business"
+        [options]="pmseCompanies()"
+        displayKey="name"
+        valueKey="id"
+        [searchKeys]="['name', 'ruc', 'externalCode']"
+        [showLabel]="false"
+        [compact]="true"
+      />
+    </div>
+  }
+
+  <div class="meter-filter-shell">
+    <app-searchable-select
+      class="meter-filter"
+      [formControl]="selectedMeterControl"
+      placeholder="Buscar medidor..."
+      emptyLabel="Todos los medidores"
+      noResultsText="No se encontraron medidores"
+      prefixIcon="speed"
+      [options]="meterSearchOptions()"
+      displayKey="displayName"
+      valueKey="id"
+      [searchKeys]="['displayName']"
+      [showLabel]="false"
+      [compact]="true"
+    />
+  </div>
+</div>
+
+  <div class="map-card__body">
+    <div
+      #mapContainer
+      class="map-container"
+    ></div>
+    <div #popupContainer class="popup-portal"></div> 
+
+    @if (isLoading()) {
+      <div class="map-overlay">
+        <mat-spinner diameter="30" />
+        <span>Cargando medidores...</span>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="map-message">
+        <mat-icon>map</mat-icon>
+        <strong>No se pudo mostrar el mapa</strong>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    }
+  </div>
+
+  <div class="map-card__legend">
+    <span><i class="legend-dot legend-dot--expired"></i> Vencido</span>
+    <span><i class="legend-dot legend-dot--soon"></i> Por vencer</span>
+    <span><i class="legend-dot legend-dot--valid"></i> Vigente</span>
+    <span><i class="legend-dot legend-dot--no-date"></i> Sin fecha</span>
+    <span><i class="legend-dot legend-dot--inactive"></i> Inactivo</span>
+  </div>
+</section>

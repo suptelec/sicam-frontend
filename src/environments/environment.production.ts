@@ -2,6 +2,8 @@ export const environment = {
   production: true,
   apiUrl: 'https://sicam-backend-20260503-2101.onrender.com/api',
   identityUrl: 'https://identity-20260503-2125.onrender.com',
+  mapboxToken: '__MAPBOX_TOKEN__',
+
   oidc: {
     issuer: 'https://identity-20260503-2125.onrender.com/',
     redirectUri: 'https://sicam-frontend.onrender.com/auth/callback',

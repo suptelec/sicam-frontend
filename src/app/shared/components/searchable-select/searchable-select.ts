@@ -49,6 +49,7 @@ export class SearchableSelectComponent implements OnInit, OnChanges, OnDestroy, 
   @Input() placeholder = 'Buscar...';
   @Input() emptyLabel = 'Todas las opciones';
   @Input() noResultsText = 'No se encontraron resultados';
+  @Input() prefixIcon = 'search';
 
   @Input() options: unknown[] = [];
   @Input() displayKey = 'name';
@@ -59,6 +60,7 @@ export class SearchableSelectComponent implements OnInit, OnChanges, OnDestroy, 
   @Input() required = false;
   @Input() showLabel = true;
   @Input() compact = false;
+
 
   @Output() selectedChange = new EventEmitter<unknown | null>();
 

@@ -1,0 +1,546 @@
+.map-card {
+  position: relative;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.94)),
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 38%);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+}
+
+/* ===== Header ===== */
+
+.map-card__header {
+  padding: 22px 22px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+
+  h3 {
+    margin: 4px 0 6px;
+    color: #f8fafc;
+    font-size: 1.18rem;
+    font-weight: 850;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+}
+
+.map-card__eyebrow {
+  margin: 0;
+  color: #60a5fa !important;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.map-card__link {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  color: #bfdbfe;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.map-card__refresh {
+  border-radius: 12px !important;
+  color: #dbeafe !important;
+  border-color: rgba(147, 197, 253, 0.28) !important;
+
+  mat-icon {
+    margin-right: 6px;
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
+}
+
+/* ===== Summary ===== */
+
+.map-card__summary {
+  padding: 0 22px 16px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+
+  article {
+    padding: 12px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.13);
+  }
+
+  span {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    color: #f8fafc;
+    font-size: 1.2rem;
+    font-weight: 900;
+  }
+}
+
+.summary-danger strong {
+  color: #fca5a5;
+}
+
+.summary-warning strong {
+  color: #fcd34d;
+}
+
+/* ===== Toolbar ===== */
+
+.map-card__toolbar {
+  position: relative;
+  padding: 0 22px 14px;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.map-card__toolbar--cenace {
+  grid-template-columns: minmax(280px, 430px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.company-filter-shell,
+.meter-filter-shell {
+  min-width: 0;
+}
+
+.company-filter,
+.meter-filter {
+  display: block;
+  width: 100%;
+}
+
+/* ===== Searchable select dentro del mapa ===== */
+
+:host ::ng-deep .company-filter .mat-mdc-form-field,
+:host ::ng-deep .meter-filter .mat-mdc-form-field {
+  width: 100%;
+}
+
+:host ::ng-deep .company-filter .mat-mdc-text-field-wrapper,
+:host ::ng-deep .meter-filter .mat-mdc-text-field-wrapper {
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .company-filter .mat-mdc-form-field-flex,
+:host ::ng-deep .meter-filter .mat-mdc-form-field-flex {
+  height: 44px !important;
+  min-height: 44px !important;
+  align-items: center !important;
+}
+
+:host ::ng-deep .company-filter .mat-mdc-form-field-infix,
+:host ::ng-deep .meter-filter .mat-mdc-form-field-infix {
+  min-height: 44px !important;
+  padding-top: 10px !important;
+  padding-bottom: 8px !important;
+}
+
+:host ::ng-deep .company-filter input.mat-mdc-input-element,
+:host ::ng-deep .meter-filter input.mat-mdc-input-element {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f8fafc !important;
+  font-size: 0.9rem !important;
+  font-weight: 650;
+}
+
+:host ::ng-deep .company-filter input.mat-mdc-input-element::placeholder,
+:host ::ng-deep .meter-filter input.mat-mdc-input-element::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 500;
+}
+
+:host ::ng-deep .company-filter mat-icon,
+:host ::ng-deep .meter-filter mat-icon {
+  color: #93c5fd !important;
+  margin-right: 8px;
+}
+
+:host ::ng-deep .company-filter .mdc-notched-outline__leading,
+:host ::ng-deep .company-filter .mdc-notched-outline__notch,
+:host ::ng-deep .company-filter .mdc-notched-outline__trailing,
+:host ::ng-deep .meter-filter .mdc-notched-outline__leading,
+:host ::ng-deep .meter-filter .mdc-notched-outline__notch,
+:host ::ng-deep .meter-filter .mdc-notched-outline__trailing {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+:host ::ng-deep .company-filter .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+:host ::ng-deep .company-filter .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+:host ::ng-deep .company-filter .mat-mdc-form-field:hover .mdc-notched-outline__trailing,
+:host ::ng-deep .meter-filter .mat-mdc-form-field:hover .mdc-notched-outline__leading,
+:host ::ng-deep .meter-filter .mat-mdc-form-field:hover .mdc-notched-outline__notch,
+:host ::ng-deep .meter-filter .mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: rgba(96, 165, 250, 0.46) !important;
+}
+
+:host ::ng-deep .company-filter .mat-focused .mdc-notched-outline__leading,
+:host ::ng-deep .company-filter .mat-focused .mdc-notched-outline__notch,
+:host ::ng-deep .company-filter .mat-focused .mdc-notched-outline__trailing,
+:host ::ng-deep .meter-filter .mat-focused .mdc-notched-outline__leading,
+:host ::ng-deep .meter-filter .mat-focused .mdc-notched-outline__notch,
+:host ::ng-deep .meter-filter .mat-focused .mdc-notched-outline__trailing {
+  border-color: #60a5fa !important;
+}
+
+:host ::ng-deep .company-filter .mat-mdc-form-field-subscript-wrapper,
+:host ::ng-deep .meter-filter .mat-mdc-form-field-subscript-wrapper {
+  display: none !important;
+}
+
+:host ::ng-deep .company-filter .searchable-select__clear,
+:host ::ng-deep .meter-filter .searchable-select__clear {
+  width: 30px;
+  height: 30px;
+  color: #cbd5e1;
+
+  mat-icon {
+    margin: 0;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.14);
+  }
+}
+
+/* ===== Panel autocomplete ===== */
+
+::ng-deep .searchable-select__panel.mat-mdc-autocomplete-panel {
+  margin-top: 6px !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  border-radius: 14px !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38) !important;
+  padding: 6px 0 !important;
+}
+
+::ng-deep .searchable-select__panel.mat-mdc-autocomplete-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+::ng-deep .searchable-select__panel.mat-mdc-autocomplete-panel::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+::ng-deep .searchable-select__panel.mat-mdc-autocomplete-panel::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+::ng-deep .searchable-select__panel.mat-mdc-autocomplete-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+::ng-deep .searchable-select__panel .mat-mdc-option {
+  min-height: 40px !important;
+  color: #e5e7eb !important;
+  font-size: 0.86rem !important;
+}
+
+::ng-deep .searchable-select__panel .mat-mdc-option:hover {
+  background: rgba(96, 165, 250, 0.12) !important;
+}
+
+::ng-deep .searchable-select__panel .mat-mdc-option.mdc-list-item--selected {
+  background: rgba(96, 165, 250, 0.2) !important;
+}
+
+::ng-deep .searchable-select__panel .mat-pseudo-checkbox {
+  display: none !important;
+}
+
+/* ===== Mapa ===== */
+
+.map-card__body {
+  position: relative;
+  height: 460px;
+  margin: 0 22px;
+  overflow: hidden;      
+  border-radius: 20px;
+  background: #020617;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.popup-portal {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;  // deja pasar clicks al mapa
+  z-index: 10;
+  overflow: visible;     // permite que el popup se salga si es necesario
+  
+  // permite clicks solo en el popup
+  :host ::ng-deep .mapboxgl-popup {
+    pointer-events: all;
+  }
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Marcadores Mapbox ===== */
+
+:host ::ng-deep .mapboxgl-marker {
+  cursor: pointer !important;
+  z-index: 5;
+}
+
+:host ::ng-deep .mapboxgl-marker:hover {
+  z-index: 10;
+}
+
+:host ::ng-deep .mapboxgl-marker svg {
+  filter:
+    drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45))
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.2));
+  transition: transform 140ms ease;
+}
+
+:host ::ng-deep .mapboxgl-marker:hover svg {
+  transform: scale(1.08);
+}
+
+/* ===== Estados sobre mapa ===== */
+
+.map-overlay,
+.map-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.68);
+  color: #e5e7eb;
+  text-align: center;
+  z-index: 10;
+}
+
+.map-overlay {
+  gap: 10px;
+}
+
+.map-message {
+  padding: 24px;
+
+  mat-icon {
+    color: #60a5fa;
+    font-size: 42px;
+    width: 42px;
+    height: 42px;
+  }
+
+  strong {
+    display: block;
+    margin-top: 10px;
+    color: #f8fafc;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 8px auto 0;
+    max-width: 360px;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+}
+
+/* ===== Leyenda ===== */
+
+.map-card__legend {
+  padding: 14px 22px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 750;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-dot--expired {
+  background: #ef4444;
+}
+
+.legend-dot--soon {
+  background: #f59e0b;
+}
+
+.legend-dot--valid {
+  background: #22c55e;
+}
+
+.legend-dot--no-date {
+  background: #38bdf8;
+}
+
+.legend-dot--inactive {
+  background: #64748b;
+}
+
+/* ===== Popup Mapbox ===== */
+
+:host ::ng-deep .sicam-meter-popup {
+  z-index: 20;
+}
+
+:host ::ng-deep .sicam-meter-popup .mapboxgl-popup-content {
+  position: relative !important;
+  padding: 14px 40px 14px 14px !important;
+  border-radius: 16px !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.42) !important;
+  color: #e5e7eb;
+}
+
+:host ::ng-deep .sicam-meter-popup .mapboxgl-popup-close-button {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: #cbd5e1 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+:host ::ng-deep .sicam-meter-popup .mapboxgl-popup-close-button:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fecaca !important;
+}
+
+:host ::ng-deep .sicam-meter-popup .mapboxgl-popup-close-button:focus {
+  outline: 2px solid rgba(96, 165, 250, 0.55) !important;
+  outline-offset: 2px;
+}
+
+:host ::ng-deep .sicam-meter-popup .mapboxgl-popup-tip {
+  border-top-color: #0f172a !important;
+  border-bottom-color: #0f172a !important;
+}
+
+/* ===== Mapbox controls ===== */
+
+:host ::ng-deep .mapboxgl-ctrl-group {
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+}
+
+:host ::ng-deep .mapboxgl-ctrl-group button {
+  background-color: rgba(15, 23, 42, 0.86);
+}
+
+:host ::ng-deep .mapboxgl-ctrl-group button + button {
+  border-top-color: rgba(148, 163, 184, 0.16);
+}
+
+:host ::ng-deep .mapboxgl-ctrl-icon {
+  filter: invert(1) opacity(0.78);
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 1100px) {
+  .map-card__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .map-card__body {
+    height: 400px;
+  }
+}
+
+@media (max-width: 720px) {
+  .map-card__header {
+    flex-direction: column;
+  }
+
+  .map-card__actions {
+    width: 100%;
+  }
+
+  .map-card__link,
+  .map-card__refresh {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .map-card__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .map-card__toolbar--cenace {
+    grid-template-columns: 1fr;
+  }
+
+  .map-card__body {
+    height: 360px;
+  }
+}

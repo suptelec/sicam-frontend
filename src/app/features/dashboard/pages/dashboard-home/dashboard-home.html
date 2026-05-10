@@ -16,7 +16,7 @@
         <h2>Bienvenido, {{ user()?.fullName ?? 'Usuario' }}</h2>
 
         <p>
-          Este panel será el punto de entrada para el seguimiento del proceso de calibración de medidores.
+          Este panel permite visualizar el avance operativo del proceso de calibración de medidores.
         </p>
       </div>
     </div>
@@ -46,13 +46,16 @@
     }
   </section>
 
+  <app-meter-map-card />
+
   <section class="roadmap-card">
     <div>
-      <p class="roadmap-card__eyebrow">Siguiente etapa</p>
-      <h3>Construcción del flujo funcional</h3>
+      <p class="roadmap-card__eyebrow">Mapa operativo</p>
+      <h3>Visualización geográfica del parque de medidores</h3>
       <p>
-        La base técnica del frontend ya está lista. El siguiente paso es construir los catálogos técnicos:
-        laboratorios acreditados, medidores y certificados históricos.
+        El mapa permite ubicar los medidores registrados, identificar equipos sin coordenadas y revisar
+        visualmente los vencidos o próximos a vencer. En la siguiente fase se conectará con estados del
+        plan anual, autorización de trabajo y proceso de calibración.
       </p>
     </div>
   </section>

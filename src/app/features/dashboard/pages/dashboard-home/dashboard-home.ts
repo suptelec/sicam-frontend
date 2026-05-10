@@ -5,6 +5,7 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
 import { UserType } from '../../../../core/models/current-user.model';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header';
 import { StatusChipComponent } from '../../../../shared/components/status-chip/status-chip';
+import { MeterMapCardComponent } from '../../ui/meter-map-card/meter-map-card';
 
 interface DashboardCard {
   title: string;
@@ -19,7 +20,8 @@ interface DashboardCard {
   imports: [
     MatIconModule,
     PageHeaderComponent,
-    StatusChipComponent
+    StatusChipComponent,
+    MeterMapCardComponent
   ],
   templateUrl: './dashboard-home.html',
   styleUrl: './dashboard-home.scss'

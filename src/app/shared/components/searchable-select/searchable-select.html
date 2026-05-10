@@ -19,8 +19,7 @@
     (blur)="onTouched()"
   />
 
-  <mat-icon matPrefix>search</mat-icon>
-
+  <mat-icon matPrefix>{{ prefixIcon }}</mat-icon>
   @if (showClearButton) {
     <button
       mat-icon-button
