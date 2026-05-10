@@ -1,10 +1,5 @@
 <section class="page">
-  <app-page-header
-    eyebrow="Principal"
-    title="Dashboard SICAM"
-    [description]="welcomeDescription"
-    [showAction]="false"
-  />
+  
 
   <section class="welcome-card">
     <div class="welcome-card__content">
@@ -28,23 +23,9 @@
     />
   </section>
 
-  <section class="metrics-grid">
-    @for (card of cards; track card.title) {
-      <article class="metric-card">
-        <div class="metric-card__header">
-          <div class="metric-card__icon">
-            <mat-icon>{{ card.icon }}</mat-icon>
-          </div>
 
-          <span>{{ card.title }}</span>
-        </div>
 
-        <strong>{{ card.value }}</strong>
-
-        <p>{{ card.description }}</p>
-      </article>
-    }
-  </section>
+  <app-dashboard-compliance-summary />
 
   <app-meter-map-card />
 

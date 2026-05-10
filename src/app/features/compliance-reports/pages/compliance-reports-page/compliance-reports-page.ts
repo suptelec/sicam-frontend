@@ -1,5 +1,5 @@
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -33,7 +33,6 @@ type ReportMode = 'monthly' | 'annual';
   imports: [
     CommonModule,
     FormsModule,
-    DecimalPipe,
     MatButtonModule,
     MatIconModule,
     MatPaginatorModule,
@@ -97,9 +96,6 @@ export class ComplianceReportsPageComponent implements OnInit {
   dataSource = new MatTableDataSource<ComplianceReportRow>([]);
   pageSize = 10;
   pageSizeOptions = [10, 20, 50, 100];
-
-  readonly summary = computed(() => this.report()?.summary ?? null);
-  readonly pmseSummaries = computed(() => this.report()?.pmseSummaries ?? []);
 
   ngOnInit(): void {
     this.configureFilter();
@@ -185,36 +181,6 @@ export class ComplianceReportsPageComponent implements OnInit {
     }
 
     return `${this.formatDate(current.from)} - ${this.formatDate(current.to)}`;
-  }
-
-  get generatedAtLabel(): string {
-    const current = this.report();
-
-    if (!current?.generatedAt) {
-      return '—';
-    }
-
-    return new Date(current.generatedAt).toLocaleString('es-EC', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  get certificateRuleLabel(): string {
-    const current = this.report();
-
-    if (!current) {
-      return '—';
-    }
-
-    if (!current.enforceCertificateDeliveryDays) {
-      return 'Validación de plazo desactivada';
-    }
-
-    return `Nueva instalación: ${current.certificateDeliveryDaysNewInstallation} días · En operación: ${current.certificateDeliveryDaysInOperation} días`;
   }
 
   getComplianceTone(status: ComplianceStatus): StatusChipTone {
@@ -350,7 +316,15 @@ export class ComplianceReportsPageComponent implements OnInit {
       return '—';
     }
 
-    const date = new Date(`${value}T00:00:00`);
+    const normalized = value.includes('T')
+      ? value
+      : `${value}T00:00:00`;
+
+    const date = new Date(normalized);
+
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
 
     return date.toLocaleDateString('es-EC', {
       year: 'numeric',
@@ -364,7 +338,13 @@ export class ComplianceReportsPageComponent implements OnInit {
       return '—';
     }
 
-    return new Date(value).toLocaleString('es-EC', {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return '—';
+    }
+
+    return date.toLocaleString('es-EC', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

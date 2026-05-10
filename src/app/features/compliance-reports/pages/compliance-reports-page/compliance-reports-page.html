@@ -2,7 +2,7 @@
   <app-page-header
     eyebrow="Reportes regulatorios"
     title="Cumplimiento ARCERNNR"
-    description="Consulta el cumplimiento mensual o anual del plan de calibración y descarga el Excel oficial para revisión o envío."
+    description="Consulta el detalle mensual o anual del plan de calibración y descarga el Excel oficial para revisión o envío."
     actionText="Descargar Excel"
     actionIcon="download"
     (actionClicked)="exportExcel()"
@@ -73,83 +73,6 @@
       </div>
     </div>
   </section>
-
-  @if (summary()) {
-    <section class="summary-grid">
-      <article class="summary-card summary-card--total">
-        <span>Total ítems</span>
-        <strong>{{ summary()?.totalItems }}</strong>
-        <small>Plan anual incluido en el periodo</small>
-      </article>
-
-      <article class="summary-card summary-card--due">
-        <span>Ítems exigibles</span>
-        <strong>{{ summary()?.dueItems }}</strong>
-        <small>No incluye pendientes futuros</small>
-      </article>
-
-      <article class="summary-card summary-card--success">
-        <span>Cumplidos</span>
-        <strong>{{ (summary()?.onTimeItems ?? 0) + (summary()?.lateItems ?? 0) }}</strong>
-        <small>{{ summary()?.completionPercentage | number: '1.2-2' }}% cumplimiento</small>
-      </article>
-
-      <article class="summary-card summary-card--danger">
-        <span>No cumplidos</span>
-        <strong>{{ summary()?.notCompletedItems }}</strong>
-        <small>Ítems vencidos sin cumplimiento</small>
-      </article>
-
-      <article class="summary-card summary-card--future">
-        <span>Pendientes por ejecutar</span>
-        <strong>{{ summary()?.notDueItems }}</strong>
-        <small>Fechas futuras no vencidas</small>
-      </article>
-    </section>
-
-    <section class="meta-card">
-      <div>
-        <span>Generado</span>
-        <strong>{{ generatedAtLabel }}</strong>
-      </div>
-
-      <div>
-        <span>Regla certificado</span>
-        <strong>{{ certificateRuleLabel }}</strong>
-      </div>
-    </section>
-  }
-
-  @if (pmseSummaries().length > 0) {
-    <section class="pmse-summary">
-      <header>
-        <div>
-          <span>Resumen por PMSE</span>
-          <strong>Vista rápida de cumplimiento</strong>
-        </div>
-      </header>
-
-      <div class="pmse-summary__grid">
-        @for (item of pmseSummaries(); track item.pmseCompanyId) {
-          <article class="pmse-mini-card">
-            <strong>{{ item.pmseCompanyName }}</strong>
-
-            <div class="pmse-mini-card__numbers">
-              <span>Total: {{ item.totalItems }}</span>
-              <span>Exigibles: {{ item.dueItems }}</span>
-              <span>Pendientes: {{ item.notDueItems }}</span>
-            </div>
-
-            <div class="pmse-mini-card__bar">
-              <span [style.width.%]="item.completionPercentage"></span>
-            </div>
-
-            <small>{{ item.completionPercentage | number: '1.2-2' }}% cumplimiento</small>
-          </article>
-        }
-      </div>
-    </section>
-  }
 
   <app-search-toolbar
     [(value)]="searchTerm"

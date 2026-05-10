@@ -1,0 +1,105 @@
+<section class="compliance-card">
+  <header class="compliance-card__header">
+    <div>
+      <p class="compliance-card__eyebrow">Cumplimiento del plan anual</p>
+
+      <h3>
+        @if (isCenaceUser()) {
+          Resumen operativo CENACE
+        } @else {
+          Resumen de cumplimiento PMSE
+        }
+      </h3>
+
+      <p>
+        @if (plan(); as currentPlan) {
+          Plan {{ currentPlan.year }} · {{ currentPlan.name }}
+        } @else {
+          Sin plan anual disponible
+        }
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="compliance-card__refresh"
+      [disabled]="isLoading()"
+      (click)="refresh()"
+    >
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+  </header>
+
+  @if (isLoading()) {
+    <div class="compliance-card__loading">
+      <mat-spinner diameter="28" />
+      <span>Cargando indicadores...</span>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="compliance-card__error">
+      <mat-icon>warning</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  } @else {
+    <section class="compliance-kpis">
+      @for (kpi of kpis(); track kpi.title) {
+        <article class="compliance-kpi" [class]="'compliance-kpi compliance-kpi--' + kpi.tone">
+          <div class="compliance-kpi__icon">
+            <mat-icon>{{ kpi.icon }}</mat-icon>
+          </div>
+
+          <span>{{ kpi.title }}</span>
+          <strong>{{ kpi.value }}</strong>
+          <small>{{ kpi.description }}</small>
+        </article>
+      }
+    </section>
+
+    @if (isCenaceUser()) {
+      <section class="pmse-summary">
+        <div class="pmse-summary__header">
+          <div>
+            <p>Resumen por PMSE</p>
+            <h4>Vista rápida de cumplimiento</h4>
+          </div>
+
+          <span>{{ pmseSummaries().length }} empresas</span>
+        </div>
+
+        <div class="pmse-summary__grid">
+          @for (row of pmseSummaries(); track row.pmseCompanyId) {
+            <article class="pmse-card">
+              <header>
+                <strong>{{ row.pmseCompanyName }}</strong>
+                <span>{{ row.completionRate.toFixed(2) }}%</span>
+              </header>
+
+              <div class="pmse-card__badges">
+                <span>Total: {{ row.totalItems }}</span>
+                <span>Exigibles: {{ row.eligibleItems }}</span>
+                <span>Pendientes: {{ row.futurePendingItems }}</span>
+              </div>
+
+              <div class="pmse-card__progress">
+                <i [style.width.%]="row.completionRate"></i>
+              </div>
+
+              <small>
+                {{ row.completedItems }} cumplidos · {{ row.notCompletedItems }} no cumplidos
+              </small>
+            </article>
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="pmse-note">
+        <mat-icon>domain</mat-icon>
+        <div>
+          <strong>{{ pmseCompanyName() ?? 'Tu empresa PMSE' }}</strong>
+          <p>Estos indicadores corresponden únicamente a los medidores e ítems asignados a tu empresa.</p>
+        </div>
+      </section>
+    }
+  }
+</section>
