@@ -23,9 +23,13 @@ import { SearchableSelectComponent } from '../../../../shared/components/searcha
 
 import { MetersService } from '../../../meters/data-access/meters.service';
 import { EntityStatus, Meter } from '../../../meters/domain/meter.model';
-import { PmseCompaniesService } from '../../../pmse-companies/data-access/pmse-companies.service';
-import { PmseCompany } from '../../../pmse-companies/domain/pmse-company.model';
-import { EntityStatus as PmseEntityStatus } from '../../../pmse-companies/domain/pmse-company.enum';
+
+import { CalibrationPlansService } from '../../../calibration-plans/data-access/calibration-plans.service';
+import { CalibrationPlanItemsService } from '../../../calibration-plans/data-access/calibration-plan-items.service';
+import {
+  CalibrationPlanItem,
+  CalibrationPlanItemStatus
+} from '../../../calibration-plans/domain/calibration-plan.model';
 
 type MeterMapTone =
   | 'expired'
@@ -56,6 +60,31 @@ interface MeterMapPopup {
   meters: Meter[];
 }
 
+interface MeterSummary {
+  total: number;
+  withCoordinates: number;
+  withoutCoordinates: number;
+  expired: number;
+  soon: number;
+  valid: number;
+  noDate: number;
+  inactive: number;
+}
+
+interface CompanyComplianceSummary {
+  totalItems: number;
+  eligibleItems: number;
+  completedItems: number;
+  notCompletedItems: number;
+  futurePendingItems: number;
+  completionRate: number;
+}
+
+interface PmseMapSummary extends MeterSummary, CompanyComplianceSummary {
+  pmseCompanyId: number;
+  pmseCompanyName: string;
+}
+
 @Component({
   selector: 'app-meter-map-card',
   standalone: true,
@@ -75,7 +104,8 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly mapContainer!: ElementRef<HTMLDivElement>;
 
   private readonly metersService = inject(MetersService);
-  private readonly pmseCompaniesService = inject(PmseCompaniesService);
+  private readonly plansService = inject(CalibrationPlansService);
+  private readonly planItemsService = inject(CalibrationPlanItemsService);
   private readonly userScope = inject(UserScopeService);
 
   private readonly sourceId = 'sicam-meter-map-source';
@@ -86,8 +116,8 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   private map?: mapboxgl.Map;
 
   private metersSubscription?: Subscription;
-  private companiesSubscription?: Subscription;
-  private companyFilterSubscription?: Subscription;
+  private plansSubscription?: Subscription;
+  private planItemsSubscription?: Subscription;
   private meterFilterSubscription?: Subscription;
   private resizeObserver?: ResizeObserver;
 
@@ -97,36 +127,41 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly markersByMeterCode = new Map<string, MeterMapMarkerRef>();
 
   readonly isLoading = signal(false);
-  readonly isLoadingCompanies = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
   readonly allMeters = signal<Meter[]>([]);
-  readonly pmseCompanies = signal<PmseCompany[]>([]);
+  readonly complianceItems = signal<CalibrationPlanItem[]>([]);
+
   readonly selectedPmseCompanyId = signal<number | null>(null);
+  readonly selectedMeterId = signal<number | null>(null);
   readonly selectedPopup = signal<MeterMapPopup | null>(null);
 
-  readonly selectedPmseCompanyControl = new FormControl<number | null>(null);
+  readonly companyPanelSearch = signal('');
+  readonly meterPanelSearch = signal('');
+
   readonly selectedMeterControl = new FormControl<number | null>(null);
 
   readonly isPmseUser = this.userScope.isPmseUser;
   readonly isCenaceUser = this.userScope.isCenaceUser;
   readonly pmseCompanyName = this.userScope.pmseCompanyName;
 
-  readonly metersWithCoordinates = computed(() => {
-    return this.allMeters().filter(meter => this.hasValidCoordinates(meter));
+  readonly visibleMeters = computed(() => {
+    const selectedCompanyId = this.selectedPmseCompanyId();
+
+    if (this.isCenaceUser() && selectedCompanyId) {
+      return this.allMeters().filter(meter => Number(meter.pmseCompanyId) === selectedCompanyId);
+    }
+
+    return this.allMeters();
   });
 
-  readonly metersWithoutCoordinates = computed(() => {
-    return this.allMeters().filter(meter => !this.hasValidCoordinates(meter));
-  });
+  readonly metersWithCoordinates = computed(() =>
+    this.visibleMeters().filter(meter => this.hasValidCoordinates(meter))
+  );
 
-  readonly expiredMeters = computed(() => {
-    return this.allMeters().filter(meter => this.getMeterTone(meter) === 'expired');
-  });
-
-  readonly soonMeters = computed(() => {
-    return this.allMeters().filter(meter => this.getMeterTone(meter) === 'soon');
-  });
+  readonly metersWithoutCoordinates = computed(() =>
+    this.visibleMeters().filter(meter => !this.hasValidCoordinates(meter))
+  );
 
   readonly selectedPmseCompanyName = computed(() => {
     const selectedId = this.selectedPmseCompanyId();
@@ -135,23 +170,143 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       return null;
     }
 
-    return this.pmseCompanies().find(company => company.id === selectedId)?.name ?? null;
+    return this.companySummaries()
+      .find(company => company.pmseCompanyId === selectedId)
+      ?.pmseCompanyName ?? null;
   });
 
-  readonly meterSearchOptions = computed<MeterSearchOption[]>(() => {
-    return this.metersWithCoordinates().map(meter => ({
+  readonly globalSummary = computed<MeterSummary>(() => {
+    return this.buildMeterSummary(this.allMeters());
+  });
+
+  readonly visibleSummary = computed<MeterSummary>(() => {
+    return this.buildMeterSummary(this.visibleMeters());
+  });
+
+  readonly globalComplianceSummary = computed<CompanyComplianceSummary>(() => {
+    return this.buildComplianceSummary(this.complianceItems());
+  });
+
+  readonly companySummaries = computed<PmseMapSummary[]>(() => {
+    const meterGroups = new Map<number, Meter[]>();
+    const itemGroups = new Map<number, CalibrationPlanItem[]>();
+
+    for (const meter of this.allMeters()) {
+      const pmseCompanyId = Number(meter.pmseCompanyId);
+
+      if (!Number.isFinite(pmseCompanyId) || pmseCompanyId <= 0) {
+        continue;
+      }
+
+      if (!meterGroups.has(pmseCompanyId)) {
+        meterGroups.set(pmseCompanyId, []);
+      }
+
+      meterGroups.get(pmseCompanyId)!.push(meter);
+    }
+
+    for (const item of this.complianceItems()) {
+      const pmseCompanyId = Number(item.pmseCompanyId);
+
+      if (!Number.isFinite(pmseCompanyId) || pmseCompanyId <= 0) {
+        continue;
+      }
+
+      if (!itemGroups.has(pmseCompanyId)) {
+        itemGroups.set(pmseCompanyId, []);
+      }
+
+      itemGroups.get(pmseCompanyId)!.push(item);
+    }
+
+    const companyIds = new Set<number>([
+      ...meterGroups.keys(),
+      ...itemGroups.keys()
+    ]);
+
+    return [...companyIds]
+      .map(pmseCompanyId => {
+        const meters = meterGroups.get(pmseCompanyId) ?? [];
+        const items = itemGroups.get(pmseCompanyId) ?? [];
+
+        return {
+          pmseCompanyId,
+          pmseCompanyName:
+            meters[0]?.pmseCompanyName?.trim() ||
+            items[0]?.pmseCompanyName?.trim() ||
+            'PMSE sin nombre',
+          ...this.buildMeterSummary(meters),
+          ...this.buildComplianceSummary(items)
+        };
+      })
+      .sort((a, b) => {
+        if (b.notCompletedItems !== a.notCompletedItems) {
+          return b.notCompletedItems - a.notCompletedItems;
+        }
+
+        if (b.futurePendingItems !== a.futurePendingItems) {
+          return b.futurePendingItems - a.futurePendingItems;
+        }
+
+        return a.pmseCompanyName.localeCompare(b.pmseCompanyName);
+      });
+  });
+
+  readonly filteredCompanySummaries = computed(() => {
+    const term = this.companyPanelSearch().trim().toLowerCase();
+
+    if (!term) {
+      return this.companySummaries();
+    }
+
+    return this.companySummaries().filter(company =>
+      company.pmseCompanyName.toLowerCase().includes(term)
+    );
+  });
+
+  readonly meterSearchOptions = computed<MeterSearchOption[]>(() =>
+    this.metersWithCoordinates().map(meter => ({
       id: meter.id,
       displayName: this.buildMeterDisplayName(meter),
       meter
-    }));
+    }))
+  );
+
+  readonly sidePanelMeters = computed(() => {
+    const term = this.meterPanelSearch().trim().toLowerCase();
+
+    const meters = [...this.visibleMeters()].sort((a, b) => {
+      const toneA = this.getTonePriority(this.getMeterTone(a));
+      const toneB = this.getTonePriority(this.getMeterTone(b));
+
+      if (toneA !== toneB) {
+        return toneA - toneB;
+      }
+
+      return a.code.localeCompare(b.code);
+    });
+
+    if (!term) {
+      return meters;
+    }
+
+    return meters.filter(meter => {
+      const searchable = [
+        meter.code,
+        meter.serial,
+        meter.pmseCompanyName,
+        meter.province,
+        meter.sector
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchable.includes(term);
+    });
   });
 
   ngOnInit(): void {
-    this.companyFilterSubscription = this.selectedPmseCompanyControl.valueChanges
-      .subscribe(value => {
-        this.onPmseCompanyChange(value);
-      });
-
     this.meterFilterSubscription = this.selectedMeterControl.valueChanges
       .subscribe(value => {
         this.onMeterSelected(value);
@@ -180,8 +335,8 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.map?.resize();
       this.ensureMapSourceAndLayers(this.createFeatureCollection([]));
       this.registerMapLayerEvents();
-      this.loadPmseCompaniesIfNeeded();
       this.loadMeters();
+      this.loadComplianceItems();
     });
 
     this.map.on('move', () => this.repositionPopup());
@@ -191,8 +346,8 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.metersSubscription?.unsubscribe();
-    this.companiesSubscription?.unsubscribe();
-    this.companyFilterSubscription?.unsubscribe();
+    this.plansSubscription?.unsubscribe();
+    this.planItemsSubscription?.unsubscribe();
     this.meterFilterSubscription?.unsubscribe();
     this.resizeObserver?.disconnect();
 
@@ -206,24 +361,45 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   refresh(): void {
     this.loadMeters();
+    this.loadComplianceItems();
   }
 
-  onPmseCompanyChange(value: unknown | null): void {
-    const parsed = Number(value);
+  onCompanyPanelSearch(value: string): void {
+    this.companyPanelSearch.set(value);
+  }
 
-    this.selectedPmseCompanyId.set(
-      Number.isFinite(parsed) && parsed > 0
-        ? parsed
-        : null
-    );
+  onMeterPanelSearch(value: string): void {
+    this.meterPanelSearch.set(value);
+  }
 
+  selectAllCompanies(): void {
+    this.selectedPmseCompanyId.set(null);
+    this.selectedMeterId.set(null);
     this.selectedMeterControl.setValue(null, { emitEvent: false });
     this.closePopup();
-    this.loadMeters();
+    this.renderVisibleMeters();
   }
 
-  clearPmseCompanyFilter(): void {
-    this.selectedPmseCompanyControl.setValue(null);
+  clearCompanyFilter(): void {
+  this.selectAllCompanies();
+}
+
+  selectCompanyFromPanel(company: PmseMapSummary): void {
+    this.selectedPmseCompanyId.set(company.pmseCompanyId);
+    this.selectedMeterId.set(null);
+    this.selectedMeterControl.setValue(null, { emitEvent: false });
+    this.closePopup();
+    this.renderVisibleMeters();
+  }
+
+  selectMeterFromPanel(meter: Meter): void {
+    if (!this.hasValidCoordinates(meter)) {
+      return;
+    }
+
+    this.selectedMeterId.set(meter.id);
+    this.selectedMeterControl.setValue(meter.id, { emitEvent: false });
+    this.focusMeter(meter, true);
   }
 
   onMeterSelected(value: unknown | null): void {
@@ -233,28 +409,28 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    const selected = this.meterSearchOptions()
-      .find(option => option.id === parsed);
+    const selected = this.meterSearchOptions().find(option => option.id === parsed);
 
     if (!selected) {
       return;
     }
 
-    this.focusMeter(selected.meter);
+    this.selectedMeterId.set(selected.meter.id);
+    this.focusMeter(selected.meter, false);
   }
 
   clearMeterFilter(): void {
     this.selectedMeterControl.setValue(null);
+    this.selectedMeterId.set(null);
+    this.closePopup();
   }
 
-  focusMeter(meter: Meter): void {
+  focusMeter(meter: Meter, openPopup = false): void {
     const markerRef = this.markersByMeterCode.get(meter.code);
 
-    if (!markerRef || !this.map) {
+    if (!markerRef || !this.map || !this.hasValidCoordinates(meter)) {
       return;
     }
-
-    this.closePopup();
 
     this.map.flyTo({
       center: markerRef.coordinates,
@@ -263,14 +439,34 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       curve: 1.35,
       essential: true
     });
+
+    if (openPopup) {
+      this.openOverlayPopup(markerRef.coordinates, markerRef.meters);
+    }
   }
 
   closePopup(): void {
     this.selectedPopup.set(null);
   }
 
+  canFocusMeter(meter: Meter): boolean {
+    return this.hasValidCoordinates(meter);
+  }
+
+  isCompanySelected(company: PmseMapSummary): boolean {
+    return this.selectedPmseCompanyId() === company.pmseCompanyId;
+  }
+
+  isMeterSelected(meter: Meter): boolean {
+    return this.selectedMeterId() === meter.id;
+  }
+
   formatDateForView(value?: string | null): string {
     return this.formatDate(value);
+  }
+
+  formatPercentage(value: number): string {
+    return `${value.toFixed(2)}%`;
   }
 
   getScopeText(): string {
@@ -340,29 +536,23 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private loadPmseCompaniesIfNeeded(): void {
-    if (!this.isCenaceUser()) {
-      return;
+  getToneIcon(tone: MeterMapTone): string {
+    switch (tone) {
+      case 'expired':
+        return 'error';
+
+      case 'soon':
+        return 'schedule';
+
+      case 'valid':
+        return 'check_circle';
+
+      case 'no-date':
+        return 'help';
+
+      case 'inactive':
+        return 'block';
     }
-
-    this.isLoadingCompanies.set(true);
-
-    this.companiesSubscription?.unsubscribe();
-    this.companiesSubscription = this.pmseCompaniesService.getAll({
-      page: 1,
-      take: 500,
-      filter: `Status eq ${PmseEntityStatus.Active}`,
-      orderBy: 'Name asc'
-    }).subscribe({
-      next: response => {
-        this.pmseCompanies.set(response.succeed ? response.result ?? [] : []);
-        this.isLoadingCompanies.set(false);
-      },
-      error: () => {
-        this.pmseCompanies.set([]);
-        this.isLoadingCompanies.set(false);
-      }
-    });
   }
 
   private loadMeters(): void {
@@ -392,7 +582,8 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
         const meters = response.result ?? [];
 
         this.allMeters.set(meters);
-        this.renderMarkers(meters);
+        this.ensureSelectedCompanyStillExists();
+        this.renderVisibleMeters();
         this.ensureSelectedMeterStillExists();
         this.isLoading.set(false);
       },
@@ -405,6 +596,51 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private loadComplianceItems(): void {
+    if (!this.isCenaceUser()) {
+      this.complianceItems.set([]);
+      return;
+    }
+
+    this.plansSubscription?.unsubscribe();
+    this.plansSubscription = this.plansService.getAll({
+      page: 1,
+      take: 1,
+      orderBy: 'Year desc'
+    }).subscribe({
+      next: response => {
+        const plan = response.result?.[0] ?? null;
+
+        if (!plan) {
+          this.complianceItems.set([]);
+          return;
+        }
+
+        this.loadComplianceItemsByPlan(plan.id);
+      },
+      error: () => {
+        this.complianceItems.set([]);
+      }
+    });
+  }
+
+  private loadComplianceItemsByPlan(calibrationPlanId: number): void {
+    this.planItemsSubscription?.unsubscribe();
+    this.planItemsSubscription = this.planItemsService.getAll({
+      page: 1,
+      take: 5000,
+      filter: `CalibrationPlanId eq ${calibrationPlanId}`,
+      orderBy: 'PmseCompanyName asc, PlannedEndDate asc'
+    }).subscribe({
+      next: response => {
+        this.complianceItems.set(response.succeed ? response.result ?? [] : []);
+      },
+      error: () => {
+        this.complianceItems.set([]);
+      }
+    });
+  }
+
   private buildMetersFilter(): string | undefined {
     const pmseScopeFilter = this.userScope.getPmseFilter('PmseCompanyId');
 
@@ -412,13 +648,11 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       return pmseScopeFilter;
     }
 
-    const selectedCompanyId = this.selectedPmseCompanyId();
-
-    if (this.isCenaceUser() && selectedCompanyId) {
-      return `PmseCompanyId eq ${selectedCompanyId}`;
-    }
-
     return undefined;
+  }
+
+  private renderVisibleMeters(): void {
+    this.renderMarkers(this.visibleMeters());
   }
 
   private renderMarkers(meters: Meter[]): void {
@@ -435,10 +669,7 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const features = metersWithCoordinates.map(meter => {
       const groupKey = `${meter.latitude!.toFixed(6)},${meter.longitude!.toFixed(6)}`;
-      const coordinates: [number, number] = [
-        meter.longitude!,
-        meter.latitude!
-      ];
+      const coordinates: [number, number] = [meter.longitude!, meter.latitude!];
       const tone = this.getMeterTone(meter);
       const color = this.getToneColor(tone);
 
@@ -669,6 +900,7 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    this.selectedMeterId.set(meters[0]?.id ?? null);
     this.openOverlayPopup(coordinates, meters);
   }
 
@@ -734,43 +966,43 @@ export class MeterMapCardComponent implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
-private fitMapToLocations(locations: Array<[number, number]>): void {
-  if (!this.map || locations.length === 0) {
-    return;
-  }
+  private fitMapToLocations(locations: Array<[number, number]>): void {
+    if (!this.map || locations.length === 0) {
+      return;
+    }
 
-  this.map.resize();
+    this.map.resize();
 
-  if (locations.length === 1) {
-    this.map.flyTo({
-      center: locations[0],
-      zoom: 12,
-      speed: 1.2,
-      essential: true
+    if (locations.length === 1) {
+      this.map.flyTo({
+        center: locations[0],
+        zoom: 12,
+        speed: 1.2,
+        essential: true
+      });
+
+      return;
+    }
+
+    const bounds = new mapboxgl.LngLatBounds();
+
+    locations.forEach(location => bounds.extend(location));
+
+    const maxZoom =
+      locations.length <= 10
+        ? 11.2
+        : locations.length <= 35
+          ? 10.2
+          : locations.length <= 120
+            ? 9.2
+            : 8.3;
+
+    this.map.fitBounds(bounds, {
+      padding: 55,
+      maxZoom,
+      duration: 1000
     });
-
-    return;
   }
-
-  const bounds = new mapboxgl.LngLatBounds();
-
-  locations.forEach(location => bounds.extend(location));
-
-  const maxZoom =
-    locations.length <= 10
-      ? 11.2
-      : locations.length <= 35
-        ? 10.2
-        : locations.length <= 120
-          ? 9.2
-          : 8.3;
-
-  this.map.fitBounds(bounds, {
-    padding: 55,
-    maxZoom,
-    duration: 1000
-  });
-}
 
   private createFeatureCollection(features: any[]): any {
     return {
@@ -808,23 +1040,20 @@ private fitMapToLocations(locations: Array<[number, number]>): void {
     this.resizeObserver.observe(this.mapContainer.nativeElement);
   }
 
-  private hasValidCoordinates(meter: Meter): boolean {
-    if (meter.latitude === null || meter.latitude === undefined) {
-      return false;
+  private ensureSelectedCompanyStillExists(): void {
+    const selectedCompanyId = this.selectedPmseCompanyId();
+
+    if (!selectedCompanyId) {
+      return;
     }
 
-    if (meter.longitude === null || meter.longitude === undefined) {
-      return false;
-    }
-
-    return (
-      Number.isFinite(meter.latitude) &&
-      Number.isFinite(meter.longitude) &&
-      meter.latitude >= -90 &&
-      meter.latitude <= 90 &&
-      meter.longitude >= -180 &&
-      meter.longitude <= 180
+    const exists = this.allMeters().some(meter =>
+      Number(meter.pmseCompanyId) === selectedCompanyId
     );
+
+    if (!exists) {
+      this.selectedPmseCompanyId.set(null);
+    }
   }
 
   private ensureSelectedMeterStillExists(): void {
@@ -839,7 +1068,83 @@ private fitMapToLocations(locations: Array<[number, number]>): void {
 
     if (!exists) {
       this.selectedMeterControl.setValue(null, { emitEvent: false });
+      this.selectedMeterId.set(null);
     }
+  }
+
+  private buildMeterSummary(meters: Meter[]): MeterSummary {
+    return {
+      total: meters.length,
+      withCoordinates: meters.filter(meter => this.hasValidCoordinates(meter)).length,
+      withoutCoordinates: meters.filter(meter => !this.hasValidCoordinates(meter)).length,
+      expired: meters.filter(meter => this.getMeterTone(meter) === 'expired').length,
+      soon: meters.filter(meter => this.getMeterTone(meter) === 'soon').length,
+      valid: meters.filter(meter => this.getMeterTone(meter) === 'valid').length,
+      noDate: meters.filter(meter => this.getMeterTone(meter) === 'no-date').length,
+      inactive: meters.filter(meter => this.getMeterTone(meter) === 'inactive').length
+    };
+  }
+
+  private buildComplianceSummary(items: CalibrationPlanItem[]): CompanyComplianceSummary {
+    const totalItems = items.length;
+
+    const eligibleItems = items.filter(item => this.isEligibleItem(item)).length;
+
+    const completedItems = items.filter(item =>
+      this.isEligibleItem(item) &&
+      Number(item.itemStatus) === CalibrationPlanItemStatus.Approved
+    ).length;
+
+    const notCompletedItems = Math.max(eligibleItems - completedItems, 0);
+    const futurePendingItems = Math.max(totalItems - eligibleItems, 0);
+
+    const completionRate =
+      eligibleItems > 0
+        ? (completedItems / eligibleItems) * 100
+        : 0;
+
+    return {
+      totalItems,
+      eligibleItems,
+      completedItems,
+      notCompletedItems,
+      futurePendingItems,
+      completionRate
+    };
+  }
+
+  private isEligibleItem(item: CalibrationPlanItem): boolean {
+    if (Number(item.itemStatus) === CalibrationPlanItemStatus.Approved) {
+      return true;
+    }
+
+    const plannedEndDate = this.parseDateOnly(item.plannedEndDate);
+
+    if (!plannedEndDate) {
+      return false;
+    }
+
+    return plannedEndDate <= this.today();
+  }
+
+  private parseDateOnly(value?: string | null): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(`${value.substring(0, 10)}T00:00:00`);
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private today(): Date {
+    const now = new Date();
+
+    return new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
   }
 
   private buildMeterDisplayName(meter: Meter): string {
@@ -861,26 +1166,23 @@ private fitMapToLocations(locations: Array<[number, number]>): void {
     return parts.join(' · ');
   }
 
-  private getGroupTone(meters: Meter[]): MeterMapTone {
-    const tones = meters.map(meter => this.getMeterTone(meter));
+  private getTonePriority(tone: MeterMapTone): number {
+    switch (tone) {
+      case 'expired':
+        return 1;
 
-    if (tones.includes('expired')) {
-      return 'expired';
+      case 'soon':
+        return 2;
+
+      case 'no-date':
+        return 3;
+
+      case 'valid':
+        return 4;
+
+      case 'inactive':
+        return 5;
     }
-
-    if (tones.includes('soon')) {
-      return 'soon';
-    }
-
-    if (tones.includes('no-date')) {
-      return 'no-date';
-    }
-
-    if (tones.includes('inactive')) {
-      return 'inactive';
-    }
-
-    return 'valid';
   }
 
   private getToneColor(tone: MeterMapTone): string {
@@ -900,6 +1202,26 @@ private fitMapToLocations(locations: Array<[number, number]>): void {
       case 'inactive':
         return '#64748b';
     }
+  }
+
+  private hasValidCoordinates(meter: Meter): boolean {
+    if (meter.latitude === null || meter.latitude === undefined) {
+      return false;
+    }
+
+    if (meter.longitude === null || meter.longitude === undefined) {
+      return false;
+    }
+
+    return (
+      Number.isFinite(meter.latitude) &&
+      Number.isFinite(meter.longitude) &&
+      meter.latitude >= -90 &&
+      meter.latitude <= 90 &&
+      meter.longitude >= -180 &&
+      meter.longitude <= 180 &&
+      !(meter.latitude === 0 && meter.longitude === 0)
+    );
   }
 
   private startOfDay(date: Date): Date {

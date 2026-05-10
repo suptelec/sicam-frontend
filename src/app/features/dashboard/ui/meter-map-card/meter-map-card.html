@@ -27,153 +27,314 @@
     </div>
   </div>
 
+@if (!isCenaceUser()) {
   <div class="map-card__summary">
     <article>
       <span>Total</span>
-      <strong>{{ allMeters().length }}</strong>
+      <strong>{{ visibleSummary().total }}</strong>
     </article>
 
     <article>
       <span>Con coordenadas</span>
-      <strong>{{ metersWithCoordinates().length }}</strong>
+      <strong>{{ visibleSummary().withCoordinates }}</strong>
     </article>
 
     <article>
       <span>Sin coordenadas</span>
-      <strong>{{ metersWithoutCoordinates().length }}</strong>
+      <strong>{{ visibleSummary().withoutCoordinates }}</strong>
     </article>
 
     <article class="summary-danger">
       <span>Vencidos</span>
-      <strong>{{ expiredMeters().length }}</strong>
+      <strong>{{ visibleSummary().expired }}</strong>
     </article>
 
     <article class="summary-warning">
       <span>Por vencer</span>
-      <strong>{{ soonMeters().length }}</strong>
+      <strong>{{ visibleSummary().soon }}</strong>
     </article>
   </div>
+}
 
   <div
-    class="map-card__toolbar"
-    [class.map-card__toolbar--cenace]="isCenaceUser()"
+    class="map-card__workspace"
+    [class.map-card__workspace--with-panel]="isCenaceUser() || isPmseUser()"
   >
-    @if (isCenaceUser()) {
-      <div class="company-filter-shell">
-        <app-searchable-select
-          class="company-filter"
-          [formControl]="selectedPmseCompanyControl"
-          placeholder="Buscar empresa PMSE..."
-          emptyLabel="Todas las empresas PMSE"
-          noResultsText="No se encontraron empresas"
-          prefixIcon="business"
-          [options]="pmseCompanies()"
-          displayKey="name"
-          valueKey="id"
-          [searchKeys]="['name', 'ruc', 'externalCode']"
-          [showLabel]="false"
-          [compact]="true"
-        />
+    <div class="map-card__map-area">
+      <div class="map-card__toolbar">
+        <div class="meter-filter-shell">
+          <app-searchable-select
+            class="meter-filter"
+            [formControl]="selectedMeterControl"
+            placeholder="Buscar medidor..."
+            emptyLabel="Todos los medidores"
+            noResultsText="No se encontraron medidores"
+            prefixIcon="speed"
+            [options]="meterSearchOptions()"
+            displayKey="displayName"
+            valueKey="id"
+            [searchKeys]="['displayName']"
+            [showLabel]="false"
+            [compact]="true"
+          />
+        </div>
+
+        @if (isCenaceUser() && selectedPmseCompanyName(); as companyName) {
+          <div class="map-card__active-filter">
+            <div class="map-card__active-filter-info">
+              <mat-icon>business</mat-icon>
+
+              <div>
+              <span>Filtro activo</span>
+              <strong>{{ companyName }}</strong>
+              <small>
+                {{ visibleSummary().total }} medidores ·
+                {{ visibleSummary().expired }} vencidos ·
+                {{ visibleSummary().soon }} por vencer
+              </small>
+            </div>
+            </div>
+
+            <button
+              type="button"
+              class="map-card__clear-filter"
+              (click)="clearCompanyFilter()"
+            >
+              <mat-icon>close</mat-icon>
+              Ver todas
+            </button>
+          </div>
+        }
       </div>
-    }
 
-    <div class="meter-filter-shell">
-      <app-searchable-select
-        class="meter-filter"
-        [formControl]="selectedMeterControl"
-        placeholder="Buscar medidor..."
-        emptyLabel="Todos los medidores"
-        noResultsText="No se encontraron medidores"
-        prefixIcon="speed"
-        [options]="meterSearchOptions()"
-        displayKey="displayName"
-        valueKey="id"
-        [searchKeys]="['displayName']"
-        [showLabel]="false"
-        [compact]="true"
-      />
+      <div class="map-card__body">
+        <div
+          #mapContainer
+          class="map-container"
+        ></div>
+
+        @if (selectedPopup(); as popup) {
+          <div
+            class="meter-map-popup"
+            [class.meter-map-popup--bottom]="popup.placement === 'bottom'"
+            [style.left.px]="popup.left"
+            [style.top.px]="popup.top"
+          >
+            <button
+              type="button"
+              class="meter-map-popup__close"
+              (click)="closePopup()"
+              aria-label="Cerrar popup"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+
+            <p class="meter-map-popup__eyebrow">SICAM · Medidores</p>
+
+            <h4>
+              @if (popup.meters.length === 1) {
+                {{ popup.meters[0].code }}
+              } @else {
+                {{ popup.meters.length }} medidores en esta ubicación
+              }
+            </h4>
+
+            <div class="meter-map-popup__list">
+              @for (meter of popup.meters.slice(0, 8); track meter.id) {
+                <article>
+                  <div class="meter-map-popup__row">
+                    <strong>{{ meter.code }}</strong>
+                    <span [class]="'meter-map-popup__status meter-map-popup__status--' + getMeterTone(meter)">
+                      {{ getToneLabel(getMeterTone(meter)) }}
+                    </span>
+                  </div>
+
+                  <p>Serial: {{ meter.serial || '—' }}</p>
+
+                  @if (isCenaceUser()) {
+                    <p>PMSE: {{ meter.pmseCompanyName || '—' }}</p>
+                  }
+
+                  <p>{{ meter.province || '—' }} · {{ meter.sector || '—' }}</p>
+                  <p>Próx. calibración: {{ formatDateForView(meter.nextCalibrationDate) }}</p>
+                </article>
+              }
+            </div>
+          </div>
+        }
+
+        @if (isLoading()) {
+          <div class="map-overlay">
+            <mat-spinner diameter="30" />
+            <span>Cargando medidores...</span>
+          </div>
+        }
+
+        @if (errorMessage()) {
+          <div class="map-message">
+            <mat-icon>map</mat-icon>
+            <strong>No se pudo mostrar el mapa</strong>
+            <p>{{ errorMessage() }}</p>
+          </div>
+        }
+
+        @if (!isLoading() && !errorMessage() && visibleMeters().length > 0 && metersWithCoordinates().length === 0) {
+          <div class="map-message">
+            <mat-icon>location_off</mat-icon>
+            <strong>No hay medidores con coordenadas</strong>
+            <p>
+              Se encontraron {{ visibleMeters().length }} medidores, pero ninguno tiene latitud y longitud registradas.
+            </p>
+          </div>
+        }
+      </div>
     </div>
-  </div>
 
-  <div class="map-card__body">
-    <div
-      #mapContainer
-      class="map-container"
-    ></div>
+    @if (isCenaceUser()) {
+      <aside class="map-card__side-panel">
+        <header class="side-panel__header">
+          <div>
+            <p>Empresas PMSE</p>
+            <h4>Cumplimiento y ubicación</h4>
+          </div>
 
-    @if (selectedPopup(); as popup) {
-      <div
-        class="meter-map-popup"
-        [class.meter-map-popup--bottom]="popup.placement === 'bottom'"
-        [style.left.px]="popup.left"
-        [style.top.px]="popup.top"
-      >
-        <button
-          type="button"
-          class="meter-map-popup__close"
-          (click)="closePopup()"
-          aria-label="Cerrar popup"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
+          <span>{{ companySummaries().length }}</span>
+        </header>
 
-        <p class="meter-map-popup__eyebrow">SICAM · Medidores</p>
+        <label class="side-panel__search">
+          <mat-icon>search</mat-icon>
+          <input
+            type="text"
+            placeholder="Buscar empresa..."
+            [value]="companyPanelSearch()"
+            (input)="onCompanyPanelSearch($any($event.target).value)"
+          />
+        </label>
 
-        <h4>
-          @if (popup.meters.length === 1) {
-            {{ popup.meters[0].code }}
-          } @else {
-            {{ popup.meters.length }} medidores en esta ubicación
+        <div class="side-panel__list">
+          <button
+            type="button"
+            class="company-item company-item--all"
+            [class.company-item--active]="!selectedPmseCompanyId()"
+            (click)="selectAllCompanies()"
+          >
+            <div class="company-item__top">
+              <strong>Todas las empresas PMSE</strong>
+              <span class="company-item__rate">
+                {{ formatPercentage(globalComplianceSummary().completionRate) }}
+              </span>
+            </div>
+
+            <div class="company-item__badges">
+              <span>Total: {{ globalComplianceSummary().totalItems }}</span>
+              <span>Exigibles: {{ globalComplianceSummary().eligibleItems }}</span>
+              <span>Pendientes: {{ globalComplianceSummary().futurePendingItems }}</span>
+            </div>
+
+            <div class="company-item__progress">
+              <i [style.width.%]="globalComplianceSummary().completionRate"></i>
+            </div>
+
+            <small>
+              {{ globalComplianceSummary().completedItems }} cumplidos ·
+              {{ globalComplianceSummary().notCompletedItems }} no cumplidos
+            </small>
+
+            <div class="company-item__map-footnote">
+              <span>{{ globalSummary().total }} medidores</span>
+              <span>{{ globalSummary().expired }} vencidos</span>
+              <span>{{ globalSummary().soon }} por vencer</span>
+            </div>
+          </button>
+
+          @for (company of filteredCompanySummaries(); track company.pmseCompanyId) {
+            <button
+              type="button"
+              class="company-item"
+              [class.company-item--active]="isCompanySelected(company)"
+              (click)="selectCompanyFromPanel(company)"
+            >
+              <div class="company-item__top">
+                <strong>{{ company.pmseCompanyName }}</strong>
+                <span class="company-item__rate">
+                  {{ formatPercentage(company.completionRate) }}
+                </span>
+              </div>
+
+              <div class="company-item__badges">
+                <span>Total: {{ company.totalItems }}</span>
+                <span>Exigibles: {{ company.eligibleItems }}</span>
+                <span>Pendientes: {{ company.futurePendingItems }}</span>
+              </div>
+
+              <div class="company-item__progress">
+                <i [style.width.%]="company.completionRate"></i>
+              </div>
+
+              <small>
+                {{ company.completedItems }} cumplidos ·
+                {{ company.notCompletedItems }} no cumplidos
+              </small>
+
+              <div class="company-item__map-footnote">
+                <span>{{ company.total }} medidores</span>
+                <span>{{ company.expired }} vencidos</span>
+                <span>{{ company.soon }} por vencer</span>
+              </div>
+            </button>
           }
-        </h4>
+        </div>
+      </aside>
+    } @else if (isPmseUser()) {
+      <aside class="map-card__side-panel">
+        <header class="side-panel__header">
+          <div>
+            <p>Medidores</p>
+            <h4>{{ pmseCompanyName() ?? 'Tu empresa PMSE' }}</h4>
+          </div>
 
-        <div class="meter-map-popup__list">
-          @for (meter of popup.meters.slice(0, 8); track meter.id) {
-            <article>
-              <div class="meter-map-popup__row">
+          <span>{{ visibleMeters().length }}</span>
+        </header>
+
+        <label class="side-panel__search">
+          <mat-icon>search</mat-icon>
+          <input
+            type="text"
+            placeholder="Buscar medidor..."
+            [value]="meterPanelSearch()"
+            (input)="onMeterPanelSearch($any($event.target).value)"
+          />
+        </label>
+
+        <div class="side-panel__list">
+          @for (meter of sidePanelMeters(); track meter.id) {
+            <button
+              type="button"
+              class="meter-item"
+              [class.meter-item--active]="isMeterSelected(meter)"
+              [class.meter-item--disabled]="!canFocusMeter(meter)"
+              [disabled]="!canFocusMeter(meter)"
+              (click)="selectMeterFromPanel(meter)"
+            >
+              <div class="meter-item__top">
                 <strong>{{ meter.code }}</strong>
-                <span [class]="'meter-map-popup__status meter-map-popup__status--' + getMeterTone(meter)">
+
+                <span [class]="'meter-status meter-status--' + getMeterTone(meter)">
+                  <mat-icon>{{ getToneIcon(getMeterTone(meter)) }}</mat-icon>
                   {{ getToneLabel(getMeterTone(meter)) }}
                 </span>
               </div>
 
               <p>Serial: {{ meter.serial || '—' }}</p>
-
-              @if (isCenaceUser()) {
-                <p>PMSE: {{ meter.pmseCompanyName || '—' }}</p>
-              }
-
               <p>{{ meter.province || '—' }} · {{ meter.sector || '—' }}</p>
-              <p>Próx. calibración: {{ formatDateForView(meter.nextCalibrationDate) }}</p>
-            </article>
+
+              <small>
+                Próx. calibración: {{ formatDateForView(meter.nextCalibrationDate) }}
+              </small>
+            </button>
           }
         </div>
-      </div>
-    }
-
-    @if (isLoading()) {
-      <div class="map-overlay">
-        <mat-spinner diameter="30" />
-        <span>Cargando medidores...</span>
-      </div>
-    }
-
-    @if (errorMessage()) {
-      <div class="map-message">
-        <mat-icon>map</mat-icon>
-        <strong>No se pudo mostrar el mapa</strong>
-        <p>{{ errorMessage() }}</p>
-      </div>
-    }
-
-    @if (!isLoading() && !errorMessage() && allMeters().length > 0 && metersWithCoordinates().length === 0) {
-      <div class="map-message">
-        <mat-icon>location_off</mat-icon>
-        <strong>No hay medidores con coordenadas</strong>
-        <p>
-          Se encontraron {{ allMeters().length }} medidores, pero ninguno tiene latitud y longitud registradas.
-        </p>
-      </div>
+      </aside>
     }
   </div>
 
