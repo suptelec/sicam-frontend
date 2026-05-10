@@ -216,7 +216,96 @@
   display: none !important;
 }
 
+.map-card__active-filter {
+  min-height: 44px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.82)),
+    rgba(15, 23, 42, 0.76);
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
 
+.map-card__active-filter-info {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  mat-icon {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    color: #93c5fd;
+    font-size: 18px;
+  }
+
+  div {
+    min-width: 0;
+  }
+
+  span {
+    display: block;
+    color: #93c5fd;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  small {
+    display: block;
+    margin-top: 2px;
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.map-card__clear-filter {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #dbeafe;
+  background: rgba(96, 165, 250, 0.14);
+  font-size: 0.76rem;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(96, 165, 250, 0.26);
+  }
+}
 
 ::ng-deep .searchable-select__panel.mat-mdc-autocomplete-panel {
   margin-top: 6px !important;
