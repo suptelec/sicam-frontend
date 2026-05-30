@@ -1,12 +1,12 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://sicam-backend-20260503-2101.onrender.com/api',
-  identityUrl: 'https://identity-20260503-2125.onrender.com',
+  apiUrl: 'https://sicam-api.codeleck.com/api',
+  identityUrl: 'https://sicam-identity.codeleck.com',
   mapboxToken: '__MAPBOX_TOKEN__',
   oidc: {
-    issuer: 'https://identity-20260503-2125.onrender.com/',
-    redirectUri: 'https://sicam-frontend.onrender.com/auth/callback',
-    postLogoutRedirectUri: 'https://sicam-frontend.onrender.com/auth/logout',
+    issuer: 'https://sicam-identity.codeleck.com/',
+    redirectUri: 'https://sicam.codeleck.com/auth/callback',
+    postLogoutRedirectUri: 'https://sicam.codeleck.com/auth/logout',
     clientId: 'scm-spa',
     scope: 'openid profile offline_access scm-api',
     requireHttps: true
