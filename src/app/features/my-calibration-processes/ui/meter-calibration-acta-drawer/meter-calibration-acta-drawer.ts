@@ -52,7 +52,7 @@ import {
 type ActaStep = 'acta' | 'photos';
 type ActaSection = 'datos' | 'validaciones' | 'finalizacion' | 'sellos';
 type ActaCheckSource = 'manual';
-type InstallationFormOption = '9S' | '32S';
+type InstallationFormOption = '9S' | '35S';
 
 interface ActaCheckDefinition {
   checkCode: number;
@@ -78,7 +78,7 @@ interface GroupedActaCheckSection {
 
 const CENACE_MANUAL_CHECK_CODES = [22, 31, 40];
 const METER_INSTALLATION_FORM_CODES = [8, 56];
-const METER_INSTALLATION_FORM_OPTIONS: InstallationFormOption[] = ['9S', '32S'];
+const METER_INSTALLATION_FORM_OPTIONS: InstallationFormOption[] = ['9S', '35S'];
 
 const PMSE_INITIAL_CHECKS: ActaCheckDefinition[] = [
   {
